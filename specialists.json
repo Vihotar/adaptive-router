@@ -1,0 +1,3270 @@
+{
+  "version": "1.0.0",
+  "totalSpecialists": 131,
+  "portableCount": 130,
+  "claudeRequiredCount": 1,
+  "toolDependentCount": 12,
+  "highPriorityCount": 19,
+  "specialists": [
+    {
+      "id": "agentic-identity-trust",
+      "name": "Agentic Identity & Trust Architect",
+      "expertise": "Designs identity, authentication, and trust verification systems for autonomous AI agents operating in multi-agent environments. Ensures agents can prove who they are, what they're authorized to do, and what they actually did.",
+      "mainCategory": "Security & Trust",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Cryptographic proof of agent actions, zero-trust verification, and audit trails",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\agentic-identity-trust.md"
+    },
+    {
+      "id": "agents-orchestrator",
+      "name": "Agents Orchestrator",
+      "expertise": "Autonomous pipeline manager that orchestrates the entire development workflow. You are the leader of this process.",
+      "mainCategory": "General Business & Strategy",
+      "classification": "B. Claude-Specific",
+      "portable": false,
+      "claudeRequired": true,
+      "supportedPlatforms": [
+        "claude-code"
+      ],
+      "requiredTools": [
+        "claude-subagent-spawner"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\agents-orchestrator.md"
+    },
+    {
+      "id": "automation-governance-architect",
+      "name": "Automation Governance Architect",
+      "expertise": "Governance-first architect for business automations (n8n-first) who audits value, risk, and maintainability before implementation.",
+      "mainCategory": "Security & Trust",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\automation-governance-architect.md"
+    },
+    {
+      "id": "business-strategist",
+      "name": "Business Strategist",
+      "expertise": "Senior management consulting specialist for competitive analysis, market entry strategy, business model design, growth planning, organizational strategy, and strategic decision-making \u2014 translating complex market dynamics into clear, actionable strategies that create sustainable competitive advantage",
+      "mainCategory": "General Business & Strategy",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "High-leverage business model validation, market positioning, and ROI prioritization",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\business-strategist.md"
+    },
+    {
+      "id": "chief-financial-officer",
+      "name": "Chief Financial Officer",
+      "expertise": "Strategic finance executive who governs capital allocation, treasury operations, financial planning, M&A finance, investor relations, and board reporting \u2014 translating financial complexity into clear decisions that drive business performance and stakeholder confidence.",
+      "mainCategory": "General Business & Strategy",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "finance-bookkeeper-controller",
+        "finance-financial-analyst",
+        "finance-fpa-analyst",
+        "support-finance-tracker"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\chief-financial-officer.md"
+    },
+    {
+      "id": "customer-service",
+      "name": "Customer Service",
+      "expertise": "Friendly, professional customer service specialist for any industry \u2014 handling inquiries, complaints, account support, FAQs, and seamless escalation with warmth, efficiency, and a genuine commitment to customer satisfaction",
+      "mainCategory": "Customer Operations",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\customer-service.md"
+    },
+    {
+      "id": "customer-success-manager",
+      "name": "Customer Success Manager",
+      "expertise": "Strategic customer success specialist for onboarding, health scoring, QBR facilitation, churn prevention, expansion identification, and renewal management \u2014 driving net revenue retention by turning customers into long-term partners who achieve measurable outcomes",
+      "mainCategory": "Customer Operations",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\customer-success-manager.md"
+    },
+    {
+      "id": "data-privacy-officer",
+      "name": "Data Privacy Officer",
+      "expertise": "Corporate data privacy specialist and DPO who builds GDPR, CCPA, and global privacy compliance programs \u2014 covering data mapping, privacy impact assessments, consent management, breach response, vendor due diligence, and regulatory engagement.",
+      "mainCategory": "General Business & Strategy",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\data-privacy-officer.md"
+    },
+    {
+      "id": "design-brand-guardian",
+      "name": "Brand Guardian",
+      "expertise": "Expert brand strategist and guardian specializing in brand identity development, consistency maintenance, and strategic brand positioning",
+      "mainCategory": "UI/UX & Design",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\design-brand-guardian.md"
+    },
+    {
+      "id": "design-image-prompt-engineer",
+      "name": "Image Prompt Engineer",
+      "expertise": "Expert photography prompt engineer specializing in crafting detailed, evocative prompts for AI image generation. Masters the art of translating visual concepts into precise language that produces stunning, professional-quality photography through generative AI tools.",
+      "mainCategory": "UI/UX & Design",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\design-image-prompt-engineer.md"
+    },
+    {
+      "id": "design-inclusive-visuals-specialist",
+      "name": "Inclusive Visuals Specialist",
+      "expertise": "Representation expert who defeats systemic AI biases to generate culturally accurate, affirming, and non-stereotypical images and video.",
+      "mainCategory": "UI/UX & Design",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\design-inclusive-visuals-specialist.md"
+    },
+    {
+      "id": "design-persona-walkthrough",
+      "name": "Persona Walkthrough Specialist",
+      "expertise": "Simulate cognitive walkthroughs of web pages from a defined persona's psychological perspective \u2014 captures emotional reactions and rational thought at each scroll position, then delivers structured CRO reports grounded in LIFT, Cialdini, and Fogg frameworks",
+      "mainCategory": "UI/UX & Design",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\design-persona-walkthrough.md"
+    },
+    {
+      "id": "design-ui-designer",
+      "name": "UI Designer",
+      "expertise": "Expert UI designer specializing in visual design systems, component libraries, and pixel-perfect interface creation. Creates beautiful, consistent, accessible user interfaces that enhance UX and reflect brand identity",
+      "mainCategory": "UI/UX & Design",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "User interface layouts, design systems, visual hierarchy, and accessible design",
+      "relatedSpecialists": [
+        "engineering-frontend-architect",
+        "engineering-frontend-developer",
+        "engineering-rapid-prototyper",
+        "design-ux-architect",
+        "design-ui-finish-gate-reviewer"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\design-ui-designer.md"
+    },
+    {
+      "id": "design-ui-finish-gate-reviewer",
+      "name": "UI Finish-Gate Reviewer",
+      "expertise": "Product-interface reviewer who catches generic, interchangeable UI before it ships by grounding critique in real product evidence, a written design contract, and a hard implementation finish gate.",
+      "mainCategory": "UI/UX & Design",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "engineering-frontend-architect",
+        "engineering-frontend-developer",
+        "engineering-rapid-prototyper",
+        "design-ui-designer",
+        "design-ux-architect"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\design-ui-finish-gate-reviewer.md"
+    },
+    {
+      "id": "design-ux-architect",
+      "name": "UX Architect",
+      "expertise": "Technical architecture and UX specialist who provides developers with solid foundations, CSS systems, and clear implementation guidance",
+      "mainCategory": "UI/UX & Design",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "engineering-frontend-architect",
+        "engineering-frontend-developer",
+        "engineering-rapid-prototyper",
+        "design-ui-designer",
+        "design-ui-finish-gate-reviewer"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\design-ux-architect.md"
+    },
+    {
+      "id": "design-ux-researcher",
+      "name": "UX Researcher",
+      "expertise": "Expert user experience researcher specializing in user behavior analysis, usability testing, and data-driven design insights. Provides actionable research findings that improve product usability and user satisfaction",
+      "mainCategory": "UI/UX & Design",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\design-ux-researcher.md"
+    },
+    {
+      "id": "design-visual-storyteller",
+      "name": "Visual Storyteller",
+      "expertise": "Expert visual communication specialist focused on creating compelling visual narratives, multimedia content, and brand storytelling through design. Specializes in transforming complex information into engaging visual stories that connect with audiences and drive emotional engagement.",
+      "mainCategory": "UI/UX & Design",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\design-visual-storyteller.md"
+    },
+    {
+      "id": "design-whimsy-injector",
+      "name": "Whimsy Injector",
+      "expertise": "Expert creative specialist focused on adding personality, delight, and playful elements to brand experiences. Creates memorable, joyful interactions that differentiate brands through unexpected moments of whimsy",
+      "mainCategory": "UI/UX & Design",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\design-whimsy-injector.md"
+    },
+    {
+      "id": "engineering-ai-engineer",
+      "name": "AI Engineer",
+      "expertise": "Expert AI/ML engineer specializing in machine learning model development, deployment, and integration into production systems. Focused on building intelligent features, data pipelines, and AI-powered applications with emphasis on practical, scalable solutions.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-ai-engineer.md"
+    },
+    {
+      "id": "engineering-api-platform-engineer",
+      "name": "API Platform Engineer",
+      "expertise": "Expert API platform engineer for public and partner APIs \u2014 contract-first design (OpenAPI/gRPC), versioning and deprecation policy, SDK generation, API gateway concerns (auth, rate limiting, quotas), and developer-portal DX.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-api-platform-engineer.md"
+    },
+    {
+      "id": "engineering-autonomous-optimization-architect",
+      "name": "Autonomous Optimization Architect",
+      "expertise": "Intelligent system governor that continuously shadow-tests APIs for performance while enforcing strict financial and security guardrails against runaway costs.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-autonomous-optimization-architect.md"
+    },
+    {
+      "id": "engineering-backend-architect",
+      "name": "Backend Architect",
+      "expertise": "Senior backend architect specializing in scalable system design, database architecture, API development, and cloud infrastructure. Builds robust, secure, performant server-side applications and microservices",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Core system architecture, scalable APIs, and database schema designs",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-backend-architect.md"
+    },
+    {
+      "id": "engineering-cms-developer",
+      "name": "CMS Developer",
+      "expertise": "Drupal and WordPress specialist for theme development, custom plugins/modules, content architecture, and code-first CMS implementation",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-cms-developer.md"
+    },
+    {
+      "id": "engineering-code-reviewer",
+      "name": "Code Reviewer",
+      "expertise": "Expert code reviewer who provides constructive, actionable feedback focused on correctness, maintainability, security, and performance \u2014 not style preferences.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-code-reviewer.md"
+    },
+    {
+      "id": "engineering-codebase-onboarding-engineer",
+      "name": "Codebase Onboarding Engineer",
+      "expertise": "Expert developer onboarding specialist who helps new engineers understand unfamiliar codebases fast by reading source code, tracing code paths, and stating only facts grounded in the code.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-codebase-onboarding-engineer.md"
+    },
+    {
+      "id": "engineering-data-visualization-engineer",
+      "name": "Data Visualization Engineer",
+      "expertise": "Expert data visualization engineer \u2014 chart-type selection by data and question, perceptually honest encodings, colorblind-safe data palettes, accessible and interactive charts, and rendering large datasets performantly with D3, Vega, and charting libraries.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-data-visualization-engineer.md"
+    },
+    {
+      "id": "engineering-database-optimizer",
+      "name": "Database Optimizer",
+      "expertise": "Expert database specialist focusing on schema design, query optimization, indexing strategies, and performance tuning for PostgreSQL, MySQL, and modern databases like Supabase and PlanetScale.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "engineering-database-reliability-engineer"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-database-optimizer.md"
+    },
+    {
+      "id": "engineering-database-reliability-engineer",
+      "name": "Database Reliability Engineer",
+      "expertise": "Expert database reliability engineer (DBRE) \u2014 high availability and replication, automated failover, backup and point-in-time recovery, zero-downtime online schema migrations, connection pooling, and disaster-recovery drills. Focused on keeping data safe and available, not query tuning.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "engineering-database-optimizer"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-database-reliability-engineer.md"
+    },
+    {
+      "id": "engineering-desktop-app-engineer",
+      "name": "Desktop App Engineer",
+      "expertise": "Expert desktop application engineer for Electron and Tauri \u2014 secure IPC and process isolation, code signing and notarization, auto-update pipelines, native OS integration, and resource-footprint discipline.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-desktop-app-engineer.md"
+    },
+    {
+      "id": "engineering-devops-automator",
+      "name": "DevOps Automator",
+      "expertise": "Expert DevOps engineer specializing in infrastructure automation, CI/CD pipeline development, and cloud operations",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "shell",
+        "docker-or-k8s"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-devops-automator.md"
+    },
+    {
+      "id": "engineering-drupal-performance",
+      "name": "Drupal Performance Engineer",
+      "expertise": "Expert Drupal 10/11 performance engineer specializing in Core Web Vitals, render and dynamic page caching, BigPipe, cache tags and contexts, database query and Views optimization, CSS/JS aggregation, responsive images and lazy loading, CDN integration, and opcache/PHP-FPM tuning for fast, audit-passing sites",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-drupal-performance.md"
+    },
+    {
+      "id": "engineering-drupal-shopping-cart",
+      "name": "Drupal Shopping Cart Engineer",
+      "expertise": "Expert Drupal e-commerce engineer specializing in Drupal Commerce for product catalog management, payment gateway integration, checkout workflow design, order management, tax and promotion configuration, and high-reliability storefront delivery on Drupal 10/11",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-drupal-shopping-cart.md"
+    },
+    {
+      "id": "engineering-finops-engineer",
+      "name": "FinOps Engineer",
+      "expertise": "Expert cloud cost engineer for AWS/GCP/Azure \u2014 cost allocation and tagging, rightsizing, commitment planning (reserved instances/savings plans), egress and storage optimization, and unit-economics dashboards that tie spend to business value.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-finops-engineer.md"
+    },
+    {
+      "id": "engineering-frontend-developer",
+      "name": "Frontend Developer",
+      "expertise": "Expert frontend developer specializing in modern web technologies, React/Vue/Angular frameworks, UI implementation, and performance optimization",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Modern responsive web development, DOM interactions, and HTML5/CSS/JS",
+      "relatedSpecialists": [
+        "engineering-frontend-architect",
+        "engineering-rapid-prototyper",
+        "design-ui-designer",
+        "design-ux-architect",
+        "design-ui-finish-gate-reviewer"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-frontend-developer.md"
+    },
+    {
+      "id": "engineering-git-workflow-master",
+      "name": "Git Workflow Master",
+      "expertise": "Expert in Git workflows, branching strategies, and version control best practices including conventional commits, rebasing, worktrees, and CI-friendly branch management.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-git-workflow-master.md"
+    },
+    {
+      "id": "engineering-i18n-engineer",
+      "name": "Internationalization Engineer",
+      "expertise": "Expert i18n engineer for ICU MessageFormat, CLDR plural rules, RTL and bidirectional layouts, locale-aware date/number/currency formatting, string extraction pipelines, and pseudo-localization testing.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-i18n-engineer.md"
+    },
+    {
+      "id": "engineering-identity-access-engineer",
+      "name": "Identity & Access Engineer",
+      "expertise": "Expert identity engineer for OAuth 2.0/OIDC flows, enterprise SSO (SAML/OIDC) and SCIM provisioning, passkeys/WebAuthn, session architecture, and multi-tenant authorization with RBAC/ABAC.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-identity-access-engineer.md"
+    },
+    {
+      "id": "engineering-incident-response-commander",
+      "name": "Incident Response Commander",
+      "expertise": "Expert incident commander specializing in production incident management, structured response coordination, post-mortem facilitation, SLO/SLI tracking, and on-call process design for reliable engineering organizations.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-incident-response-commander.md"
+    },
+    {
+      "id": "engineering-minimal-change-engineer",
+      "name": "Minimal Change Engineer",
+      "expertise": "Engineering specialist focused on minimum-viable diffs \u2014 fixes only what was asked, refuses scope creep, prefers three similar lines over a premature abstraction. The discipline that prevents bug-fix PRs from becoming refactor avalanches.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-minimal-change-engineer.md"
+    },
+    {
+      "id": "engineering-mobile-app-builder",
+      "name": "Mobile App Builder",
+      "expertise": "Specialized mobile application developer with expertise in native iOS/Android development and cross-platform frameworks",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-mobile-app-builder.md"
+    },
+    {
+      "id": "engineering-mobile-release-engineer",
+      "name": "Mobile Release Engineer",
+      "expertise": "Expert mobile release and distribution engineer for iOS and Android \u2014 code signing, provisioning, fastlane pipelines, App Store Connect and Play Console submission, phased rollouts, and crash-triaged release health.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-mobile-release-engineer.md"
+    },
+    {
+      "id": "engineering-multi-agent-systems-architect",
+      "name": "Multi-Agent Systems Architect",
+      "expertise": "Systems architect specializing in the design, coordination, and governance of multi-agent AI pipelines \u2014 covering topology selection, context management, inter-agent trust, failure recovery, human-in-the-loop gating, and observability for production-grade agent systems.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-multi-agent-systems-architect.md"
+    },
+    {
+      "id": "engineering-payments-billing-engineer",
+      "name": "Payments & Billing Engineer",
+      "expertise": "Expert payments engineer for PSP integrations (Stripe, Adyen, Braintree, PayPal), idempotent payment flows, webhook processing, subscription billing, SCA/3DS, PCI scope reduction, and financial reconciliation.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-payments-billing-engineer.md"
+    },
+    {
+      "id": "engineering-privacy-engineer",
+      "name": "Privacy Engineer",
+      "expertise": "Expert privacy engineer who implements privacy in code \u2014 PII discovery and classification, data minimization, consent enforcement at the API layer, automated DSAR and deletion across services, pseudonymization/tokenization, and retention automation. Builds the technical controls a privacy policy only promises.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-privacy-engineer.md"
+    },
+    {
+      "id": "engineering-prompt-engineer",
+      "name": "Prompt Engineer",
+      "expertise": "Specialist in crafting, testing, and systematically optimizing prompts for LLMs \u2014 turning vague instructions into reliable, production-grade AI behaviors.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-prompt-engineer.md"
+    },
+    {
+      "id": "engineering-rag-pipeline-engineer",
+      "name": "RAG Pipeline Engineer",
+      "expertise": "Production RAG specialist focused on chunking strategy, retrieval quality, hybrid search, re-ranking, and eval-driven iteration. Builds pipelines that actually retrieve the right context \u2014 not just pipelines that run.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-rag-pipeline-engineer.md"
+    },
+    {
+      "id": "engineering-rapid-prototyper",
+      "name": "Rapid Prototyper",
+      "expertise": "Specialized in ultra-fast proof-of-concept development and MVP creation using efficient tools and frameworks",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "engineering-frontend-architect",
+        "engineering-frontend-developer",
+        "design-ui-designer",
+        "design-ux-architect",
+        "design-ui-finish-gate-reviewer"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-rapid-prototyper.md"
+    },
+    {
+      "id": "engineering-search-relevance-engineer",
+      "name": "Search Relevance Engineer",
+      "expertise": "Expert search engineer for Elasticsearch and OpenSearch \u2014 index and analyzer design, BM25 query tuning, hybrid lexical+vector retrieval, and judgment-based relevance evaluation with nDCG and online experiments.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-search-relevance-engineer.md"
+    },
+    {
+      "id": "engineering-software-architect",
+      "name": "Software Architect",
+      "expertise": "Expert software architect specializing in system design, domain-driven design, architectural patterns, and technical decision-making for scalable, maintainable systems.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-software-architect.md"
+    },
+    {
+      "id": "engineering-sre",
+      "name": "SRE (Site Reliability Engineer)",
+      "expertise": "Expert site reliability engineer specializing in SLOs, error budgets, observability, chaos engineering, and toil reduction for production systems at scale.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-sre.md"
+    },
+    {
+      "id": "engineering-technical-writer",
+      "name": "Technical Writer",
+      "expertise": "Expert technical writer specializing in developer documentation, API references, README files, and tutorials. Transforms complex engineering concepts into clear, accurate, and engaging docs that developers actually read and use.",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-technical-writer.md"
+    },
+    {
+      "id": "engineering-wordpress-performance",
+      "name": "WordPress Performance Engineer",
+      "expertise": "Expert WordPress performance engineer specializing in Core Web Vitals, object caching (Redis/Memcached), page caching, database and WP_Query optimization, the Transients API, asset minification/deferral/critical CSS, image optimization and lazy loading, CDN integration, plugin performance auditing, and PHP-FPM/opcache tuning for fast, audit-passing sites",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-wordpress-performance.md"
+    },
+    {
+      "id": "engineering-wordpress-shopping-cart",
+      "name": "WordPress Shopping Cart Engineer",
+      "expertise": "Expert WordPress e-commerce engineer specializing in WooCommerce for product catalog management, payment gateway integration, checkout customization, order management, tax and coupon configuration, and conversion-optimized storefront delivery on WordPress",
+      "mainCategory": "Engineering & Architecture",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-wordpress-shopping-cart.md"
+    },
+    {
+      "id": "finance-bookkeeper-controller",
+      "name": "Bookkeeper & Controller",
+      "expertise": "Expert bookkeeper and controller specializing in day-to-day accounting operations, financial reconciliations, month-end close processes, and internal controls. Ensures the accuracy, completeness, and timeliness of financial records while maintaining GAAP compliance and audit readiness at all times.",
+      "mainCategory": "Finance & Accounting",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "finance-financial-analyst",
+        "finance-fpa-analyst",
+        "chief-financial-officer",
+        "support-finance-tracker"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\finance-bookkeeper-controller.md"
+    },
+    {
+      "id": "finance-financial-analyst",
+      "name": "Financial Analyst",
+      "expertise": "Expert financial analyst specializing in financial modeling, forecasting, scenario analysis, and data-driven decision support. Transforms raw financial data into actionable business intelligence that drives strategic planning, investment decisions, and operational optimization.",
+      "mainCategory": "Finance & Accounting",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "finance-bookkeeper-controller",
+        "finance-fpa-analyst",
+        "chief-financial-officer",
+        "support-finance-tracker"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\finance-financial-analyst.md"
+    },
+    {
+      "id": "finance-fpa-analyst",
+      "name": "FP&A Analyst",
+      "expertise": "Expert Financial Planning & Analysis (FP&A) analyst specializing in budgeting, variance analysis, financial planning, rolling forecasts, and strategic decision support. Bridges the gap between the numbers and the business narrative to drive operational performance and strategic resource allocation.",
+      "mainCategory": "Finance & Accounting",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "finance-bookkeeper-controller",
+        "finance-financial-analyst",
+        "chief-financial-officer",
+        "support-finance-tracker"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\finance-fpa-analyst.md"
+    },
+    {
+      "id": "finance-investment-researcher",
+      "name": "Investment Researcher",
+      "expertise": "Expert investment researcher specializing in market research, due diligence, portfolio analysis, and asset valuation. Conducts rigorous fundamental and quantitative analysis to identify investment opportunities, assess risks, and support data-driven portfolio decisions across public equities, private markets, and alternative assets.",
+      "mainCategory": "Finance & Accounting",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\finance-investment-researcher.md"
+    },
+    {
+      "id": "finance-tax-strategist",
+      "name": "Tax Strategist",
+      "expertise": "Expert tax strategist specializing in tax optimization, multi-jurisdictional compliance, transfer pricing, and strategic tax planning. Navigates complex tax codes to minimize liability while ensuring full regulatory compliance across local, state, federal, and international tax regimes.",
+      "mainCategory": "Finance & Accounting",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\finance-tax-strategist.md"
+    },
+    {
+      "id": "marketing-aeo-foundations",
+      "name": "AEO Foundations Architect",
+      "expertise": "Expert in AI Engine Optimization infrastructure \u2014 implements llms.txt, AI-aware robots.txt, token-budgeted content, structured Markdown availability, and agent discovery files so AI crawlers, citation engines, and browsing agents can find, parse, and act on your site",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "marketing-agentic-search-optimizer",
+        "marketing-ai-citation-strategist",
+        "marketing-seo-specialist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-aeo-foundations.md"
+    },
+    {
+      "id": "marketing-agentic-search-optimizer",
+      "name": "Agentic Search Optimizer",
+      "expertise": "Expert in WebMCP readiness and agentic task completion \u2014 audits whether AI agents can actually accomplish tasks on your site (book, buy, register, subscribe), implements WebMCP declarative and imperative patterns, and measures task completion rates across AI browsing agents",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "marketing-aeo-foundations",
+        "marketing-ai-citation-strategist",
+        "marketing-seo-specialist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-agentic-search-optimizer.md"
+    },
+    {
+      "id": "marketing-ai-citation-strategist",
+      "name": "AI Citation Strategist",
+      "expertise": "Expert in AI recommendation engine optimization (AEO/GEO) \u2014 audits brand visibility across ChatGPT, Claude, Gemini, and Perplexity, identifies why competitors get cited instead, and delivers content fixes that improve AI citations",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "AI engine optimization (ChatGPT, Perplexity, Claude, Gemini) and citation positioning",
+      "relatedSpecialists": [
+        "marketing-aeo-foundations",
+        "marketing-agentic-search-optimizer",
+        "marketing-seo-specialist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-ai-citation-strategist.md"
+    },
+    {
+      "id": "marketing-app-store-optimizer",
+      "name": "App Store Optimizer",
+      "expertise": "Expert app store marketing specialist focused on App Store Optimization (ASO), conversion rate optimization, and app discoverability",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-app-store-optimizer.md"
+    },
+    {
+      "id": "marketing-carousel-growth-engine",
+      "name": "Carousel Growth Engine",
+      "expertise": "Autonomous TikTok and Instagram carousel generation specialist. Analyzes any website URL with Playwright, generates viral 6-slide carousels via Gemini image generation, publishes directly to feed via Upload-Post API with auto trending music, fetches analytics, and iteratively improves through a data-driven learning loop.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-carousel-growth-engine.md"
+    },
+    {
+      "id": "marketing-content-creator",
+      "name": "Content Creator",
+      "expertise": "Expert content strategist and creator for multi-platform campaigns. Develops editorial calendars, creates compelling copy, manages brand storytelling, and optimizes content for engagement across all digital channels.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Clear value-proposition copywriting, landing page copy, and audience messaging",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-content-creator.md"
+    },
+    {
+      "id": "marketing-cross-border-ecommerce",
+      "name": "Cross-Border E-Commerce Specialist",
+      "expertise": "Full-funnel cross-border e-commerce strategist covering Amazon, Shopee, Lazada, AliExpress, Temu, and TikTok Shop operations, international logistics and overseas warehousing, compliance and taxation, multilingual listing optimization, brand globalization, and DTC independent site development.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-cross-border-ecommerce.md"
+    },
+    {
+      "id": "marketing-email-strategist",
+      "name": "Email Marketing Strategist",
+      "expertise": "Expert email marketing strategist for CRM-driven campaigns, lifecycle automation, segmentation architecture, and deliverability. Designs sequences (welcome, nurture, reactivation, win-back, review, referral) grounded in 2025-2026 benchmarks, AI-driven personalization, and post-Apple MPP measurement.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Customer onboarding flows, transactional email clarity, and conversion messaging",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-email-strategist.md"
+    },
+    {
+      "id": "marketing-growth-hacker",
+      "name": "Growth Hacker",
+      "expertise": "Expert growth strategist specializing in rapid user acquisition through data-driven experimentation. Develops viral loops, optimizes conversion funnels, and finds scalable growth channels for exponential business growth.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-growth-hacker.md"
+    },
+    {
+      "id": "marketing-instagram-curator",
+      "name": "Instagram Curator",
+      "expertise": "Expert Instagram marketing specialist focused on visual storytelling, community building, and multi-format content optimization. Masters aesthetic development and drives meaningful engagement.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-instagram-curator.md"
+    },
+    {
+      "id": "marketing-linkedin-content-creator",
+      "name": "LinkedIn Content Creator",
+      "expertise": "Expert LinkedIn content strategist focused on thought leadership, personal brand building, and high-engagement professional content. Masters LinkedIn's algorithm and culture to drive inbound opportunities for founders, job seekers, developers, and anyone building a professional presence.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-linkedin-content-creator.md"
+    },
+    {
+      "id": "marketing-reddit-community-builder",
+      "name": "Reddit Community Builder",
+      "expertise": "Expert Reddit marketing specialist focused on authentic community engagement, value-driven content creation, and long-term relationship building. Masters Reddit culture navigation.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-reddit-community-builder.md"
+    },
+    {
+      "id": "marketing-seo-specialist",
+      "name": "SEO Specialist",
+      "expertise": "Expert search engine optimization strategist specializing in technical SEO, content optimization, link authority building, and organic search growth. Drives sustainable traffic through data-driven search strategies.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Technical SEO audits, schema markup, Core Web Vitals, and search crawlability",
+      "relatedSpecialists": [
+        "marketing-aeo-foundations",
+        "marketing-agentic-search-optimizer",
+        "marketing-ai-citation-strategist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-seo-specialist.md"
+    },
+    {
+      "id": "marketing-short-video-editing-coach",
+      "name": "Short-Video Editing Coach",
+      "expertise": "Hands-on short-video editing coach covering the full post-production pipeline, with mastery of CapCut Pro, Premiere Pro, DaVinci Resolve, and Final Cut Pro across composition and camera language, color grading, audio engineering, motion graphics and VFX, subtitle design, multi-platform export optimization, editing workflow efficiency, and AI-assisted editing.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-short-video-editing-coach.md"
+    },
+    {
+      "id": "marketing-social-media-strategist",
+      "name": "Social Media Strategist",
+      "expertise": "Expert social media strategist for LinkedIn, Twitter, and professional platforms. Creates cross-platform campaigns, builds communities, manages real-time engagement, and develops thought leadership strategies.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-social-media-strategist.md"
+    },
+    {
+      "id": "marketing-tiktok-strategist",
+      "name": "TikTok Strategist",
+      "expertise": "Expert TikTok marketing specialist focused on viral content creation, algorithm optimization, and community building. Masters TikTok's unique culture and features for brand growth.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-tiktok-strategist.md"
+    },
+    {
+      "id": "marketing-twitter-engager",
+      "name": "Twitter Engager",
+      "expertise": "Expert Twitter marketing specialist focused on real-time engagement, thought leadership building, and community-driven growth. Builds brand authority through authentic conversation participation and viral thread creation.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-twitter-engager.md"
+    },
+    {
+      "id": "marketing-video-optimization-specialist",
+      "name": "Video Optimization Specialist",
+      "expertise": "Video marketing strategist specializing in YouTube algorithm optimization, audience retention, chaptering, thumbnail concepts, and cross-platform video syndication.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-video-optimization-specialist.md"
+    },
+    {
+      "id": "marketing-x-twitter-intelligence-analyst",
+      "name": "X/Twitter Intelligence Analyst",
+      "expertise": "Social intelligence specialist for X/Twitter research, trend detection, account monitoring, and evidence-backed audience insights using public signals and structured data workflows.",
+      "mainCategory": "Marketing & SEO",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-x-twitter-intelligence-analyst.md"
+    },
+    {
+      "id": "paid-media-auditor",
+      "name": "Paid Media Auditor",
+      "expertise": "Comprehensive paid media auditor who systematically evaluates Google Ads, Microsoft Ads, and Meta accounts across 200+ checkpoints spanning account structure, tracking, bidding, creative, audiences, and competitive positioning. Produces actionable audit reports with prioritized recommendations and projected impact.",
+      "mainCategory": "Paid Media & Ads",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "ads-mcp-or-api"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "paid-media-creative-strategist",
+        "paid-media-paid-social-strategist",
+        "paid-media-ppc-strategist",
+        "paid-media-programmatic-buyer",
+        "paid-media-search-query-analyst",
+        "paid-media-tracking-specialist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-auditor.md"
+    },
+    {
+      "id": "paid-media-creative-strategist",
+      "name": "Ad Creative Strategist",
+      "expertise": "Paid media creative specialist focused on ad copywriting, RSA optimization, asset group design, and creative testing frameworks across Google, Meta, Microsoft, and programmatic platforms. Bridges the gap between performance data and persuasive messaging.",
+      "mainCategory": "Paid Media & Ads",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "ads-mcp-or-api"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "paid-media-auditor",
+        "paid-media-paid-social-strategist",
+        "paid-media-ppc-strategist",
+        "paid-media-programmatic-buyer",
+        "paid-media-search-query-analyst",
+        "paid-media-tracking-specialist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-creative-strategist.md"
+    },
+    {
+      "id": "paid-media-paid-social-strategist",
+      "name": "Paid Social Strategist",
+      "expertise": "Cross-platform paid social advertising specialist covering Meta (Facebook/Instagram), LinkedIn, TikTok, Pinterest, X, and Snapchat. Designs full-funnel social ad programs from prospecting through retargeting with platform-specific creative and audience strategies.",
+      "mainCategory": "Paid Media & Ads",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "ads-mcp-or-api"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "paid-media-auditor",
+        "paid-media-creative-strategist",
+        "paid-media-ppc-strategist",
+        "paid-media-programmatic-buyer",
+        "paid-media-search-query-analyst",
+        "paid-media-tracking-specialist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-paid-social-strategist.md"
+    },
+    {
+      "id": "paid-media-ppc-strategist",
+      "name": "PPC Campaign Strategist",
+      "expertise": "Senior paid media strategist specializing in large-scale search, shopping, and performance max campaign architecture across Google, Microsoft, and Amazon ad platforms. Designs account structures, budget allocation frameworks, and bidding strategies that scale from $10K to $10M+ monthly spend.",
+      "mainCategory": "Paid Media & Ads",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "ads-mcp-or-api"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "paid-media-auditor",
+        "paid-media-creative-strategist",
+        "paid-media-paid-social-strategist",
+        "paid-media-programmatic-buyer",
+        "paid-media-search-query-analyst",
+        "paid-media-tracking-specialist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-ppc-strategist.md"
+    },
+    {
+      "id": "paid-media-programmatic-buyer",
+      "name": "Programmatic & Display Buyer",
+      "expertise": "Display advertising and programmatic media buying specialist covering managed placements, Google Display Network, DV360, trade desk platforms, partner media (newsletters, sponsored content), and ABM display strategies via platforms like Demandbase and 6Sense.",
+      "mainCategory": "Paid Media & Ads",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "ads-mcp-or-api"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [
+        "paid-media-auditor",
+        "paid-media-creative-strategist",
+        "paid-media-paid-social-strategist",
+        "paid-media-ppc-strategist",
+        "paid-media-search-query-analyst",
+        "paid-media-tracking-specialist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-programmatic-buyer.md"
+    },
+    {
+      "id": "paid-media-search-query-analyst",
+      "name": "Search Query Analyst",
+      "expertise": "Specialist in search term analysis, negative keyword architecture, and query-to-intent mapping. Turns raw search query data into actionable optimizations that eliminate waste and amplify high-intent traffic across paid search accounts.",
+      "mainCategory": "Paid Media & Ads",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "ads-mcp-or-api"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "paid-media-auditor",
+        "paid-media-creative-strategist",
+        "paid-media-paid-social-strategist",
+        "paid-media-ppc-strategist",
+        "paid-media-programmatic-buyer",
+        "paid-media-tracking-specialist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-search-query-analyst.md"
+    },
+    {
+      "id": "paid-media-tracking-specialist",
+      "name": "Tracking & Measurement Specialist",
+      "expertise": "Expert in conversion tracking architecture, tag management, and attribution modeling across Google Tag Manager, GA4, Google Ads, Meta CAPI, LinkedIn Insight Tag, and server-side implementations. Ensures every conversion is counted correctly and every dollar of ad spend is measurable.",
+      "mainCategory": "Paid Media & Ads",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "ads-mcp-or-api"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "paid-media-auditor",
+        "paid-media-creative-strategist",
+        "paid-media-paid-social-strategist",
+        "paid-media-ppc-strategist",
+        "paid-media-programmatic-buyer",
+        "paid-media-search-query-analyst"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-tracking-specialist.md"
+    },
+    {
+      "id": "personal-growth-mentor",
+      "name": "Personal Growth Mentor",
+      "expertise": "Cross-domain personal development mentor for goal clarity, habit design, strategic decisions, and accountability without motivational fluff.",
+      "mainCategory": "Personal & Advisory",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\personal-growth-mentor.md"
+    },
+    {
+      "id": "product-behavioral-nudge-engine",
+      "name": "Behavioral Nudge Engine",
+      "expertise": "Behavioral psychology specialist that adapts software interaction cadences and styles to maximize user motivation and success.",
+      "mainCategory": "Product & Strategy",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\product-behavioral-nudge-engine.md"
+    },
+    {
+      "id": "product-feedback-synthesizer",
+      "name": "Feedback Synthesizer",
+      "expertise": "Expert in collecting, analyzing, and synthesizing user feedback from multiple channels to extract actionable product insights. Transforms qualitative feedback into quantitative priorities and strategic recommendations.",
+      "mainCategory": "Product & Strategy",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\product-feedback-synthesizer.md"
+    },
+    {
+      "id": "product-manager",
+      "name": "Product Manager",
+      "expertise": "Holistic product leader who owns the full product lifecycle \u2014 from discovery and strategy through roadmap, stakeholder alignment, go-to-market, and outcome measurement. Bridges business goals, user needs, and technical reality to ship the right thing at the right time.",
+      "mainCategory": "Product & Strategy",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Synthesizes user requests into tight feature specs and acceptance criteria",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\product-manager.md"
+    },
+    {
+      "id": "product-sprint-prioritizer",
+      "name": "Sprint Prioritizer",
+      "expertise": "Expert product manager specializing in agile sprint planning, feature prioritization, and resource allocation. Focused on maximizing team velocity and business value delivery through data-driven prioritization frameworks.",
+      "mainCategory": "Product & Strategy",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\product-sprint-prioritizer.md"
+    },
+    {
+      "id": "product-trend-researcher",
+      "name": "Trend Researcher",
+      "expertise": "Expert market intelligence analyst specializing in identifying emerging trends, competitive analysis, and opportunity assessment. Focused on providing actionable insights that drive product strategy and innovation decisions.",
+      "mainCategory": "Product & Strategy",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\product-trend-researcher.md"
+    },
+    {
+      "id": "project-management-experiment-tracker",
+      "name": "Experiment Tracker",
+      "expertise": "Expert project manager specializing in experiment design, execution tracking, and data-driven decision making. Focused on managing A/B tests, feature experiments, and hypothesis validation through systematic experimentation and rigorous analysis.",
+      "mainCategory": "Project Management",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\project-management-experiment-tracker.md"
+    },
+    {
+      "id": "project-management-meeting-notes-specialist",
+      "name": "Meeting Notes Specialist",
+      "expertise": "Extract structured decisions, action items, and open questions from meeting transcripts or rough notes into a clean 4-section summary.",
+      "mainCategory": "Project Management",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\project-management-meeting-notes-specialist.md"
+    },
+    {
+      "id": "project-management-project-shepherd",
+      "name": "Project Shepherd",
+      "expertise": "Expert project manager specializing in cross-functional project coordination, timeline management, and stakeholder alignment. Focused on shepherding projects from conception to completion while managing resources, risks, and communications across multiple teams and departments.",
+      "mainCategory": "Project Management",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\project-management-project-shepherd.md"
+    },
+    {
+      "id": "project-management-studio-producer",
+      "name": "Studio Producer",
+      "expertise": "Senior strategic leader specializing in high-level creative and technical project orchestration, resource allocation, and multi-project portfolio management. Focused on aligning creative vision with business objectives while managing complex cross-functional initiatives and ensuring optimal studio operations.",
+      "mainCategory": "Project Management",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\project-management-studio-producer.md"
+    },
+    {
+      "id": "resume-tailor",
+      "name": "Resume Tailor",
+      "expertise": "Candidate-side resume optimization specialist who analyzes job descriptions, maps real experience to role requirements, improves ATS keyword alignment, and rewrites bullets without fabricating qualifications.",
+      "mainCategory": "Personal & Advisory",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\resume-tailor.md"
+    },
+    {
+      "id": "retail-customer-returns",
+      "name": "Retail Customer Returns",
+      "expertise": "Comprehensive retail customer returns specialist for processing returns, exchanges, and refunds across in-store, online, and omnichannel retail \u2014 handling policy enforcement, fraud prevention, customer retention, vendor returns, and returns analytics to maximize recovery while preserving customer loyalty",
+      "mainCategory": "Customer Operations",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\retail-customer-returns.md"
+    },
+    {
+      "id": "sales-account-strategist",
+      "name": "Account Strategist",
+      "expertise": "Expert post-sale account strategist specializing in land-and-expand execution, stakeholder mapping, QBR facilitation, and net revenue retention. Turns closed deals into long-term platform relationships through systematic expansion planning and multi-threaded account development.",
+      "mainCategory": "Sales & Growth",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "sales-coach",
+        "sales-discovery-coach",
+        "sales-offer-lead-gen-strategist",
+        "sales-outbound-strategist",
+        "sales-pipeline-analyst",
+        "sales-proposal-strategist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-account-strategist.md"
+    },
+    {
+      "id": "sales-coach",
+      "name": "Sales Coach",
+      "expertise": "Expert sales coaching specialist focused on rep development, pipeline review facilitation, call coaching, deal strategy, and forecast accuracy. Makes every rep and every deal better through structured coaching methodology and behavioral feedback.",
+      "mainCategory": "Sales & Growth",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "sales-account-strategist",
+        "sales-discovery-coach",
+        "sales-offer-lead-gen-strategist",
+        "sales-outbound-strategist",
+        "sales-pipeline-analyst",
+        "sales-proposal-strategist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-coach.md"
+    },
+    {
+      "id": "sales-discovery-coach",
+      "name": "Discovery Coach",
+      "expertise": "Coaches sales teams on elite discovery methodology \u2014 question design, current-state mapping, gap quantification, and call structure that surfaces real buying motivation.",
+      "mainCategory": "Sales & Growth",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "sales-account-strategist",
+        "sales-coach",
+        "sales-offer-lead-gen-strategist",
+        "sales-outbound-strategist",
+        "sales-pipeline-analyst",
+        "sales-proposal-strategist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-discovery-coach.md"
+    },
+    {
+      "id": "sales-offer-lead-gen-strategist",
+      "name": "Offer & Lead Gen Strategist",
+      "expertise": "Top-of-funnel architect who designs irresistible offers and lead magnets that attract qualified buyers at scale. Specializes in value-equation offer construction, lead magnet typology, multi-channel lead generation, and compounding reach through customers, employees, agencies, and affiliates.",
+      "mainCategory": "Sales & Growth",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "sales-account-strategist",
+        "sales-coach",
+        "sales-discovery-coach",
+        "sales-outbound-strategist",
+        "sales-pipeline-analyst",
+        "sales-proposal-strategist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-offer-lead-gen-strategist.md"
+    },
+    {
+      "id": "sales-outbound-strategist",
+      "name": "Outbound Strategist",
+      "expertise": "Signal-based outbound specialist who designs multi-channel prospecting sequences, defines ICPs, and builds pipeline through research-driven personalization \u2014 not volume.",
+      "mainCategory": "Sales & Growth",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "sales-account-strategist",
+        "sales-coach",
+        "sales-discovery-coach",
+        "sales-offer-lead-gen-strategist",
+        "sales-pipeline-analyst",
+        "sales-proposal-strategist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-outbound-strategist.md"
+    },
+    {
+      "id": "sales-pipeline-analyst",
+      "name": "Pipeline Analyst",
+      "expertise": "Revenue operations analyst specializing in pipeline health diagnostics, deal velocity analysis, forecast accuracy, and data-driven sales coaching. Turns CRM data into actionable pipeline intelligence that surfaces risks before they become missed quarters.",
+      "mainCategory": "Sales & Growth",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "sales-account-strategist",
+        "sales-coach",
+        "sales-discovery-coach",
+        "sales-offer-lead-gen-strategist",
+        "sales-outbound-strategist",
+        "sales-proposal-strategist"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-pipeline-analyst.md"
+    },
+    {
+      "id": "sales-proposal-strategist",
+      "name": "Proposal Strategist",
+      "expertise": "Strategic proposal architect who transforms RFPs and sales opportunities into compelling win narratives. Specializes in win theme development, competitive positioning, executive summary craft, and building proposals that persuade rather than merely comply.",
+      "mainCategory": "Sales & Growth",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "sales-account-strategist",
+        "sales-coach",
+        "sales-discovery-coach",
+        "sales-offer-lead-gen-strategist",
+        "sales-outbound-strategist",
+        "sales-pipeline-analyst"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-proposal-strategist.md"
+    },
+    {
+      "id": "security-ai-generated-code-auditor",
+      "name": "AI-Generated Code Security Auditor",
+      "expertise": "Security reviewer for AI-generated and vibe-coded apps \u2014 hunts the hardcoded secrets, broken row-level security, and prompt-injection sinks that coding assistants ship by default, then drives a scan, fix, and rescan loop with honest, CWE-mapped findings.",
+      "mainCategory": "Security & Trust",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Audits AI-generated code for predictable vulnerabilities, exposed credentials, and logic flaws",
+      "relatedSpecialists": [
+        "security-appsec-engineer",
+        "security-architect",
+        "security-compliance-auditor",
+        "security-secrets-credential-engineer",
+        "security-senior-secops"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\security-ai-generated-code-auditor.md"
+    },
+    {
+      "id": "security-appsec-engineer",
+      "name": "Application Security Engineer",
+      "expertise": "AppSec specialist who secures the software development lifecycle through threat modeling, secure code review, SAST/DAST integration, and developer security education that makes secure code the default.",
+      "mainCategory": "Security & Trust",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "security-ai-generated-code-auditor",
+        "security-architect",
+        "security-compliance-auditor",
+        "security-secrets-credential-engineer",
+        "security-senior-secops"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\security-appsec-engineer.md"
+    },
+    {
+      "id": "security-architect",
+      "name": "Security Architect",
+      "expertise": "Expert security architect specializing in threat modeling, secure-by-design architecture, trust-boundary analysis, defense-in-depth, and risk-based security reviews across web, API, cloud-native, and distributed systems. Designs the security model; hands code-level SAST/DAST and SDLC work to the AppSec Engineer.",
+      "mainCategory": "Security & Trust",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "security-ai-generated-code-auditor",
+        "security-appsec-engineer",
+        "security-compliance-auditor",
+        "security-secrets-credential-engineer",
+        "security-senior-secops"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\security-architect.md"
+    },
+    {
+      "id": "security-compliance-auditor",
+      "name": "Compliance Auditor",
+      "expertise": "Expert technical compliance auditor specializing in SOC 2, ISO 27001, HIPAA, and PCI-DSS audits \u2014 from readiness assessment through evidence collection to certification.",
+      "mainCategory": "Security & Trust",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "security-ai-generated-code-auditor",
+        "security-appsec-engineer",
+        "security-architect",
+        "security-secrets-credential-engineer",
+        "security-senior-secops"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\security-compliance-auditor.md"
+    },
+    {
+      "id": "security-secrets-credential-engineer",
+      "name": "Secrets & Credential Hygiene Engineer",
+      "expertise": "Owns the full lifecycle of secrets and credentials \u2014 detection, prevention, vaulting, rotation, and leak response \u2014 so an application runs on short-lived, least-privilege credentials that are never in the code and are already rotated by the time a leak is found.",
+      "mainCategory": "Security & Trust",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Detects hardcoded secrets, API keys, leaks, and insecure credential management",
+      "relatedSpecialists": [
+        "security-ai-generated-code-auditor",
+        "security-appsec-engineer",
+        "security-architect",
+        "security-compliance-auditor",
+        "security-senior-secops"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\security-secrets-credential-engineer.md"
+    },
+    {
+      "id": "security-senior-secops",
+      "name": "Senior SecOps Engineer",
+      "expertise": "Defensive application security specialist who scans every code submission for secrets and sensitive data exposure before anything else, then implements or audits security controls following the organization's security standard \u2014 covering authentication, authorization, tokens, cookies, HTTP headers, CORS, rate limiting, CSP, secrets management, input validation, and secure logging.",
+      "mainCategory": "Security & Trust",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "shell",
+        "docker-or-k8s"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "security-ai-generated-code-auditor",
+        "security-appsec-engineer",
+        "security-architect",
+        "security-compliance-auditor",
+        "security-secrets-credential-engineer"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\security-senior-secops.md"
+    },
+    {
+      "id": "specialized-chief-of-staff",
+      "name": "Chief of Staff",
+      "expertise": "Master coordinator for founders and executives \u2014 filters noise, owns processes, enforces consistency, routes decisions, and positions outputs for impact so the boss can think clearly.",
+      "mainCategory": "Specialized & Workflows",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-chief-of-staff.md"
+    },
+    {
+      "id": "specialized-codebase-archaeologist",
+      "name": "Codebase Archaeologist",
+      "expertise": "Multi-session, multi-tool drift detection specialist who audits codebases touched by several AI coding tools (Claude, Cursor, Copilot, Windsurf, etc.) over time, finding silent logic mismatches, dead code, and doc-vs-code divergence that no single session would ever notice on its own.",
+      "mainCategory": "Specialized & Workflows",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Deep bug hunting, multi-tool code drift detection, and silent logic failure analysis",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-codebase-archaeologist.md"
+    },
+    {
+      "id": "specialized-cultural-intelligence-strategist",
+      "name": "Cultural Intelligence Strategist",
+      "expertise": "CQ specialist that detects invisible exclusion, researches global context, and ensures software resonates authentically across intersectional identities.",
+      "mainCategory": "Specialized & Workflows",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-cultural-intelligence-strategist.md"
+    },
+    {
+      "id": "specialized-document-generator",
+      "name": "Document Generator",
+      "expertise": "Expert document creation specialist who generates professional PDF, PPTX, DOCX, and XLSX files using code-based approaches with proper formatting, charts, and data visualization.",
+      "mainCategory": "Specialized & Workflows",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-document-generator.md"
+    },
+    {
+      "id": "specialized-mcp-builder",
+      "name": "MCP Builder",
+      "expertise": "Expert Model Context Protocol developer who designs, builds, and tests MCP servers that extend AI agent capabilities with custom tools, resources, and prompts.",
+      "mainCategory": "Specialized & Workflows",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Builds, tests, and standardizes production Model Context Protocol (MCP) integrations",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-mcp-builder.md"
+    },
+    {
+      "id": "specialized-pricing-analyst",
+      "name": "Pricing Analyst",
+      "expertise": "Specialized pricing analyst who develops optimal pricing models through market research, competitor analysis, cost structure evaluation, and margin optimization \u2014 turning pricing from guesswork into a data-driven competitive advantage.",
+      "mainCategory": "Specialized & Workflows",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-pricing-analyst.md"
+    },
+    {
+      "id": "specialized-workflow-architect",
+      "name": "Workflow Architect",
+      "expertise": "Workflow design specialist who maps complete workflow trees for every system, user journey, and agent interaction \u2014 covering happy paths, all branch conditions, failure modes, recovery paths, handoff contracts, and observable states to produce build-ready specs that agents can implement against and QA can test against.",
+      "mainCategory": "Specialized & Workflows",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Automated pipelines, multi-step repeatable recipes, and error-handling workflows",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-workflow-architect.md"
+    },
+    {
+      "id": "study-abroad-advisor",
+      "name": "Study Abroad Advisor",
+      "expertise": "Full-spectrum study abroad planning expert covering the US, UK, Canada, Australia, Europe, Hong Kong, and Singapore \u2014 proficient in undergraduate, master's, and PhD application strategy, school selection, essay coaching, profile enhancement, standardized test planning, visa preparation, and overseas life adaptation, helping Chinese students craft personalized end-to-end study abroad plans.",
+      "mainCategory": "Personal & Advisory",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "low",
+      "recommendationReason": "Niche / highly specific domain with limited daily utility",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\study-abroad-advisor.md"
+    },
+    {
+      "id": "supply-chain-strategist",
+      "name": "Supply Chain Strategist",
+      "expertise": "Expert supply chain management and procurement strategy specialist \u2014 skilled in supplier development, strategic sourcing, quality control, and supply chain digitalization. Grounded in China's manufacturing ecosystem, helps companies build efficient, resilient, and sustainable supply chains.",
+      "mainCategory": "General Business & Strategy",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\supply-chain-strategist.md"
+    },
+    {
+      "id": "support-analytics-reporter",
+      "name": "Analytics Reporter",
+      "expertise": "Expert data analyst transforming raw data into actionable business insights. Creates dashboards, performs statistical analysis, tracks KPIs, and provides strategic decision support through data visualization and reporting.",
+      "mainCategory": "Support & Operations",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\support-analytics-reporter.md"
+    },
+    {
+      "id": "support-executive-summary-generator",
+      "name": "Executive Summary Generator",
+      "expertise": "Consultant-grade AI specialist trained to think and communicate like a senior strategy consultant. Transforms complex business inputs into concise, actionable executive summaries using McKinsey SCQA, BCG Pyramid Principle, and Bain frameworks for C-suite decision-makers.",
+      "mainCategory": "Support & Operations",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\support-executive-summary-generator.md"
+    },
+    {
+      "id": "support-finance-tracker",
+      "name": "Finance Tracker",
+      "expertise": "Expert financial analyst and controller specializing in financial planning, budget management, and business performance analysis. Maintains financial health, optimizes cash flow, and provides strategic financial insights for business growth.",
+      "mainCategory": "Support & Operations",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "finance-bookkeeper-controller",
+        "finance-financial-analyst",
+        "finance-fpa-analyst",
+        "chief-financial-officer"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\support-finance-tracker.md"
+    },
+    {
+      "id": "support-infrastructure-maintainer",
+      "name": "Infrastructure Maintainer",
+      "expertise": "Expert infrastructure specialist focused on system reliability, performance optimization, and technical operations management. Maintains robust, scalable infrastructure supporting business operations with security, performance, and cost efficiency.",
+      "mainCategory": "Support & Operations",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\support-infrastructure-maintainer.md"
+    },
+    {
+      "id": "support-legal-compliance-checker",
+      "name": "Legal Compliance Checker",
+      "expertise": "Expert legal and compliance specialist ensuring business operations, data handling, and content creation comply with relevant laws, regulations, and industry standards across multiple jurisdictions.",
+      "mainCategory": "Support & Operations",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "Terms of service, privacy policies, GDPR/CCPA data handling review",
+      "relatedSpecialists": [],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\support-legal-compliance-checker.md"
+    },
+    {
+      "id": "testing-accessibility-auditor",
+      "name": "Accessibility Auditor",
+      "expertise": "Expert accessibility specialist who audits interfaces against WCAG standards, tests with assistive technologies, and ensures inclusive design. Defaults to finding barriers \u2014 if it's not tested with a screen reader, it's not accessible.",
+      "mainCategory": "Testing & QA",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "headless-browser"
+      ],
+      "priority": "high",
+      "recommendationReason": "WCAG compliance, screen reader compatibility, ARIA tags, and keyboard navigation",
+      "relatedSpecialists": [
+        "testing-api-tester",
+        "testing-evidence-collector",
+        "testing-performance-benchmarker",
+        "testing-reality-checker",
+        "testing-test-automation-engineer",
+        "testing-test-results-analyzer",
+        "testing-tool-evaluator"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-accessibility-auditor.md"
+    },
+    {
+      "id": "testing-api-tester",
+      "name": "API Tester",
+      "expertise": "Expert API testing specialist focused on comprehensive API validation, performance testing, and quality assurance across all systems and third-party integrations",
+      "mainCategory": "Testing & QA",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "high",
+      "recommendationReason": "REST API schema validation, edge case payload fuzzing, and contract verification",
+      "relatedSpecialists": [
+        "testing-accessibility-auditor",
+        "testing-evidence-collector",
+        "testing-performance-benchmarker",
+        "testing-reality-checker",
+        "testing-test-automation-engineer",
+        "testing-test-results-analyzer",
+        "testing-tool-evaluator"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-api-tester.md"
+    },
+    {
+      "id": "testing-evidence-collector",
+      "name": "Evidence Collector",
+      "expertise": "Screenshot-obsessed, fantasy-allergic QA specialist - Default to finding 3-5 issues, requires visual proof for everything",
+      "mainCategory": "Testing & QA",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "testing-accessibility-auditor",
+        "testing-api-tester",
+        "testing-performance-benchmarker",
+        "testing-reality-checker",
+        "testing-test-automation-engineer",
+        "testing-test-results-analyzer",
+        "testing-tool-evaluator"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-evidence-collector.md"
+    },
+    {
+      "id": "testing-performance-benchmarker",
+      "name": "Performance Benchmarker",
+      "expertise": "Expert performance testing and optimization specialist focused on measuring, analyzing, and improving system performance across all applications and infrastructure",
+      "mainCategory": "Testing & QA",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "headless-browser"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "testing-accessibility-auditor",
+        "testing-api-tester",
+        "testing-evidence-collector",
+        "testing-reality-checker",
+        "testing-test-automation-engineer",
+        "testing-test-results-analyzer",
+        "testing-tool-evaluator"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-performance-benchmarker.md"
+    },
+    {
+      "id": "testing-reality-checker",
+      "name": "Reality Checker",
+      "expertise": "Stops fantasy approvals, evidence-based certification - Default to \"NEEDS WORK\", requires overwhelming proof for production readiness",
+      "mainCategory": "Testing & QA",
+      "classification": "C. Tool-Dependent",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity"
+      ],
+      "requiredTools": [
+        "headless-browser"
+      ],
+      "priority": "high",
+      "recommendationReason": "Independent validation of deliverables against real browser outputs and acceptance criteria",
+      "relatedSpecialists": [
+        "testing-accessibility-auditor",
+        "testing-api-tester",
+        "testing-evidence-collector",
+        "testing-performance-benchmarker",
+        "testing-test-automation-engineer",
+        "testing-test-results-analyzer",
+        "testing-tool-evaluator"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-reality-checker.md"
+    },
+    {
+      "id": "testing-test-automation-engineer",
+      "name": "Test Automation Engineer",
+      "expertise": "Expert end-to-end test automation engineer for Playwright and Cypress \u2014 resilient selectors, flake elimination, isolated test data, CI parallelization, and trace-driven failure debugging.",
+      "mainCategory": "Testing & QA",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "testing-accessibility-auditor",
+        "testing-api-tester",
+        "testing-evidence-collector",
+        "testing-performance-benchmarker",
+        "testing-reality-checker",
+        "testing-test-results-analyzer",
+        "testing-tool-evaluator"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-test-automation-engineer.md"
+    },
+    {
+      "id": "testing-test-results-analyzer",
+      "name": "Test Results Analyzer",
+      "expertise": "Expert test analysis specialist focused on comprehensive test result evaluation, quality metrics analysis, and actionable insight generation from testing activities",
+      "mainCategory": "Testing & QA",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "testing-accessibility-auditor",
+        "testing-api-tester",
+        "testing-evidence-collector",
+        "testing-performance-benchmarker",
+        "testing-reality-checker",
+        "testing-test-automation-engineer",
+        "testing-tool-evaluator"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-test-results-analyzer.md"
+    },
+    {
+      "id": "testing-tool-evaluator",
+      "name": "Tool Evaluator",
+      "expertise": "Expert technology assessment specialist focused on evaluating, testing, and recommending tools, software, and platforms for business use and productivity optimization",
+      "mainCategory": "Testing & QA",
+      "classification": "A. Portable",
+      "portable": true,
+      "claudeRequired": false,
+      "supportedPlatforms": [
+        "codex",
+        "claude-code",
+        "antigravity",
+        "cline"
+      ],
+      "requiredTools": [
+        "filesystem",
+        "standard-llm-context"
+      ],
+      "priority": "medium",
+      "recommendationReason": "Standard specialist",
+      "relatedSpecialists": [
+        "testing-accessibility-auditor",
+        "testing-api-tester",
+        "testing-evidence-collector",
+        "testing-performance-benchmarker",
+        "testing-reality-checker",
+        "testing-test-automation-engineer",
+        "testing-test-results-analyzer"
+      ],
+      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-tool-evaluator.md"
+    }
+  ]
+}

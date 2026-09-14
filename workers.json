@@ -1,0 +1,48 @@
+{
+  "workers": [
+    {
+      "id": "codex",
+      "enabled": false,
+      "roles": [
+        "plan",
+        "build",
+        "review"
+      ],
+      "priority": 10,
+      "adapter": "codex"
+    },
+    {
+      "id": "antigravity",
+      "enabled": true,
+      "roles": [
+        "review",
+        "build"
+      ],
+      "priority": 30,
+      "adapter": "antigravity"
+    },
+    {
+      "id": "claude-code",
+      "enabled": false,
+      "roles": [
+        "build",
+        "review"
+      ],
+      "priority": 20,
+      "adapter": "claude"
+    },
+    {
+      "id": "cline",
+      "enabled": true,
+      "roles": [
+        "build"
+      ],
+      "priority": 35,
+      "adapter": "cline"
+    }
+  ],
+  "maxCorrections": 2,
+  "workerTimeoutSeconds": 600,
+  "claudeReserve": true,
+  "connectorToken": "CONNECTOR_TOKEN_REGENERATED_ON_FIRST_RUN"
+}

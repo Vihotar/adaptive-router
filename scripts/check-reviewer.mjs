@@ -1,0 +1,14 @@
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { invoke, executables } from '../src/workers.mjs';
+import { reviewSchema } from '../src/contracts.mjs';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const dir = path.join(root, '.router', `safety-check-${Date.now()}`);
+const prompt = 'Independently review the claim: 3 x 12 + 2 x 4 = 999. Verdict means accuracy of the claim: changes_requested when wrong; pass only when correct. Include actionable issues. Return the review JSON directly; do not call any tools.';
+console.log(`Only reviewer workspace: ${path.join(dir, 'workspace')}`);
+const result = await invoke({ adapter: 'antigravity' }, { root, dir, schema: reviewSchema, prompt, timeout: 60000, paths: executables(root) });
+if (result.verdict !== 'changes_requested' || !result.issues.length) throw Error('Reviewer failed to identify the arithmetic error');
+fs.writeFileSync(path.join(root, '.router', 'last-safety-check.json'), JSON.stringify({ dir, result, passed: true }, null, 2));
+console.log(JSON.stringify(result, null, 2));
+console.log('Reviewer safety check passed.');

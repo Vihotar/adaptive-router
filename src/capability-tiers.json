@@ -1,0 +1,236 @@
+{
+  "tiers": {
+    "1": {
+      "level": 1,
+      "name": "Lightweight",
+      "description": "Fast, economical models for simple transforms, routine boilerplate, basic validation"
+    },
+    "2": {
+      "level": 2,
+      "name": "Standard",
+      "description": "Balanced general-purpose models for standard recipes and code generation"
+    },
+    "3": {
+      "level": 3,
+      "name": "Advanced",
+      "description": "High-reasoning, deep architectural inspection and nuanced auditing"
+    },
+    "4": {
+      "level": 4,
+      "name": "Expert / Frontier",
+      "description": "Top-tier frontier reasoning for complex architectural changes, high-risk security audits, and critical deliverables"
+    }
+  },
+  "models": {
+    "gemini-3.1-flash-lite": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 1,
+      "domains": {
+        "coding": 1,
+        "review": 1
+      }
+    },
+    "gpt-5.6-luna": {
+      "provider": "openai",
+      "family": "gpt",
+      "defaultTier": 1,
+      "domains": {
+        "coding": 1,
+        "review": 1
+      }
+    },
+    "haiku": {
+      "provider": "anthropic",
+      "family": "claude",
+      "defaultTier": 1,
+      "domains": {
+        "coding": 1,
+        "review": 1
+      }
+    },
+    "gemini-3.8-flash-low": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 1,
+      "domains": {
+        "coding": 1,
+        "review": 1
+      }
+    },
+    "gemini-3.8-flash-medium": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
+      }
+    },
+    "gpt-5.6-sol": {
+      "provider": "openai",
+      "family": "gpt",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3
+      }
+    },
+    "sonnet": {
+      "provider": "anthropic",
+      "family": "claude",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3,
+        "security": 3
+      }
+    },
+    "gemini-3.8-flash-high": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3
+      }
+    },
+    "gemini-3.1-pro-high": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3
+      }
+    },
+    "gemini-3.1-pro": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3
+      }
+    },
+    "gpt-6-astra": {
+      "provider": "openai",
+      "family": "gpt",
+      "defaultTier": 4,
+      "domains": {
+        "coding": 4,
+        "review": 4
+      }
+    },
+    "opus": {
+      "provider": "anthropic",
+      "family": "claude",
+      "defaultTier": 4,
+      "domains": {
+        "coding": 4,
+        "review": 4,
+        "security": 4
+      }
+    },
+    "gemini-3.1-ultra": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 4,
+      "domains": {
+        "coding": 4,
+        "review": 4
+      }
+    },
+    "gemini-3.5-flash-lite": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 1,
+      "domains": {
+        "coding": 1,
+        "review": 1
+      }
+    },
+    "gemini-2.5-flash": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
+      }
+    },
+    "gemini-3-flash": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
+      }
+    },
+    "gemini-3.5-flash": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
+      }
+    },
+    "gemini-3.6-flash": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
+      }
+    },
+    "gemini-3.7-flash": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3
+      }
+    },
+    "gemini-3.8-flash": {
+      "provider": "google",
+      "family": "gemini",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3
+      }
+    },
+    "gpt-5-mini": {
+      "provider": "openai",
+      "family": "gpt",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
+      }
+    },
+    "claude-3-5-haiku": {
+      "provider": "anthropic",
+      "family": "claude",
+      "defaultTier": 1,
+      "domains": {
+        "coding": 1,
+        "review": 1
+      }
+    },
+    "claude-3-7-sonnet": {
+      "provider": "anthropic",
+      "family": "claude",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3,
+        "security": 3
+      }
+    }
+  }
+}

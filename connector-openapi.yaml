@@ -1,0 +1,401 @@
+openapi: 3.1.0
+info:
+  title: Adaptive Router Connector
+  description: |
+    Read and write interface for Adaptive Router — your local AI task execution system.
+    
+    ChatGPT Pro can use this connector to:
+    - Check what tasks are running and their status
+    - Read test results, reviewer findings, and deliverable summaries
+    - Check approval state (awaiting_approval, approved, rejected)
+    - Monitor live worker progress and failover events
+    
+    Write actions (submit task, approve, reject) are implemented and available
+    for ChatGPT Work browser bridge or future ChatGPT Pro MCP write support.
+    
+    SECURITY: All responses are sanitized — no API keys, tokens, or credentials
+    are ever included in responses.
+  version: 1.0.0
+  contact:
+    name: Adaptive Router
+servers:
+  - url: TUNNEL_URL_PLACEHOLDER
+    description: Adaptive Router local server (via Cloudflare tunnel)
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Use the connector token from http://localhost:3210/api/connector/token
+        Copy it once and paste it into ChatGPT connector settings.
+
+  schemas:
+    Project:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        claudeReserve: { type: boolean }
+
+    TaskSummary:
+      type: object
+      properties:
+        id: { type: string }
+        summary: { type: string, description: First line of the instruction }
+        status: { type: string }
+        created: { type: string }
+        project: { type: string }
+        worker: { type: string }
+        model: { type: string }
+        effort: { type: string }
+        specialist: { type: string, nullable: true }
+
+    TaskStatus:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string }
+        project: { type: string }
+        created: { type: string }
+        revision: { type: integer }
+        instructionSummary: { type: string }
+        worker: { type: string }
+        model: { type: string }
+        effort: { type: string }
+        specialist: { type: string, nullable: true }
+        routingReason: { type: string }
+        reviewer: { type: string, nullable: true }
+        decisionRequired: { type: object, nullable: true }
+
+    ProjectStatus:
+      type: object
+      properties:
+        claudeReserve: { type: boolean }
+        claudeReserveNote: { type: string }
+        taskInProgress: { type: boolean }
+        routingMode: { type: string }
+        maxCorrections: { type: integer }
+        taskSummary: { type: object }
+
+    ApprovalState:
+      type: object
+      properties:
+        taskId: { type: string }
+        status: { type: string }
+        approvalState: { type: string }
+        approvedAt: { type: string, nullable: true }
+        actionRequired: { type: string, nullable: true }
+
+paths:
+  /api/connector/status:
+    get:
+      operationId: get_project_status
+      summary: Get Adaptive Router system status
+      description: |
+        Returns Claude Reserve Mode state, whether a task is currently running,
+        routing mode, and a summary of recent task counts by status.
+        Use this as your first call to understand the current system state.
+      responses:
+        '200':
+          description: System status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectStatus'
+
+  /api/connector/projects:
+    get:
+      operationId: list_projects
+      summary: List all available projects
+      description: Returns all projects configured in Adaptive Router.
+      responses:
+        '200':
+          description: Project list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+
+  /api/connector/tasks:
+    get:
+      operationId: list_recent_tasks
+      summary: List recent tasks
+      description: |
+        Returns the most recent tasks with their status, worker, model,
+        effort level, specialist, and instruction summary.
+        Use this to see what has been built and what is currently running.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 30
+          description: Number of tasks to return
+      responses:
+        '200':
+          description: Recent task list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskSummary'
+    post:
+      operationId: submit_task
+      summary: Submit a new task for execution
+      description: |
+        Submits a business instruction to Adaptive Router for execution.
+        Adaptive Router automatically selects the specialist, worker, model,
+        and effort level. Claude Reserve Mode applies unless overridden.
+        
+        NOTE: On ChatGPT Pro this may require ChatGPT Work to operate
+        the dashboard directly until write actions are available on Pro MCP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [instruction]
+              properties:
+                instruction:
+                  type: string
+                  description: Business instruction describing what to build or change
+                project:
+                  type: string
+                  enum: [test-site, adaptive-router]
+                  default: test-site
+                allow_claude:
+                  type: boolean
+                  default: false
+                  description: Override Claude Reserve Mode for this task
+      responses:
+        '200':
+          description: Task submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  taskId: { type: string }
+                  message: { type: string }
+
+  /api/connector/tasks/{taskId}:
+    get:
+      operationId: get_task_status
+      summary: Get full status of a specific task
+      description: |
+        Returns current status, worker used, model, effort, specialist loaded,
+        routing reason, and whether a decision (approval) is required.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Task status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStatus'
+
+  /api/connector/tasks/{taskId}/progress:
+    get:
+      operationId: get_live_progress
+      summary: Get live progress for a task
+      description: Returns the latest real-time activity log entries for a running or completed task.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Live progress
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/connector/tasks/{taskId}/tests:
+    get:
+      operationId: get_test_results
+      summary: Get automated test results
+      description: Returns automated browser check results — which passed and which failed.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Test results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/connector/tasks/{taskId}/review:
+    get:
+      operationId: get_reviewer_findings
+      summary: Get independent reviewer verdict
+      description: |
+        Returns the independent AI reviewer's verdict (pass/fail) and summary.
+        The reviewer is always a different AI worker from the builder.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Reviewer findings
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/connector/tasks/{taskId}/deliverable:
+    get:
+      operationId: get_deliverable_summary
+      summary: Get deliverable summary
+      description: Returns what was built, which files changed, and where to view the result.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Deliverable summary
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/connector/tasks/{taskId}/approval:
+    get:
+      operationId: get_approval_state
+      summary: Get approval state
+      description: |
+        Returns whether the task is approved, rejected, awaiting approval,
+        or paused for a decision. Tells you exactly what action is needed.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Approval state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalState'
+
+  /api/connector/tasks/{taskId}/failovers:
+    get:
+      operationId: get_failovers_and_errors
+      summary: Get worker failures and failovers
+      description: Returns any worker failures and automatic escalation events.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Failover events
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/connector/tasks/{taskId}/approve:
+    post:
+      operationId: approve_result
+      summary: Approve a completed deliverable
+      description: Approves a deliverable that is awaiting your approval.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, description: Optional approval note }
+      responses:
+        '200':
+          description: Approval recorded
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/connector/tasks/{taskId}/reject:
+    post:
+      operationId: reject_result
+      summary: Reject a completed deliverable
+      description: Rejects a deliverable. A reason is required.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, description: Why this deliverable is being rejected }
+      responses:
+        '200':
+          description: Rejection recorded
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/connector/claude-reserve:
+    post:
+      operationId: toggle_claude_reserve
+      summary: Toggle Claude Reserve Mode
+      description: |
+        Enable or disable Claude Reserve Mode.
+        When ON, Claude quota is preserved for your personal Cowork usage
+        and Adaptive Router uses Codex, Antigravity, and Cline instead.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+                  description: true = preserve Claude quota, false = Claude available for routing
+      responses:
+        '200':
+          description: Claude Reserve Mode updated
+          content:
+            application/json:
+              schema:
+                type: object
