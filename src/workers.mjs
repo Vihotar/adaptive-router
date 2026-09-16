@@ -165,7 +165,7 @@ function windowsCmdShimArgs(commandFile, args) {
   return ['/d', '/s', '/c', `"${shellCommand}"`];
 }
 
-export function runProcess(exe, args, { cwd, input, timeout, log, onLine, onStderrLine, shell = false, windowsVerbatimArguments = false, signal = null }) {
+export function runProcess(exe, args, { cwd, input, timeout, log, onLine, onStderrLine, shell = false, windowsVerbatimArguments = false, signal = null, onHeartbeat = null }) {
   return new Promise((resolve, reject) => {
     const child = spawn(exe, args, { cwd, env: childEnv(), shell, windowsVerbatimArguments, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     let stdout = '', stderr = '', failure;
@@ -191,6 +191,7 @@ export function runProcess(exe, args, { cwd, input, timeout, log, onLine, onStde
       settled = true;
       clearTimeout(timer);
       clearTimeout(forceRejectTimer);
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
       if (err) reject(err); else resolve(value);
     };
     let forceRejectTimer = null;
@@ -213,7 +214,28 @@ export function runProcess(exe, args, { cwd, input, timeout, log, onLine, onStde
       }
     }
 
+    // Heartbeat: the hard timeout above only fires once, after the full
+    // configured wait (commonly minutes). A worker that goes silent right
+    // after its first output line previously gave no signal at all until
+    // that entire wait elapsed, which is indistinguishable from AR itself
+    // being stuck. This periodically reports elapsed silence (only while
+    // genuinely idle — resets on any stdout/stderr activity) so the
+    // dashboard and any guardrail logic can see "still waiting, no output
+    // for Ns" instead of nothing, without affecting the actual timeout or
+    // kill behavior at all.
+    let lastActivityAt = Date.now();
+    let heartbeatTimer = null;
+    if (onHeartbeat && Number.isFinite(timeout) && timeout > 0) {
+      const HEARTBEAT_INTERVAL_MS = Math.min(30_000, Math.max(5_000, Math.floor(timeout / 6)));
+      heartbeatTimer = setInterval(() => {
+        if (settled) return;
+        const silentMs = Date.now() - lastActivityAt;
+        try { onHeartbeat({ silentMs, timeoutMs: timeout }); } catch {}
+      }, HEARTBEAT_INTERVAL_MS);
+    }
+
     child.stdout.on('data', b => {
+      lastActivityAt = Date.now();
       stdout += b;
       if (stdout.length > 3_000_000) stop('Worker output too large');
       if (onLine) {
@@ -229,6 +251,7 @@ export function runProcess(exe, args, { cwd, input, timeout, log, onLine, onStde
     });
 
     child.stderr.on('data', b => {
+      lastActivityAt = Date.now();
       stderr += b;
       if (stderr.length > 3_000_000) stop('Worker diagnostics too large');
       if (onStderrLine) {
@@ -334,7 +357,29 @@ export async function invoke(worker, opts = {}) {
   const cwd = schema.properties?.verdict ? isolatedCwd : (registeredRoot || isolatedCwd);
   json(path.join(dir, 'schema.json'), schema);
   fs.writeFileSync(path.join(dir, 'request.txt'), prompt);
-  const common = { cwd: worker.adapter === 'antigravity' ? isolatedCwd : cwd, timeout, log: path.join(dir, 'worker'), signal };
+  let lastHeartbeatEmit = 0;
+  const onHeartbeat = onWorkerEvent
+    ? ({ silentMs }) => {
+        // Throttle: the interval inside runProcess already spaces these
+        // out, but guard again here in case timeout is very short.
+        const now = Date.now();
+        if (now - lastHeartbeatEmit < 4000) return;
+        lastHeartbeatEmit = now;
+        const silentSeconds = Math.round(silentMs / 1000);
+        onWorkerEvent({
+          platform: worker.adapter,
+          worker: worker.id,
+          model,
+          effort,
+          eventType: 'heartbeat',
+          title: `${worker.id} still running`,
+          detail: `No new output for ${silentSeconds}s. Still within the configured timeout; not stuck yet.`,
+          status: 'info',
+          silentSeconds
+        });
+      }
+    : null;
+  const common = { cwd: worker.adapter === 'antigravity' ? isolatedCwd : cwd, timeout, log: path.join(dir, 'worker'), signal, onHeartbeat };
   let result;
   if (worker.adapter === 'codex') {
     onWorkerEvent?.({ platform: 'codex', worker: 'codex', model, effort, eventType: 'worker_start', title: 'Codex worker initialized', detail: 'Running in read-only sandbox...' });
