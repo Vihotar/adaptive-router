@@ -489,9 +489,35 @@
     const t = State.currentTask;
     if (!t) return;
 
-    // Title & Status Badge
+    // Title & Status Badge — truncate a long instruction to a short
+    // summary with a "View full instruction" expand toggle, instead of
+    // dumping the whole raw instruction text into the header.
+    const fullInstruction = t.instruction || t.id;
+    const TITLE_SUMMARY_LIMIT = 100;
     const titleEl = document.getElementById('current-task-title');
-    if (titleEl) titleEl.textContent = t.instruction || t.id;
+    const titleToggle = document.getElementById('current-task-title-toggle');
+    const titleFull = document.getElementById('current-task-title-full');
+    const isLongInstruction = fullInstruction.length > TITLE_SUMMARY_LIMIT;
+    if (titleEl) {
+      const firstLine = fullInstruction.split(/\r?\n/)[0];
+      const summary = firstLine.length > TITLE_SUMMARY_LIMIT
+        ? `${firstLine.slice(0, TITLE_SUMMARY_LIMIT).trim()}…`
+        : (isLongInstruction ? `${firstLine}…` : firstLine);
+      titleEl.textContent = summary;
+      titleEl.title = fullInstruction;
+    }
+    if (titleToggle) {
+      titleToggle.style.display = isLongInstruction ? '' : 'none';
+      titleToggle.textContent = 'View full instruction';
+      titleToggle.onclick = () => {
+        if (!titleFull) return;
+        const showing = titleFull.style.display !== 'none';
+        titleFull.style.display = showing ? 'none' : '';
+        titleFull.textContent = fullInstruction;
+        titleToggle.textContent = showing ? 'View full instruction' : 'Hide full instruction';
+      };
+    }
+    if (titleFull && !isLongInstruction) titleFull.style.display = 'none';
 
     const statusBadge = document.getElementById('current-task-status-badge');
     if (statusBadge) {
@@ -1053,41 +1079,90 @@
       if (btnStop) btnStop.addEventListener('click', () => stopTask(t.id));
 
     } else if (t.status === 'needs_human_input' || t.decisionRequired) {
-      if (subtext) subtext.textContent = 'Human input requested by pipeline';
       const dec = t.decisionRequired || {};
-      container.innerHTML = `
-        <div class="decision-dialog-card dialog-permission">
-          <div class="dialog-header">
-            <div class="dialog-icon">🛡️</div>
-            <div class="dialog-title-wrap">
-              <h3>${escapeHtml(dec.question || 'Action Permission Required')}</h3>
-              <p>${escapeHtml(dec.reason || 'Adaptive Router requires authorization to proceed.')}</p>
+      // Decision types that are genuinely an app-permission request (the
+      // "Allow Once / Remember for Project / Deny & Stop" dialog) vs.
+      // every other decision type, which needs its own reason-specific
+      // buttons built from dec.options (the real source of truth for what
+      // actions are valid — see coding.mjs). Only fall back to the generic
+      // permission dialog when there's no dec.type/options to render from.
+      if (subtext) subtext.textContent = dec.title || 'Human input requested by pipeline';
+
+      if (Array.isArray(dec.options) && dec.options.length > 0) {
+        const btnClassFor = (id, recommended) => {
+          if (id === 'stop_task' || id === 'reject' || id === 'override_sensitive') return 'btn-danger-outline';
+          if (recommended) return 'btn-primary';
+          return 'btn-secondary';
+        };
+        const buttonsHtml = dec.options.map(opt =>
+          `<button type="button" class="btn ${btnClassFor(opt.id, opt.recommended)}" data-decision-id="${escapeHtml(opt.id)}">${escapeHtml(opt.label)}</button>`
+        ).join(' ');
+
+        container.innerHTML = `
+          <div class="decision-dialog-card dialog-permission">
+            <div class="dialog-header">
+              <div class="dialog-icon">🧭</div>
+              <div class="dialog-title-wrap">
+                <h3>${escapeHtml(dec.question || dec.title || 'Decision Required')}</h3>
+                <p>${escapeHtml(dec.reason || 'Adaptive Router needs a decision to continue.')}</p>
+              </div>
+            </div>
+            <div class="dialog-details-box">
+              <p style="color: #334155;">Task: <strong>${escapeHtml(t.instruction || t.id)}</strong></p>
+              ${dec.recommendation ? `<p style="color: #64748b; margin-top: 0.3rem;">${escapeHtml(dec.recommendation)}</p>` : ''}
+            </div>
+            <div class="dialog-actions-row">
+              <div class="dialog-btn-group">
+                ${buttonsHtml}
+              </div>
             </div>
           </div>
-          <div class="dialog-details-box">
-            <p style="color: #334155;">Task: <strong>${escapeHtml(t.instruction || t.id)}</strong></p>
-            <p style="color: #64748b; margin-top: 0.3rem;">Adaptive Router paused the task to protect local file security until authorized.</p>
-          </div>
-          <div class="dialog-actions-row">
-            <div class="dialog-btn-group">
-              <button type="button" class="btn btn-primary" id="btn-action-allow-once">Allow Once</button>
-              <button type="button" class="btn btn-secondary" id="btn-action-allow-always">Remember for Project</button>
+        `;
+
+        container.querySelectorAll('[data-decision-id]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-decision-id');
+            if (id === 'stop_task') stopTask(t.id);
+            else resumeTask(t.id, id);
+          });
+        });
+      } else {
+        // Fallback: a real app-permission request with no explicit
+        // options array (e.g. file-system access approval flows).
+        container.innerHTML = `
+          <div class="decision-dialog-card dialog-permission">
+            <div class="dialog-header">
+              <div class="dialog-icon">🛡️</div>
+              <div class="dialog-title-wrap">
+                <h3>${escapeHtml(dec.question || 'Action Permission Required')}</h3>
+                <p>${escapeHtml(dec.reason || 'Adaptive Router requires authorization to proceed.')}</p>
+              </div>
             </div>
-            <div class="dialog-btn-group">
-              <button type="button" class="btn btn-danger-outline" id="btn-action-stop-perm">Deny & Stop</button>
+            <div class="dialog-details-box">
+              <p style="color: #334155;">Task: <strong>${escapeHtml(t.instruction || t.id)}</strong></p>
+              <p style="color: #64748b; margin-top: 0.3rem;">Adaptive Router paused the task to protect local file security until authorized.</p>
+            </div>
+            <div class="dialog-actions-row">
+              <div class="dialog-btn-group">
+                <button type="button" class="btn btn-primary" id="btn-action-allow-once">Allow Once</button>
+                <button type="button" class="btn btn-secondary" id="btn-action-allow-always">Remember for Project</button>
+              </div>
+              <div class="dialog-btn-group">
+                <button type="button" class="btn btn-danger-outline" id="btn-action-stop-perm">Deny & Stop</button>
+              </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
 
-      const btnAllowOnce = document.getElementById('btn-action-allow-once');
-      if (btnAllowOnce) btnAllowOnce.addEventListener('click', () => resumeTask(t.id, 'allow_once'));
+        const btnAllowOnce = document.getElementById('btn-action-allow-once');
+        if (btnAllowOnce) btnAllowOnce.addEventListener('click', () => resumeTask(t.id, 'allow_once'));
 
-      const btnAllowAlways = document.getElementById('btn-action-allow-always');
-      if (btnAllowAlways) btnAllowAlways.addEventListener('click', () => resumeTask(t.id, 'allow_task'));
+        const btnAllowAlways = document.getElementById('btn-action-allow-always');
+        if (btnAllowAlways) btnAllowAlways.addEventListener('click', () => resumeTask(t.id, 'allow_task'));
 
-      const btnStopPerm = document.getElementById('btn-action-stop-perm');
-      if (btnStopPerm) btnStopPerm.addEventListener('click', () => stopTask(t.id));
+        const btnStopPerm = document.getElementById('btn-action-stop-perm');
+        if (btnStopPerm) btnStopPerm.addEventListener('click', () => stopTask(t.id));
+      }
 
     } else if (t.status === 'needs_cto_attention') {
       if (subtext) subtext.textContent = 'CTO Sensitivity Override Required';

@@ -261,9 +261,11 @@
               <div style="flex: 1;">
                 <h2 class="proto-card-title">
                   <span>Current Task: <span id="current-task-title">Loading active task...</span></span>
+                  <button type="button" id="current-task-title-toggle" class="btn-link" style="display: none;">View full instruction</button>
                   <span class="badge amber" id="current-task-status-badge">Awaiting Approval</span>
                 </h2>
                 <p class="proto-card-subtitle">Live Autonomous Pipeline Execution</p>
+                <p id="current-task-title-full" style="display: none; white-space: pre-wrap; color: #475569; font-size: 0.85rem; margin-top: 0.4rem; padding: 0.6rem; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;"></p>
               </div>
               <div style="display: flex; align-items: center; gap: 0.5rem;" id="task-action-buttons">
                 <button type="button" class="btn btn-secondary btn-sm" id="btn-pause-task">⏸️ Pause</button>
