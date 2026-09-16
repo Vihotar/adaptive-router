@@ -20,7 +20,9 @@
     techLogSearch: '',
     taskSearch: '',
     eventSource: null,
-    pollTimer: null
+    pollTimer: null,
+    ctoAttentionItems: [],
+    ctoAttentionFilter: ''
   };
 
   // Toast Notification System
@@ -160,6 +162,8 @@
       renderTaskProgressView();
     } else if (viewName === 'logs') {
       renderTechnicalLogsView();
+    } else if (viewName === 'cto-inbox') {
+      fetchCtoAttention();
     }
   }
 
@@ -188,6 +192,102 @@
     } catch (err) {
       console.warn('Error fetching /api/status:', err);
     }
+  }
+
+  // Persistent CTO Attention / Inbox — lightweight poll (piggybacks on the
+  // same 3s cadence as fetchStatus/fetchTasks, no separate timer) plus an
+  // explicit fetch when the CTO navigates to the Inbox view. The inbox
+  // itself is the source of truth on the server; this just mirrors it for
+  // display and updates the sidebar badge, matching the handover doc's
+  // instruction not to make correctness depend on any particular UI popup.
+  async function fetchCtoAttention() {
+    try {
+      const res = await fetch('/api/cto/attention/list');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      State.ctoAttentionItems = Array.isArray(data.items) ? data.items : [];
+      renderCtoInboxBadge();
+      if (State.activeView === 'cto-inbox') renderCtoInboxList();
+    } catch (err) {
+      console.warn('Error fetching CTO attention inbox:', err);
+    }
+  }
+
+  function renderCtoInboxBadge() {
+    const badge = document.getElementById('nav-count-cto-inbox');
+    if (!badge) return;
+    const unread = State.ctoAttentionItems.filter(i => i.state === 'unread').length;
+    if (unread > 0) {
+      badge.textContent = String(unread);
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function renderCtoInboxList() {
+    const container = document.getElementById('cto-inbox-list');
+    if (!container) return;
+    const filter = State.ctoAttentionFilter;
+    const items = filter ? State.ctoAttentionItems.filter(i => i.state === filter) : State.ctoAttentionItems;
+    if (items.length === 0) {
+      container.innerHTML = `<div class="cto-inbox-empty">No attention items${filter ? ` (${escapeHtml(filter)})` : ''}. AR is working independently.</div>`;
+      return;
+    }
+    container.innerHTML = items.map(item => `
+      <div class="cto-inbox-item cto-inbox-state-${escapeHtml(item.state)}" data-id="${escapeHtml(item.id)}">
+        <div class="cto-inbox-item-header">
+          <span class="cto-inbox-item-title">${escapeHtml(item.title || item.eventType)}</span>
+          <span class="cto-inbox-item-state-badge">${escapeHtml(item.state)}</span>
+        </div>
+        ${item.instruction ? `<div class="cto-inbox-item-instruction">${escapeHtml(item.instruction)}</div>` : ''}
+        ${item.reason ? `<div class="cto-inbox-item-reason">${escapeHtml(item.reason)}</div>` : ''}
+        <div class="cto-inbox-item-action">Action: ${escapeHtml(item.action || 'Review Result')}</div>
+        <div class="cto-inbox-item-footer">
+          <span class="cto-inbox-item-time">${new Date(item.createdAt).toLocaleString()}</span>
+          <div class="cto-inbox-item-buttons">
+            ${item.taskId ? `<button type="button" class="btn btn-secondary cto-inbox-goto-task" data-task-id="${escapeHtml(item.taskId)}">View Task</button>` : ''}
+            ${item.state === 'unread' ? `<button type="button" class="btn btn-secondary cto-inbox-ack" data-id="${escapeHtml(item.id)}">Acknowledge</button>` : ''}
+            ${item.state !== 'resolved' ? `<button type="button" class="btn btn-secondary cto-inbox-resolve" data-id="${escapeHtml(item.id)}">Mark Resolved</button>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.cto-inbox-goto-task').forEach(btn => {
+      btn.addEventListener('click', () => {
+        State.currentTaskId = btn.getAttribute('data-task-id');
+        switchView('overview');
+        fetchTaskDetails(State.currentTaskId);
+      });
+    });
+    container.querySelectorAll('.cto-inbox-ack').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        try {
+          await fetch(`/api/cto/attention/${encodeURIComponent(btn.getAttribute('data-id'))}/ack`, { method: 'POST' });
+          await fetchCtoAttention();
+        } catch (err) { console.warn('Failed to acknowledge attention item:', err); }
+      });
+    });
+    container.querySelectorAll('.cto-inbox-resolve').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        try {
+          await fetch(`/api/cto/attention/${encodeURIComponent(btn.getAttribute('data-id'))}/resolve`, { method: 'POST' });
+          await fetchCtoAttention();
+        } catch (err) { console.warn('Failed to resolve attention item:', err); }
+      });
+    });
+  }
+
+  function initCtoInboxControls() {
+    document.querySelectorAll('.cto-inbox-filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.cto-inbox-filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        State.ctoAttentionFilter = chip.getAttribute('data-state') || '';
+        renderCtoInboxList();
+      });
+    });
   }
 
   async function fetchTasks() {
@@ -1872,16 +1972,22 @@
     initTaskProgressControls();
     initTechnicalLogsControls();
     initSettingsControls();
+    initCtoInboxControls();
     initModals();
 
     // Initial load
     await fetchStatus();
     await fetchTasks();
+    await fetchCtoAttention();
 
-    // Periodic poll every 3 seconds for fresh task records and status
+    // Periodic poll every 3 seconds for fresh task records and status.
+    // CTO Attention piggybacks on this same cadence rather than a separate
+    // timer — cheap, and matches the handover doc's "do not burn quota
+    // simply waiting" / "avoid polling aggressively" guidance.
     State.pollTimer = setInterval(async () => {
       await fetchStatus();
       await fetchTasks();
+      await fetchCtoAttention();
     }, 3000);
   }
 

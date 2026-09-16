@@ -18,6 +18,7 @@ import { getModelTier, getModelInfo, evaluateReviewerQualification, formatQualif
 import { getActiveProject, getProject } from './projects.mjs';
 import { classifySensitivity, containsLikelySecret } from './sensitivity.mjs';
 import { recordStaffCompletion } from './staff-log.mjs';
+import { notifyFromTaskStatus, notifyCtoAttention } from './cto-attention.mjs';
 import { formatTaskFailure } from './failure.mjs';
 import { createEmptyTokenUsage, accumulateInvocation, formatTokenUsageLog, normalizeUsage } from './token-tracker.mjs';
 
@@ -100,7 +101,17 @@ export function validateWebFiles(files) {
   if (files.length !== 3 || names.some(n => !files.some(f => f.path === n))) throw Error('Only index.html, styles.css and app.js may be edited');
   return files;
 }
-function state(dir, task, status, details = {}) { Object.assign(task, details, { status }); json(path.join(dir, 'task.json'), task); event(dir, status, details); }
+function state(dir, task, status, details = {}) {
+  Object.assign(task, details, { status });
+  json(path.join(dir, 'task.json'), task);
+  event(dir, status, details);
+  // Persistent CTO Attention inbox: fire-and-forget, best-effort. dir is
+  // root/.router/tasks/<id> (three segments below root), so root is three
+  // dirname() calls up, not two. Only statuses the cto-attention module
+  // actually maps produce an inbox item; everything else (normal internal
+  // progress) is silently ignored there.
+  try { notifyFromTaskStatus(path.dirname(path.dirname(path.dirname(dir))), task, status, details); } catch { /* best-effort */ }
+}
 export async function codeTask(root, instruction, { resume, injectFault = false, call, ready, test = null, paths = executables(root), log = console.log, unavailableBuilders = [], claudeReserve, allowClaude = false, confirmClaudeUse = null, onActivity = null, onWorkerEvent = null, preferredWorker = null, feedback: correctionFeedback = null, project = null, signal = null, override_sensitive = false } = {}) {
   if (!instruction?.trim() && !resume) throw Error('Provide a task instruction');
   // Lock scope: which project this task belongs to, so tasks on DIFFERENT
@@ -460,6 +471,18 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
         // task.guardrailHardFlagged/guardrailReason for the dashboard and
         // for Stage B approval review to see and factor into the CTO's
         // decision once the task reaches a natural decision point.
+        // Since this doesn't go through state()/update(), notify the CTO
+        // Attention inbox directly (best-effort) — this is exactly the
+        // TOKEN_GUARDRAIL_REACHED case the handover doc lists.
+        try {
+          notifyCtoAttention(path.dirname(path.dirname(path.dirname(dir))), {
+            eventType: 'TOKEN_GUARDRAIL_REACHED',
+            taskId: task.id,
+            project: task.project,
+            reason: task.guardrailReason,
+            instruction: task.instruction
+          });
+        } catch { /* best-effort */ }
       }
     };
 

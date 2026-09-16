@@ -81,6 +81,11 @@
             <span class="nav-icon">📊</span>
             <span class="nav-label">Overview</span>
           </a>
+          <a class="proto-nav-item" data-view="cto-inbox" id="nav-item-cto-inbox">
+            <span class="nav-icon">📥</span>
+            <span class="nav-label">CTO Inbox</span>
+            <span class="proto-nav-count" id="nav-count-cto-inbox" style="display: none;">0</span>
+          </a>
           <a class="proto-nav-item" data-view="tasks" id="nav-item-tasks">
             <span class="nav-icon">📋</span>
             <span class="nav-label">Tasks</span>
@@ -774,6 +779,29 @@
         <!-- ========================================================================= -->
         <!-- VIEW 5: TECHNICAL LOGS                                                    -->
         <!-- ========================================================================= -->
+        <!-- ========================================================================= -->
+        <!-- VIEW: CTO INBOX (persistent CTO Attention / nudge system)                -->
+        <!-- ========================================================================= -->
+        <div class="proto-view" id="view-cto-inbox">
+          <section class="proto-card">
+            <div class="proto-card-header">
+              <div>
+                <h2 class="proto-card-title">CTO Inbox</h2>
+                <p class="proto-card-subtitle">Persistent record of items needing CTO judgment — survives browser refresh and AR restart</p>
+              </div>
+              <div style="display: flex; gap: 0.5rem;">
+                <button type="button" class="task-filter-tab cto-inbox-filter-chip active" data-state="">All</button>
+                <button type="button" class="task-filter-tab cto-inbox-filter-chip" data-state="unread">Unread</button>
+                <button type="button" class="task-filter-tab cto-inbox-filter-chip" data-state="acknowledged">Acknowledged</button>
+                <button type="button" class="task-filter-tab cto-inbox-filter-chip" data-state="resolved">Resolved</button>
+              </div>
+            </div>
+            <div id="cto-inbox-list" class="cto-inbox-list">
+              <!-- Rendered dynamically by app.js -->
+            </div>
+          </section>
+        </div>
+
         <div class="proto-view" id="view-logs">
           <section class="proto-card">
             <div class="proto-card-header">

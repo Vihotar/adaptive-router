@@ -19,6 +19,7 @@ import { discoverAntigravityModels, classifyTask } from './smart-router.mjs';
 import { classifySensitivity } from './sensitivity.mjs';
 import { formatTaskFailure } from './failure.mjs';
 import { getAllWorkerHealth } from './worker-health.mjs';
+import { getAttentionSummary, listAttention, setAttentionState, resolveAttentionForTask } from './cto-attention.mjs';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -946,6 +947,32 @@ export function createDashboardServer(root, options = {}) {
         return sendJson({ pid: process.pid, startedAt: processStartedAt });
       }
 
+      // Persistent CTO Attention / Inbox — handover doc section 25's
+      // "Cowork Supervision Integration": a small machine-friendly endpoint
+      // so the CTO can cheaply answer "does attention exist, what task,
+      // why, what action" without parsing logs or polling aggressively.
+      // The inbox itself is the source of truth (survives browser refresh
+      // and AR restart); this just reads/mutates it.
+      if (pathname === '/api/cto/attention' && method === 'GET') {
+        return sendJson(getAttentionSummary(root));
+      }
+      if (pathname === '/api/cto/attention/list' && method === 'GET') {
+        const stateFilter = parsedUrl.searchParams.get('state');
+        return sendJson({ items: listAttention(root, { state: stateFilter || null }) });
+      }
+      const ctoAttentionAckMatch = pathname.match(/^\/api\/cto\/attention\/([a-f0-9-]{36})\/ack$/);
+      if (ctoAttentionAckMatch && method === 'POST') {
+        const item = setAttentionState(root, ctoAttentionAckMatch[1], 'acknowledged');
+        if (!item) return sendJson({ error: 'Attention item not found' }, 404);
+        return sendJson({ success: true, item });
+      }
+      const ctoAttentionResolveMatch = pathname.match(/^\/api\/cto\/attention\/([a-f0-9-]{36})\/resolve$/);
+      if (ctoAttentionResolveMatch && method === 'POST') {
+        const item = setAttentionState(root, ctoAttentionResolveMatch[1], 'resolved');
+        if (!item) return sendJson({ error: 'Attention item not found' }, 404);
+        return sendJson({ success: true, item });
+      }
+
       // 1. GET /api/status - System and worker statuses
       if (pathname === '/api/status' && method === 'GET') {
         const requestedProject = parsedUrl.searchParams.get('project');
@@ -1498,6 +1525,7 @@ export function createDashboardServer(root, options = {}) {
           t.status = 'cancelled_by_user';
           t.stoppedByUser = true;
           json(taskPath, t);
+          try { resolveAttentionForTask(root, taskId); } catch { /* best-effort */ }
           return sendJson({ success: true, taskId, status: t.status });
         }
 
@@ -1683,6 +1711,7 @@ export function createDashboardServer(root, options = {}) {
         t.status = 'cancelled_by_user';
         t.stoppedByUser = true;
         delete t.decisionRequired;
+        try { resolveAttentionForTask(root, taskId); } catch { /* best-effort */ }
         const stopActivity = {
           time: new Date().toISOString(),
           icon: '⏹️',

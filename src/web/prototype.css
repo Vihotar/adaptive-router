@@ -1362,3 +1362,113 @@ input:checked + .slider:before {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
+
+/* ========================================================================= */
+/* CTO INBOX (persistent CTO Attention / nudge system)                      */
+/* ========================================================================= */
+
+#nav-count-cto-inbox {
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+}
+
+.proto-nav-item.active#nav-item-cto-inbox #nav-count-cto-inbox {
+  background: #fde68a;
+  color: #78350f;
+}
+
+.cto-inbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.cto-inbox-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.cto-inbox-item {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  background: var(--bg-card);
+}
+
+.cto-inbox-item.cto-inbox-state-unread {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.cto-inbox-item.cto-inbox-state-resolved {
+  opacity: 0.65;
+}
+
+.cto-inbox-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.cto-inbox-item-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.cto-inbox-item-state-badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.cto-inbox-state-unread .cto-inbox-item-state-badge {
+  background: #fde68a;
+  color: #78350f;
+}
+
+.cto-inbox-item-instruction {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+
+.cto-inbox-item-reason {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.cto-inbox-item-action {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 0.6rem;
+}
+
+.cto-inbox-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--bg-subtle);
+}
+
+.cto-inbox-item-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.cto-inbox-item-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
