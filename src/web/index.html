@@ -3,964 +3,1013 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Adaptive Router — Business Control Interface</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Adaptive Router — Executive Dashboard</title>
+  <link rel="stylesheet" href="prototype.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
   <style>
-    /* Delete Project control — scoped here since it was added after the
-       main stylesheet; safe to fold into styles.css later if preferred. */
-    .btn-danger-outline { color: #c0392b; border-color: #c0392b; background: transparent; }
-    .btn-danger-outline:hover { background: #fdecea; }
-    .btn-danger { background: #c0392b; border-color: #c0392b; color: #fff; }
-    .btn-danger:hover { background: #a93226; }
-    #delete-project-form .checkbox-row { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 4px; font-size: 0.92rem; }
-    #delete-project-form .checkbox-row input { margin-top: 3px; }
-
-    /* Stage B simplified business view — scoped here for the same reason
-       as above. Business summary is always visible; technical detail is
-       collapsed by default behind its own toggle. */
-    .stageb-business-summary { margin-bottom: 0.75rem; }
-    .stageb-details-toggle { display: inline-flex; margin: 0.25rem 0 1rem; }
-
-    /* Plain-business-language history view */
-    .history-view-switch { display: inline-flex; gap: 0.5rem; }
-    .history-view-btn { opacity: 0.55; }
-    .history-view-btn.active { opacity: 1; font-weight: 600; text-decoration: underline; }
-    .business-history-item { padding: 0.75rem; border-bottom: 1px solid rgba(0,0,0,0.06); }
-    .business-history-item:last-child { border-bottom: none; }
-    .business-history-item .bh-title { font-weight: 600; margin-bottom: 0.2rem; }
-    .business-history-item .bh-meta { font-size: 0.8rem; opacity: 0.7; }
+    /* Utility adjustments for live UI integration */
+    .btn-danger-outline {
+      color: #ef4444;
+      border-color: #fca5a5;
+      background: transparent;
+    }
+    .btn-danger-outline:hover {
+      background: #fef2f2;
+      border-color: #ef4444;
+    }
+    .token-unavailable-note {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+      font-style: italic;
+    }
+    .decision-badge-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    
-    <!-- Top Status & Navigation Bar -->
-    <header class="app-header">
-      <div class="brand-group">
-        <div class="brand-icon">⚡</div>
-        <div>
-          <h1 class="brand-title">Adaptive Router</h1>
-          <p class="brand-subtitle">Autonomous Multi-Model Business Control</p>
-        </div>
-      </div>
+  <div class="proto-shell">
 
-      <div class="header-controls">
-        <!-- Project Selector -->
-        <div class="control-box">
-          <span class="control-label">Active Project</span>
-          <div class="project-pill-select">
-            <span class="status-dot green"></span>
-            <select id="project-selector" class="project-select-input">
+    <!-- Top Header -->
+    <header class="proto-header">
+      <div class="proto-header-top">
+        <div class="proto-brand">
+          <div class="proto-brand-icon">⚡</div>
+          <div>
+            <h1 class="proto-brand-title">Adaptive Router</h1>
+            <p class="proto-brand-subtitle">Autonomous Multi-Model Business Control</p>
+          </div>
+        </div>
+
+        <div class="proto-header-badges">
+          <div class="proto-badge-pill project" style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>Project:</span>
+            <select id="project-selector" style="font-weight: 700; background: transparent; border: none; color: inherit; font-size: 0.85rem; cursor: pointer; outline: none;">
               <option value="adaptive-router" selected>Adaptive Router System</option>
             </select>
           </div>
-          <button type="button" id="new-project-btn" class="btn btn-secondary btn-sm">+ New Project</button>
-          <button type="button" id="delete-project-btn" class="btn btn-secondary btn-sm btn-danger-outline" title="Delete the selected project">Delete Project</button>
-        </div>
 
-        <!-- Routing Mode -->
-        <div class="control-box">
-          <span class="control-label">Routing Mode</span>
-          <div class="badge-pill blue">
-            <span>Auto (Intelligent Routing)</span>
+          <div class="proto-badge-pill" style="display: flex; align-items: center; gap: 0.4rem; background: var(--bg-subtle);">
+            <span>Mode:</span>
+            <strong style="color: #2563eb;">Auto</strong>
           </div>
-        </div>
 
-        <!-- Claude Reserve Switch -->
-        <div class="control-box reserve-box">
-          <div class="reserve-text">
-            <span class="control-label">Claude Reserve Mode</span>
-            <span class="reserve-desc" id="reserve-desc">Preserving quota for Cowork</span>
+          <div class="proto-badge-pill" style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-subtle);">
+            <span>Claude Reserve:</span>
+            <label class="switch" title="Toggle Claude Reserve Mode">
+              <input type="checkbox" id="header-claude-reserve-toggle" checked>
+              <span class="slider"></span>
+            </label>
+            <span id="header-claude-reserve-label" style="font-size: 0.75rem; font-weight: 700; color: #8b5cf6;">RESERVE ON</span>
           </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="claude-reserve-toggle" checked>
-            <span class="slider"></span>
-          </label>
-          <span class="toggle-state" id="claude-reserve-state">ON</span>
         </div>
       </div>
     </header>
 
-    <!-- Main Working Interface -->
-    <main class="main-content">
+    <!-- Body Layout: Left Sidebar + Main Content -->
+    <div class="proto-body-layout">
+      <!-- Permanent Left-Side Vertical Navigation -->
+      <aside class="proto-sidebar">
+        <nav class="proto-sidebar-nav" aria-label="Main Navigation">
+          <a class="proto-nav-item active" data-view="overview" id="nav-item-overview">
+            <span class="nav-icon">📊</span>
+            <span class="nav-label">Overview</span>
+          </a>
+          <a class="proto-nav-item" data-view="tasks" id="nav-item-tasks">
+            <span class="nav-icon">📋</span>
+            <span class="nav-label">Tasks</span>
+            <span class="proto-nav-count" id="nav-count-tasks">0</span>
+          </a>
+          <a class="proto-nav-item" data-view="team" id="nav-item-team">
+            <span class="nav-icon">👥</span>
+            <span class="nav-label">AI Team</span>
+            <span class="proto-nav-count" id="nav-count-team">4</span>
+          </a>
+          <a class="proto-nav-item" data-view="progress" id="nav-item-progress">
+            <span class="nav-icon">⏱️</span>
+            <span class="nav-label">Task Progress</span>
+          </a>
+          <a class="proto-nav-item" data-view="logs" id="nav-item-logs">
+            <span class="nav-icon">📄</span>
+            <span class="nav-label">Technical Logs</span>
+            <span class="proto-nav-count" id="nav-count-logs">0</span>
+          </a>
+          <a class="proto-nav-item" data-view="settings" id="nav-item-settings">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">Settings</span>
+          </a>
+        </nav>
 
-      <!-- Top 2-Column Dashboard Grid: All Workers (Left) & Current Task Overview (Right) -->
-      <div class="top-dashboard-grid">
-        <!-- 1. All Workers / Live Worker Console (Left Column) -->
-        <section class="section-card worker-console-card">
-          <div class="console-header">
-            <div class="console-tabs-group" role="tablist">
-              <button class="console-tab active" data-tab="all" role="tab">All Workers</button>
-              <button class="console-tab" data-tab="codex" role="tab">Codex (ChatGPT)</button>
-              <button class="console-tab" data-tab="claude" role="tab">Claude Code (Anthropic)</button>
-              <button class="console-tab" data-tab="antigravity" role="tab">Antigravity (Google)</button>
-              <button class="console-tab" data-tab="cline" role="tab">Cline</button>
+        <div class="proto-sidebar-footer">
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span class="pulse-dot" style="width: 6px; height: 6px;"></span>
+            <span>AR Engine: <strong>Autonomous</strong></span>
+          </div>
+          <span style="opacity: 0.8;">Stage B Active Governance</span>
+        </div>
+      </aside>
+
+      <!-- Main Views Container -->
+      <main class="proto-main">
+
+        <!-- ========================================================================= -->
+        <!-- VIEW 1: OVERVIEW                                                          -->
+        <!-- ========================================================================= -->
+        <div class="proto-view active" id="view-overview">
+
+          <!-- Top — Platform Limits & Usage -->
+          <section class="proto-card" style="margin-bottom: 1.5rem;">
+            <div class="proto-card-header">
+              <div class="proto-card-title">
+                <span>Platform Limits & Availability</span>
+              </div>
+              <span class="proto-card-subtitle">Real-time availability and provider status across authorized AI platforms</span>
             </div>
 
-            <div class="console-controls">
-              <label class="details-toggle-label">
-                <input type="checkbox" id="show-technical-details-toggle">
-                <span>Show Technical Details</span>
+            <div class="platform-limits-grid">
+              <!-- Cline (Google AI Studio) -->
+              <div class="platform-limit-card">
+                <div class="platform-limit-header">
+                  <div class="platform-name-wrap">
+                    <span class="platform-icon">🌐</span>
+                    <div>
+                      <h4 class="platform-title">Cline</h4>
+                      <span class="platform-meta">Google AI Studio</span>
+                    </div>
+                  </div>
+                  <label class="switch" title="Toggle Cline availability">
+                    <input type="checkbox" id="toggle-limit-cline" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="usage-bar-wrap">
+                  <div class="usage-numbers">
+                    <span class="usage-used">Usage: <strong>Usage data unavailable</strong></span>
+                    <span class="usage-remaining">Quota: <strong>Honest status</strong></span>
+                  </div>
+                  <div class="usage-progress">
+                    <div class="usage-fill fill-blue" style="width: 0%;"></div>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                  <span class="badge green" id="badge-limit-cline">ACTIVE</span>
+                  <span style="color: var(--text-muted);" id="note-limit-cline">Connected via Cline CLI (local)</span>
+                </div>
+              </div>
+
+              <!-- Claude (Anthropic) -->
+              <div class="platform-limit-card">
+                <div class="platform-limit-header">
+                  <div class="platform-name-wrap">
+                    <span class="platform-icon">🧠</span>
+                    <div>
+                      <h4 class="platform-title">Claude Code</h4>
+                      <span class="platform-meta">Anthropic • Claude Pro</span>
+                    </div>
+                  </div>
+                  <label class="switch" title="Toggle Claude Code availability">
+                    <input type="checkbox" id="toggle-limit-claude">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="usage-bar-wrap">
+                  <div class="usage-numbers">
+                    <span class="usage-used">Usage: <strong>Usage data unavailable</strong></span>
+                    <span class="usage-remaining">Reserve: <strong>Active</strong></span>
+                  </div>
+                  <div class="usage-progress">
+                    <div class="usage-fill fill-purple" style="width: 0%;"></div>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                  <span class="badge purple" id="badge-limit-claude">RESERVE MODE</span>
+                  <span style="color: var(--text-muted);" id="note-limit-claude">Quota preserved for Cowork</span>
+                </div>
+              </div>
+
+              <!-- OpenAI / ChatGPT -->
+              <div class="platform-limit-card">
+                <div class="platform-limit-header">
+                  <div class="platform-name-wrap">
+                    <span class="platform-icon">⚡</span>
+                    <div>
+                      <h4 class="platform-title">Codex</h4>
+                      <span class="platform-meta">OpenAI • ChatGPT Pro</span>
+                    </div>
+                  </div>
+                  <label class="switch" title="Toggle Codex availability">
+                    <input type="checkbox" id="toggle-limit-codex">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="usage-bar-wrap">
+                  <div class="usage-numbers">
+                    <span class="usage-used">Usage: <strong>Usage data unavailable</strong></span>
+                    <span class="usage-remaining">Standby: <strong>Ready</strong></span>
+                  </div>
+                  <div class="usage-progress">
+                    <div class="usage-fill fill-muted" style="width: 0%;"></div>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                  <span class="badge gray" id="badge-limit-codex">STANDBY</span>
+                  <span style="color: var(--text-muted);" id="note-limit-codex">Connected via ChatGPT Pro</span>
+                </div>
+              </div>
+
+              <!-- Antigravity -->
+              <div class="platform-limit-card">
+                <div class="platform-limit-header">
+                  <div class="platform-name-wrap">
+                    <span class="platform-icon">✨</span>
+                    <div>
+                      <h4 class="platform-title">Antigravity</h4>
+                      <span class="platform-meta">Google Deepmind</span>
+                    </div>
+                  </div>
+                  <label class="switch" title="Toggle Antigravity availability">
+                    <input type="checkbox" id="toggle-limit-antigravity" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="usage-bar-wrap">
+                  <div class="usage-numbers">
+                    <span class="usage-used">Usage: <strong>Usage data unavailable</strong></span>
+                    <span class="usage-remaining">Audit Pool: <strong>14 Models</strong></span>
+                  </div>
+                  <div class="usage-progress">
+                    <div class="usage-fill fill-green" style="width: 0%;"></div>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                  <span class="badge green" id="badge-limit-antigravity">ACTIVE</span>
+                  <span style="color: var(--text-muted);" id="note-limit-antigravity">Connected in Google account mode</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Current Task / Live Activity Section -->
+          <section class="proto-card current-task-card">
+            <div class="proto-card-header">
+              <div style="flex: 1;">
+                <h2 class="proto-card-title">
+                  <span>Current Task: <span id="current-task-title">Loading active task...</span></span>
+                  <span class="badge amber" id="current-task-status-badge">Awaiting Approval</span>
+                </h2>
+                <p class="proto-card-subtitle">Live Autonomous Pipeline Execution</p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;" id="task-action-buttons">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-pause-task">⏸️ Pause</button>
+                <button type="button" class="btn btn-secondary btn-sm btn-danger-outline" id="btn-stop-task">⏹️ Stop</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-rerun-task">🔄 Rerun Clean</button>
+              </div>
+            </div>
+
+            <!-- Task Info Strip -->
+            <div class="task-info-strip">
+              <div class="task-info-item">
+                <span class="task-info-label">Task ID</span>
+                <span class="task-info-value" id="task-id-value" style="font-family: var(--font-mono); font-size: 0.85rem;">—</span>
+              </div>
+              <div class="task-info-item">
+                <span class="task-info-label">Created Time</span>
+                <span class="task-info-value" id="task-created-value">—</span>
+              </div>
+              <div class="task-info-item">
+                <span class="task-info-label">Task Type / Difficulty</span>
+                <span class="task-info-value" id="task-type-value">—</span>
+              </div>
+              <div class="task-info-item">
+                <span class="task-info-label">Next Step</span>
+                <span class="task-info-value" id="task-next-step-value" style="color: var(--primary);">—</span>
+              </div>
+              <div class="task-info-item">
+                <span class="task-info-label">Duration</span>
+                <span class="task-info-value" id="task-duration-value">—</span>
+              </div>
+              <div class="task-info-item">
+                <span class="task-info-label">Progress</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem;">
+                  <div class="usage-progress" style="width: 100px; height: 7px;">
+                    <div class="usage-fill fill-amber" id="task-progress-bar" style="width: 0%;"></div>
+                  </div>
+                  <span id="task-progress-pct" style="font-weight: 700; font-size: 0.85rem;">0%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Builder AI & Reviewer AI Cards -->
+            <div class="ai-pair-grid">
+              <!-- Builder AI -->
+              <div class="ai-role-card builder">
+                <div class="ai-role-header">
+                  <div class="ai-role-title-group">
+                    <div class="ai-avatar cline" id="builder-avatar">C</div>
+                    <div>
+                      <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #2563eb;">Builder AI</div>
+                      <h3 class="ai-name" id="builder-name">Cline</h3>
+                      <span class="ai-platform" id="builder-platform">Platform: Google AI Studio</span>
+                    </div>
+                  </div>
+                  <span class="ai-badge working" id="builder-badge">Assigned</span>
+                </div>
+
+                <div class="ai-details-list">
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Current Role</span>
+                    <span class="ai-detail-v" id="builder-role">Economical Builder</span>
+                  </div>
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Current Status</span>
+                    <span class="ai-detail-v" id="builder-status">—</span>
+                  </div>
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Model</span>
+                    <span class="ai-detail-v" id="builder-model">—</span>
+                  </div>
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Reasoning Effort</span>
+                    <span class="ai-detail-v" id="builder-effort">—</span>
+                  </div>
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Time</span>
+                    <span class="ai-detail-v" id="builder-time">—</span>
+                  </div>
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Specialist</span>
+                    <span class="ai-detail-v" id="builder-specialist">—</span>
+                  </div>
+                </div>
+
+                <!-- Token Usage Box -->
+                <div class="token-box">
+                  <div class="token-box-header">
+                    <span class="token-box-title">Token Usage</span>
+                    <span class="badge gray" id="builder-token-badge" style="font-size: 0.65rem;">Unavailable</span>
+                  </div>
+                  <div class="token-metrics">
+                    <div class="token-item">
+                      <span class="token-item-k">Input</span>
+                      <span class="token-item-v" id="builder-token-input" style="color: var(--text-muted); font-size: 0.85rem;">Unavailable</span>
+                    </div>
+                    <div class="token-item">
+                      <span class="token-item-k">Output</span>
+                      <span class="token-item-v" id="builder-token-output" style="color: var(--text-muted); font-size: 0.85rem;">Unavailable</span>
+                    </div>
+                    <div class="token-item">
+                      <span class="token-item-k">Total</span>
+                      <span class="token-item-v" id="builder-token-total" style="color: var(--text-muted); font-size: 0.85rem;">Unavailable</span>
+                    </div>
+                  </div>
+                  <div class="token-unavailable-note" id="builder-token-note">Exact token metrics update when worker reports usage.</div>
+                </div>
+              </div>
+
+              <!-- Reviewer AI -->
+              <div class="ai-role-card reviewer">
+                <div class="ai-role-header">
+                  <div class="ai-role-title-group">
+                    <div class="ai-avatar antigravity" id="reviewer-avatar">A</div>
+                    <div>
+                      <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #059669;">Reviewer AI</div>
+                      <h3 class="ai-name" id="reviewer-name">Antigravity</h3>
+                      <span class="ai-platform" id="reviewer-platform">Platform: Google DeepMind</span>
+                    </div>
+                  </div>
+                  <span class="ai-badge reviewing" id="reviewer-badge">Review completed</span>
+                </div>
+
+                <div class="ai-details-list">
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Current Role</span>
+                    <span class="ai-detail-v" id="reviewer-role">Senior Auditor</span>
+                  </div>
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Current Status</span>
+                    <span class="ai-detail-v" id="reviewer-status">—</span>
+                  </div>
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Model</span>
+                    <span class="ai-detail-v" id="reviewer-model">—</span>
+                  </div>
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Reasoning Effort</span>
+                    <span class="ai-detail-v" id="reviewer-effort">—</span>
+                  </div>
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Audit Verdict</span>
+                    <span class="ai-detail-v" id="reviewer-verdict" style="color: #059669; font-weight: 700;">—</span>
+                  </div>
+                  <div class="ai-detail-row">
+                    <span class="ai-detail-k">Specialist</span>
+                    <span class="ai-detail-v" id="reviewer-specialist">—</span>
+                  </div>
+                </div>
+
+                <!-- Token Usage Box -->
+                <div class="token-box">
+                  <div class="token-box-header">
+                    <span class="token-box-title">Token Usage</span>
+                    <span class="badge gray" id="reviewer-token-badge" style="font-size: 0.65rem;">Unavailable</span>
+                  </div>
+                  <div class="token-metrics">
+                    <div class="token-item">
+                      <span class="token-item-k">Input</span>
+                      <span class="token-item-v" id="reviewer-token-input" style="color: var(--text-muted); font-size: 0.85rem;">Unavailable</span>
+                    </div>
+                    <div class="token-item">
+                      <span class="token-item-k">Output</span>
+                      <span class="token-item-v" id="reviewer-token-output" style="color: var(--text-muted); font-size: 0.85rem;">Unavailable</span>
+                    </div>
+                    <div class="token-item">
+                      <span class="token-item-k">Total</span>
+                      <span class="token-item-v" id="reviewer-token-total" style="color: var(--text-muted); font-size: 0.85rem;">Unavailable</span>
+                    </div>
+                  </div>
+                  <div class="token-unavailable-note" id="reviewer-token-note">Exact token metrics update when worker reports usage.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Why AR Chose This Team -->
+            <div class="rationale-card">
+              <div class="rationale-header">
+                <span>💡 Why AR Chose This Team</span>
+              </div>
+              <ul class="rationale-list" id="rationale-list">
+                <li class="rationale-item"><span class="check-icon">✓</span> Loading routing rationale...</li>
+              </ul>
+            </div>
+
+            <!-- Task Progress / Technical Logs Area -->
+            <div class="logs-section-header">
+              <div class="view-switcher-group">
+                <button type="button" class="view-switch-btn" id="btn-view-progress">Task Progress</button>
+                <button type="button" class="view-switch-btn" id="btn-view-logs">Technical Logs</button>
+                <button type="button" class="view-switch-btn active" id="btn-view-split">Split View</button>
+              </div>
+
+              <div class="autofollow-toggle-wrap">
+                <span>Auto-follow:</span>
+                <label class="switch" title="Auto-scroll log feeds as new events occur">
+                  <input type="checkbox" id="toggle-autofollow" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Container for Progress & Tech Logs -->
+            <div class="logs-display-container" id="overview-logs-display">
+              <!-- Rendered dynamically by app.js -->
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- Real Decision / Warning / Approval Container                              -->
+            <!-- ========================================================================= -->
+            <div class="decision-section-wrap" style="margin-top: 1.5rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem;">
+                <span style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">
+                  Stage Governance & Decision Container:
+                </span>
+                <span style="font-size: 0.75rem; color: var(--text-muted);" id="decision-status-subtext">Real-time status check</span>
+              </div>
+
+              <!-- Active Dialog Card -->
+              <div id="decision-card-container">
+                <!-- Rendered dynamically by app.js based on real task state -->
+              </div>
+            </div>
+
+          </section>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- VIEW 2: TASKS                                                             -->
+        <!-- ========================================================================= -->
+        <div class="proto-view" id="view-tasks">
+          <section class="proto-card">
+            <div class="proto-card-header">
+              <div>
+                <h2 class="proto-card-title">Task Management</h2>
+                <p class="proto-card-subtitle">Real persisted tasks and executions across registered projects</p>
+              </div>
+              <div style="display: flex; gap: 0.75rem;">
+                <input type="text" id="task-search-input" placeholder="Search tasks, models, or IDs..." style="padding: 0.5rem 0.85rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.85rem; width: 260px;">
+                <button type="button" class="btn btn-primary" id="btn-open-new-task">+ New Task</button>
+              </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="tasks-filter-bar">
+              <div class="tasks-tabs-group">
+                <button type="button" class="task-filter-tab active" data-filter="all" id="filter-tab-all">All Tasks (0)</button>
+                <button type="button" class="task-filter-tab" data-filter="running" id="filter-tab-running">Running (0)</button>
+                <button type="button" class="task-filter-tab" data-filter="decision" id="filter-tab-decision">Waiting for Decision (0)</button>
+                <button type="button" class="task-filter-tab" data-filter="completed" id="filter-tab-completed">Completed (0)</button>
+                <button type="button" class="task-filter-tab" data-filter="failed" id="filter-tab-failed">Failed (0)</button>
+                <button type="button" class="task-filter-tab" data-filter="cancelled" id="filter-tab-cancelled">Cancelled (0)</button>
+              </div>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">Click any task row to inspect full details</span>
+            </div>
+
+            <!-- Tasks Table: Exactly 7 Columns as Required -->
+            <div style="overflow-x: auto;">
+              <table class="tasks-table">
+                <thead>
+                  <tr>
+                    <th>Task Name / ID</th>
+                    <th>Started</th>
+                    <th>Builder AI</th>
+                    <th>Reviewer AI</th>
+                    <th>Duration</th>
+                    <th>Progress</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="tasks-table-body">
+                  <!-- Rendered dynamically by app.js -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- VIEW 3: AI TEAM                                                           -->
+        <!-- ========================================================================= -->
+        <div class="proto-view" id="view-team">
+          <section class="proto-card">
+            <div class="proto-card-header">
+              <div>
+                <h2 class="proto-card-title">AI Team & Platform Fleet</h2>
+                <p class="proto-card-subtitle">Manage workforce availability, active models, and platform roles</p>
+              </div>
+              <span class="badge blue">4 Authorized Systems</span>
+            </div>
+
+            <div class="team-grid">
+              <!-- Cline -->
+              <div class="team-card">
+                <div class="team-card-header">
+                  <div class="ai-role-title-group">
+                    <div class="ai-avatar cline">C</div>
+                    <div>
+                      <h3 class="ai-name">Cline</h3>
+                      <span class="ai-platform">Platform: Google AI Studio</span>
+                    </div>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="team-toggle-cline" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="team-card-body">
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Platform Status</span>
+                    <span class="badge green" id="team-status-cline">ACTIVE (ON)</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Current Role</span>
+                    <span class="team-stat-v" style="color: #2563eb;">Economical Builder</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Active Model</span>
+                    <span class="team-stat-v" id="team-model-cline">gemini-3.5-flash-lite</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Reasoning Effort</span>
+                    <span class="team-stat-v">Medium</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Primary Specialty</span>
+                    <span class="team-stat-v">Routine, fast, economical drafting</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Codex -->
+              <div class="team-card">
+                <div class="team-card-header">
+                  <div class="ai-role-title-group">
+                    <div class="ai-avatar codex">X</div>
+                    <div>
+                      <h3 class="ai-name">Codex</h3>
+                      <span class="ai-platform">Platform: OpenAI / ChatGPT</span>
+                    </div>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="team-toggle-codex">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="team-card-body">
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Platform Status</span>
+                    <span class="badge gray" id="team-status-codex">STANDBY</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Current Role</span>
+                    <span class="team-stat-v" style="color: #64748b;">Idle / Standby Builder</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Active Model</span>
+                    <span class="team-stat-v" id="team-model-codex">Default OpenAI CLI</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Reasoning Effort</span>
+                    <span class="team-stat-v">Standard</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Primary Specialty</span>
+                    <span class="team-stat-v">High-assurance architecture & planning</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Claude Code -->
+              <div class="team-card">
+                <div class="team-card-header">
+                  <div class="ai-role-title-group">
+                    <div class="ai-avatar claude">Cl</div>
+                    <div>
+                      <h3 class="ai-name">Claude Code</h3>
+                      <span class="ai-platform">Platform: Anthropic / Claude Pro</span>
+                    </div>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="team-toggle-claude">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="team-card-body">
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Platform Status</span>
+                    <span class="badge purple" id="team-status-claude">RESERVE (ON)</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Current Role</span>
+                    <span class="team-stat-v" style="color: #7c3aed;">Senior Auditor & Cowork</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Active Model</span>
+                    <span class="team-stat-v" id="team-model-claude">Claude Pro Default</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Reasoning Effort</span>
+                    <span class="team-stat-v">High</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Primary Specialty</span>
+                    <span class="team-stat-v">Design polish, UI/CSS & sensitive escalation</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Antigravity -->
+              <div class="team-card">
+                <div class="team-card-header">
+                  <div class="ai-role-title-group">
+                    <div class="ai-avatar antigravity">A</div>
+                    <div>
+                      <h3 class="ai-name">Antigravity</h3>
+                      <span class="ai-platform">Platform: Google DeepMind</span>
+                    </div>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="team-toggle-antigravity" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="team-card-body">
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Platform Status</span>
+                    <span class="badge green" id="team-status-antigravity">ACTIVE (ON)</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Current Role</span>
+                    <span class="team-stat-v" style="color: #059669;">Independent Senior Reviewer</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Active Model</span>
+                    <span class="team-stat-v" id="team-model-antigravity">gemini-3.8-flash-medium</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Reasoning Effort</span>
+                    <span class="team-stat-v">Medium</span>
+                  </div>
+                  <div class="team-stat-row">
+                    <span class="team-stat-k">Primary Specialty</span>
+                    <span class="team-stat-v">Independent verification & rapid prototyping</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- VIEW 4: TASK PROGRESS                                                     -->
+        <!-- ========================================================================= -->
+        <div class="proto-view" id="view-progress">
+          <section class="proto-card">
+            <div class="proto-card-header">
+              <div>
+                <h2 class="proto-card-title">Dedicated Task Progress Timeline</h2>
+                <p class="proto-card-subtitle">Plain-language chronological execution history formatted for executive review</p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <select id="progress-task-select" style="padding: 0.5rem 0.85rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.88rem; max-width: 380px;">
+                  <!-- Options populated dynamically -->
+                </select>
+                <div class="autofollow-toggle-wrap">
+                  <span>Auto-follow:</span>
+                  <label class="switch">
+                    <input type="checkbox" id="toggle-progress-autofollow" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dedicated Info Strip -->
+            <div class="task-info-strip">
+              <div class="task-info-item">
+                <span class="task-info-label">Builder</span>
+                <span class="task-info-value" id="prog-strip-builder">—</span>
+              </div>
+              <div class="task-info-item">
+                <span class="task-info-label">Reviewer</span>
+                <span class="task-info-value" id="prog-strip-reviewer">—</span>
+              </div>
+              <div class="task-info-item">
+                <span class="task-info-label">Current Step</span>
+                <span class="task-info-value" id="prog-strip-step" style="color: var(--primary);">—</span>
+              </div>
+              <div class="task-info-item">
+                <span class="task-info-label">Elapsed Time</span>
+                <span class="task-info-value" id="prog-strip-duration">—</span>
+              </div>
+              <div class="task-info-item">
+                <span class="task-info-label">Status</span>
+                <span class="task-info-value" id="prog-strip-status">—</span>
+              </div>
+            </div>
+
+            <!-- Dedicated Timeline Container -->
+            <div style="padding: 1.5rem; background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md);" id="progress-dedicated-timeline">
+              <!-- Rendered dynamically by app.js -->
+            </div>
+          </section>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- VIEW 5: TECHNICAL LOGS                                                    -->
+        <!-- ========================================================================= -->
+        <div class="proto-view" id="view-logs">
+          <section class="proto-card">
+            <div class="proto-card-header">
+              <div>
+                <h2 class="proto-card-title">Technical Troubleshooting & Diagnostic Stream</h2>
+                <p class="proto-card-subtitle">Granular system events, API payloads, and validator telemetry</p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <input type="text" id="tech-log-search-input" placeholder="Search technical events..." style="padding: 0.5rem 0.85rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.85rem; width: 240px;">
+                <div class="autofollow-toggle-wrap">
+                  <span>Auto-follow:</span>
+                  <label class="switch">
+                    <input type="checkbox" id="toggle-tech-autofollow" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter Chips -->
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+              <button type="button" class="task-filter-tab tech-filter-chip active" data-tag="all">All Events</button>
+              <button type="button" class="task-filter-tab tech-filter-chip" data-tag="builder">Builder</button>
+              <button type="button" class="task-filter-tab tech-filter-chip" data-tag="reviewer">Reviewer</button>
+              <button type="button" class="task-filter-tab tech-filter-chip" data-tag="router">Routing</button>
+              <button type="button" class="task-filter-tab tech-filter-chip" data-tag="validation">Validation</button>
+              <button type="button" class="task-filter-tab tech-filter-chip" data-tag="error">Errors</button>
+            </div>
+
+            <!-- Full Feed Container -->
+            <div style="height: 520px; border-radius: var(--radius-md); overflow: hidden;">
+              <div class="tech-log-feed" id="tech-logs-full-feed">
+                <!-- Rendered dynamically by app.js -->
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- VIEW 6: SETTINGS                                                          -->
+        <!-- ========================================================================= -->
+        <div class="proto-view" id="view-settings">
+          <!-- AI Platforms Section -->
+          <div class="settings-section">
+            <h3><span>🤖</span> AI Platforms Availability</h3>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Cline (Google AI Studio)</span>
+                <span class="settings-desc">Routine worker pool using direct Google AI Studio Gemini API (Connected)</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="settings-toggle-cline" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Codex (OpenAI / ChatGPT)</span>
+                <span class="settings-desc">High-assurance architecture planner and builder (Connected)</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="settings-toggle-codex">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Claude Code (Anthropic)</span>
+                <span class="settings-desc">Senior auditor and design specialist (Governed by Reserve Mode)</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="settings-toggle-claude" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Antigravity (Google DeepMind)</span>
+                <span class="settings-desc">Fast prototyping builder and independent cross-platform auditor (Connected)</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="settings-toggle-antigravity" checked>
+                <span class="slider"></span>
               </label>
             </div>
           </div>
 
-          <!-- Worker Workforce Quick Status Cards -->
-          <div class="workers-mini-grid" id="workers-grid">
-            <div class="worker-card loading-card">Loading worker workforce...</div>
-          </div>
-        </section>
-
-        <!-- 2. Current Task Overview & Smart Routing Summary (Right Column) -->
-        <section class="section-card task-card" id="task-overview-card">
-          <div class="task-card-topbar">
-            <div class="task-id-group">
-              <span class="task-heading-title" id="active-task-heading">Current Task Overview</span>
-              <span class="task-id-badge" id="task-id-display">No task selected</span>
-              <span class="status-badge grey" id="task-status-badge">Idle</span>
-            </div>
-            <div class="task-topbar-actions" style="display: flex; align-items: center; gap: 8px;">
-              <div id="live-status-indicator" class="live-pulse" style="display: none;">
-                <span class="pulse-dot"></span>
-                <span>Live AI Working...</span>
+          <!-- Task Handling Section -->
+          <div class="settings-section">
+            <h3><span>⚙️</span> Task Handling & Routing</h3>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Builder + Reviewer Pre-Selection</span>
+                <span class="settings-desc">Guarantee that an independent qualified reviewer is reserved before drafting starts (Connected)</span>
               </div>
-              <div class="task-lifecycle-group" id="task-lifecycle-group" style="display: none;">
-                <button type="button" class="btn-task-action btn-task-pause" id="task-pause-btn" title="Pause or resume task execution">
-                  <span id="task-pause-icon">⏸</span> <span id="task-pause-text">Pause Task</span>
-                </button>
-                <button type="button" class="btn-task-action btn-task-stop" id="task-stop-btn" title="Stop the task and cancel execution">
-                  <span>⏹</span> <span>Stop Task</span>
-                </button>
+              <span class="badge green">Active in Engine</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Automatic Code Validation</span>
+                <span class="settings-desc">Execute automated syntax, linting, and unit test checks on drafts prior to human review (Connected)</span>
+              </div>
+              <span class="badge green">Active in Engine</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Strict Cross-Platform Reviewer Requirement</span>
+                <span class="settings-desc">Enforce that the reviewer must originate from an independent model family than builder (Connected)</span>
+              </div>
+              <span class="badge green">Active in Engine</span>
+            </div>
+          </div>
+
+          <!-- Controls Section -->
+          <div class="settings-section">
+            <h3><span>⏸️</span> Task Controls & Safety</h3>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Graceful Pause Behavior</span>
+                <span class="settings-desc">Allow in-flight worker to finish its active generation before pausing (Connected)</span>
+              </div>
+              <span class="badge green">Active in Engine</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Immediate Stop Lock Release</span>
+                <span class="settings-desc">Instantly release router.lock and abort active worker processes when Stop is clicked (Connected)</span>
+              </div>
+              <span class="badge green">Active in Engine</span>
+            </div>
+          </div>
+
+          <!-- Approvals Section -->
+          <div class="settings-section">
+            <h3><span>🛡️</span> Stage Governance & Approvals</h3>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Stage A — Plan Approval</span>
+                <span class="settings-desc">Require CEO/CTO sign-off on architectural plans before code generation begins</span>
+              </div>
+              <span class="badge gray">Optional</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Stage B — Deliverable Approval</span>
+                <span class="settings-desc">Always require explicit human approval before applying file changes to project root (Permanent)</span>
+              </div>
+              <span class="badge green">Enforced</span>
+            </div>
+          </div>
+
+          <!-- Sensitivity Section -->
+          <div class="settings-section">
+            <h3><span>🔒</span> Sensitivity & Keyword Governance</h3>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Sensitive Keyword Warnings</span>
+                <span class="settings-desc">Hold tasks for CTO attention when sensitive terms (credentials, keys, drops) are found</span>
+              </div>
+              <span class="badge green">Active in Engine</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">CEO Sensitivity Override</span>
+                <span class="settings-desc">Allow one-click authorization directly in the dashboard dialogue card</span>
+              </div>
+              <span class="badge green">Active in Engine</span>
+            </div>
+          </div>
+
+          <!-- Advanced Settings -->
+          <div class="settings-section" style="border-style: dashed;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="margin-bottom: 0; border: none; padding: 0;"><span>🔧</span> Advanced Developer Settings</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Local ports, socket bindings, and token rotators</p>
+              </div>
+              <button type="button" class="btn btn-secondary" id="btn-advanced-settings-toggle">Show Advanced Settings ▼</button>
+            </div>
+
+            <div id="advanced-settings-content" style="display: none; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--bg-subtle);">
+              <div class="settings-row">
+                <div class="settings-label-wrap">
+                  <span class="settings-label">Local Server Port</span>
+                  <span class="settings-desc">Port used by Adaptive Router dashboard server</span>
+                </div>
+                <input type="number" value="3210" readonly style="width: 80px; padding: 0.35rem 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; font-family: var(--font-mono);">
+              </div>
+              <div class="settings-row">
+                <div class="settings-label-wrap">
+                  <span class="settings-label">MCP External Connector Token</span>
+                  <span class="settings-desc">Bearer token for ChatGPT / external MCP client integration</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-rotate-token">Rotate Token</button>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Smart Routing Summary Cards -->
-          <div class="routing-pills-bar" id="decision-card">
-            <div class="routing-pill-item">
-              <span class="rp-label">Specialist Expertise</span>
-              <span class="rp-value specialist-value" id="decision-specialist">Matching...</span>
-            </div>
-            <div class="routing-pill-item">
-              <span class="rp-label">Builder Platform</span>
-              <span class="rp-value" id="decision-builder">Evaluating...</span>
-              <span class="rp-sub-tier" id="decision-builder-tier" style="font-size: 0.78rem; color: #4b5563; margin-top: 2px;">Tier -</span>
-            </div>
-            <div class="routing-pill-item">
-              <span class="rp-label">Model & Effort</span>
-              <span class="rp-value" id="decision-model">Tier / Effort</span>
-            </div>
-            <div class="routing-pill-item">
-              <span class="rp-label">Independent Reviewer</span>
-              <span class="rp-value" id="decision-reviewer">Pending...</span>
-              <span class="rp-sub-tier" id="decision-reviewer-tier" style="font-size: 0.78rem; color: #4b5563; margin-top: 2px;">Tier -</span>
-            </div>
-          </div>
+      </main>
+    </div><!-- /proto-body-layout -->
 
-          <div class="decision-why-box" id="decision-why-box">
-            <span class="why-tag">Routing Rationale:</span>
-            <span id="decision-why-text">Awaiting task submission to analyze requirements.</span>
-          </div>
-          <div class="decision-why-box qualification-box" id="reviewer-qualification-box" style="display: none; background: #f0fdf4; border-color: #86efac; margin-top: 8px;">
-            <span class="why-tag" style="background: #16a34a; color: white;">Reviewer Qualification:</span>
-            <span id="reviewer-qualification-text" style="color: #166534; font-weight: 500;">Evaluating seniority & independence...</span>
-          </div>
-          <div class="decision-why-box validator-box" id="validator-status-box" style="display: none; background: #f8fafc; border-color: #cbd5e1; margin-top: 8px;">
-            <span class="why-tag" style="background: #64748b; color: white;">Validator:</span>
-            <span id="validator-status-text" style="color: #334155;">Automated browser testing</span>
-          </div>
-        </section>
+    <!-- Task Details Modal -->
+    <div class="proto-modal-overlay" id="task-detail-modal">
+      <div class="proto-modal">
+        <button type="button" class="proto-modal-close" id="modal-close-btn">&times;</button>
+        <div id="modal-body-content">
+          <!-- Loaded dynamically on task click -->
+        </div>
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btn-close-modal">Close Details</button>
+        </div>
       </div>
+    </div>
 
-      <!-- 3. Central Permission Inbox (Appears when an AI worker requests human approval) -->
-      <section class="permission-inbox-section" id="permission-inbox-section" style="display: none;">
-        <div class="permission-inbox-card" id="permission-inbox-card">
-          <div class="perm-card-header">
-            <div class="perm-title-group">
-              <span class="perm-icon">🛡️</span>
-              <div>
-                <h3 class="perm-card-title">Permission Required</h3>
-                <span class="perm-card-sub" id="perm-worker-badge">Claude Code is requesting authorization</span>
-              </div>
-            </div>
-            <div class="perm-badge-pill warning">Needs Your Approval</div>
-          </div>
-
-          <div class="perm-card-body">
-            <div class="perm-message-box" id="perm-message-box">
-              <strong id="perm-action-desc">Authorize Claude Pro Quota?</strong>
-              <p id="perm-reason-text">Claude Reserve Mode is ON. Claude Code was evaluated as having higher capability for this complex layout, but using it will consume your Claude Pro subscription quota shared with Cowork.</p>
-            </div>
-
-            <!-- Native App Open Button (Shown when worker needs desktop confirmation) -->
-            <div class="native-app-callout" id="native-app-callout" style="display: none;">
-              <span class="native-app-hint">This action requires direct confirmation in the native application:</span>
-              <button type="button" id="open-native-app-btn" class="btn btn-secondary btn-sm">
-                <span>↗ Open Desktop App to Approve</span>
-              </button>
-            </div>
-
-          </div>
-
-          <div class="perm-card-actions">
-            <button type="button" class="btn btn-success" id="perm-yes-btn">
-              <span><strong>Yes</strong><small>Allow this action once.</small></span>
-            </button>
-            <button type="button" class="btn btn-primary" id="perm-yes-session-btn">
-              <span><strong>Yes for this session</strong><small>Allow this permission type for the current task/session.</small></span>
-            </button>
-            <button type="button" class="btn btn-secondary" id="perm-no-btn">
-              <span><strong>No</strong><small>Deny this action; keep the same worker active to find a safe method.</small></span>
-            </button>
-            <button type="button" class="btn btn-danger" id="perm-stop-task-btn">
-              <span><strong>Stop the task</strong><small>Stop or cancel this task.</small></span>
-            </button>
+    <!-- New Task Modal -->
+    <div class="proto-modal-overlay" id="new-task-modal">
+      <div class="proto-modal">
+        <button type="button" class="proto-modal-close" id="new-task-modal-close">&times;</button>
+        <h3 style="margin-bottom: 0.5rem;">Launch New Task</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Submit an instruction to Adaptive Router for autonomous multi-model execution.</p>
+        <textarea id="new-task-instruction" rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 0.9rem;" placeholder="e.g. Create a utils.js file with formatDate and parseQueryString helper functions..."></textarea>
+        <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: space-between;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted); cursor: pointer;">
+            <input type="checkbox" id="new-task-allow-claude"> Allow Claude Pro Quota
+          </label>
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn btn-secondary" id="new-task-cancel-btn">Cancel</button>
+            <button type="button" class="btn btn-primary" id="new-task-submit-btn">Execute Task</button>
           </div>
         </div>
-      </section>
-
-      <!-- 4. Interactive Task Execution & Live Workforce Stream Container -->
-      <section class="section-card task-card" id="live-task-section">
-        <!-- Prominent Human-Input Decision Required Card -->
-        <div class="decision-required-card" id="decision-required-card" style="display: none;">
-          <div class="decision-header">
-            <div class="decision-title-group">
-              <span class="decision-icon">🛡️</span>
-              <div>
-                <h2 class="decision-main-title">Decision Required</h2>
-                <span class="decision-sub" id="decision-sub-text">Adaptive Router is paused awaiting your input</span>
-              </div>
-            </div>
-            <div class="decision-badge-pill">Awaiting Decision</div>
-          </div>
-
-          <div class="decision-body">
-            <div class="decision-question-box">
-              <h3 class="decision-question-text" id="decision-question-text">Claude Code would be useful for this task. Use Claude quota?</h3>
-            </div>
-
-            <div class="decision-info-grid">
-              <div class="decision-info-col">
-                <span class="d-box-label">Why is this decision needed?</span>
-                <p class="d-box-text" id="decision-reason-text">Claude Reserve Mode is ON to preserve your Claude Pro quota for Cowork browser and desktop work. You can authorize Claude for this task or continue with the next-best worker.</p>
-              </div>
-              <div class="decision-info-col recommendation-col">
-                <span class="d-box-label">Recommended Choice</span>
-                <p class="d-box-text" id="decision-recommendation-text"><strong>Preserve Claude — Use Next Best Worker (Antigravity)</strong> to keep your Claude quota safe for Cowork while executing this task reliably.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="decision-actions" id="decision-actions">
-            <button type="button" class="btn btn-primary btn-decision-primary" id="decision-preserve-btn">
-              <span>🛡️ Preserve Claude — Use Next Best Worker</span>
-            </button>
-            <button type="button" class="btn btn-secondary btn-decision-secondary" id="decision-claude-btn">
-              <span>⚡ Use Claude</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- All Workers Failed Card — shown when a task stalls with no
-             available worker able to finish it, so the reason is right in
-             front of the user instead of buried in the Live Activity feed. -->
-        <div class="decision-required-card" id="all-failed-card" style="display: none;">
-          <div class="decision-header">
-            <div class="decision-title-group">
-              <span class="decision-icon">⚠️</span>
-              <div>
-                <h2 class="decision-main-title">Nothing Can Currently Do This</h2>
-                <span class="decision-sub">Every available worker was tried and none could complete this task</span>
-              </div>
-            </div>
-            <div class="decision-badge-pill">Stalled</div>
-          </div>
-
-          <div class="decision-body">
-            <div class="decision-question-box">
-              <h3 class="decision-question-text" id="all-failed-reason-text">All available workers were tried and none could finish this task.</h3>
-            </div>
-            <div class="decision-info-grid">
-              <div class="decision-info-col">
-                <span class="d-box-label">What this usually means</span>
-                <p class="d-box-text" id="all-failed-explanation-text">Every worker that could try this task either hit a usage limit, had a problem running, or wasn't qualified for it. Your work is saved — nothing was lost.</p>
-              </div>
-              <div class="decision-info-col recommendation-col">
-                <span class="d-box-label">What you can do</span>
-                <p class="d-box-text">Wait a bit and retry (a usage limit often clears up on its own), or come back to this later. No worker will be tried again until you choose to retry.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="decision-actions">
-            <button type="button" class="btn btn-primary btn-decision-primary" id="all-failed-retry-btn">
-              <span>🔄 Retry Now</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Task Failed Card — shown prominently whenever a task fails for ANY reason,
-             presenting plain-business-language explanation, stage, worker status, and actions -->
-        <div class="decision-required-card task-failed-card" id="task-failed-card" style="display: none;">
-          <div class="decision-header task-failed-header">
-            <div class="decision-title-group">
-              <span class="decision-icon">❌</span>
-              <div>
-                <h2 class="decision-main-title task-failed-title">Task Failed</h2>
-                <span class="decision-sub" id="task-failed-subtitle">Execution halted</span>
-              </div>
-            </div>
-            <div class="decision-badge-pill task-failed-badge" id="task-failed-stage-badge">Failed</div>
-          </div>
-
-          <div class="decision-body">
-            <div class="decision-question-box task-failed-reason-box">
-              <h3 class="decision-question-text task-failed-reason-text" id="task-failed-reason-text">Task execution failed.</h3>
-            </div>
-            <div class="decision-info-grid">
-              <div class="decision-info-col">
-                <span class="d-box-label">Failure Details</span>
-                <p class="d-box-text" id="task-failed-details-text">
-                  <strong>Worker:</strong> <span id="task-failed-worker-val">—</span><br>
-                  <strong>Model:</strong> <span id="task-failed-model-val">—</span><br>
-                  <strong>Stage:</strong> <span id="task-failed-stage-val">—</span><br>
-                  <strong>Worker Status:</strong> <span id="task-failed-worker-status-val">—</span>
-                </p>
-              </div>
-              <div class="decision-info-col recommendation-col">
-                <span class="d-box-label">Recommended Next Action</span>
-                <p class="d-box-text" id="task-failed-recommendation-text">Retry with the same worker or switch to another available worker.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="decision-actions" id="task-failed-actions">
-            <button type="button" class="btn btn-primary btn-decision-primary" id="task-failed-retry-same-btn">
-              <span>🔄 Retry with Same Worker</span>
-            </button>
-            <button type="button" class="btn btn-secondary btn-decision-secondary" id="task-failed-retry-other-btn">
-              <span>🔀 Retry with Another Worker</span>
-            </button>
-            <button type="button" class="btn btn-secondary btn-decision-secondary btn-decision-stop" id="task-failed-stop-btn" style="border-color: rgba(239, 68, 68, 0.4); color: #ef4444;">
-              <span>⏹ Stop Task</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Failover Notice Banner (hidden unless failover happens) -->
-        <div class="alert-banner warning-banner" id="failover-banner" style="display: none;">
-          <div class="alert-icon">⚡</div>
-          <div class="alert-content">
-            <h4 class="alert-title" id="failover-title">Automatic Failover Event</h4>
-            <p class="alert-desc" id="failover-desc">A worker encountered a quota limit or failed testing. The router automatically transitioned to the next best worker.</p>
-          </div>
-        </div>
-
-        <!-- 4. AI Workforce Container (Live Activity + Execute Task Tabs) -->
-        <div class="ai-workforce-card" id="worker-feed-card">
-          <!-- AI Workforce Main Workspace Tab Switcher -->
-          <div class="ai-workforce-tabs-header">
-            <div class="ai-workforce-tabs-group" role="tablist">
-              <button type="button" class="ai-tab-btn active" id="tab-btn-progress" data-tab="progress" role="tab" aria-selected="true">
-                <span class="ai-tab-icon">📋</span>
-                <span class="ai-tab-label">Task Progress</span>
-                <span class="ai-tab-badge" id="ai-progress-indicator">Idle</span>
-              </button>
-              <button type="button" class="ai-tab-btn" id="tab-btn-tech-logs" data-tab="tech-logs" role="tab" aria-selected="false">
-                <span class="ai-tab-icon">💻</span>
-                <span class="ai-tab-label">Technical Logs</span>
-                <span class="ai-tab-badge" id="ai-tech-indicator">0</span>
-              </button>
-              <button type="button" class="ai-tab-btn" id="tab-btn-execute" data-tab="execute" role="tab" aria-selected="false">
-                <span class="ai-tab-icon">📝</span>
-                <span class="ai-tab-label">Task Instructions</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Tab Pane 1: Task Progress (Default Active View) -->
-          <div class="ai-tab-pane" id="pane-task-progress">
-            <div class="tp-header">
-              <div class="tp-title-row">
-                <span class="ai-tab-icon">📋</span>
-                <span class="tp-title">Task Progress</span>
-                <span class="tp-sub-badge" id="tp-live-badge">Idle</span>
-              </div>
-              <div class="tp-overview-pills">
-                <span class="tp-pill tp-pill-builder" id="tp-builder-pill" style="display: none;">Builder: -</span>
-                <span class="tp-pill tp-pill-reviewer" id="tp-reviewer-pill" style="display: none;">Reviewer: -</span>
-              </div>
-            </div>
-            <div class="tp-stream-list" id="task-progress-stream">
-              <div class="activity-empty-state">
-                <div class="empty-icon">🤖</div>
-                <p>No active task. Click "Task Instructions" to start a task and track progress here.</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab Pane 2: Technical Logs (Secondary Diagnostics View) -->
-          <div class="ai-tab-pane" id="pane-technical-logs" style="display: none;">
-            <!-- Worker Header -->
-            <div class="wf-header">
-              <div class="wf-header-left">
-                <div class="wf-title-row">
-                  <span class="wf-live-icon">💻</span>
-                  <span class="wf-title">Technical Logs</span>
-                  <span class="wf-sub-badge" id="wf-live-badge">Idle</span>
-                </div>
-                <div class="wf-worker-meta">
-                  <span class="wf-pill-worker" id="wf-active-worker">
-                    <span class="wf-dot" id="wf-active-dot"></span>
-                    <span id="wf-worker-name">Awaiting Worker</span>
-                  </span>
-                  <span class="wf-meta-item"><span class="wf-meta-label">Model:</span> <span id="wf-active-model" class="wf-meta-val">-</span></span>
-                  <span class="wf-meta-item"><span class="wf-meta-label">Effort:</span> <span id="wf-active-effort" class="wf-meta-val">-</span></span>
-                  <span class="wf-meta-item"><span class="wf-meta-label">Specialist:</span> <span id="wf-active-specialist" class="wf-meta-val">-</span></span>
-                  <span class="wf-meta-item"><span class="wf-meta-label">Role:</span> <span id="wf-active-role" class="wf-meta-val">Builder</span></span>
-                </div>
-              </div>
-              <div class="wf-header-right">
-                <div id="wf-failover-pill" class="wf-failover-pill" style="display: none;">
-                  <span class="failover-icon">⚡</span>
-                  <span id="wf-failover-text">Failover Transition</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Feed Controls & Filter Bar -->
-            <div class="wf-toolbar">
-              <div class="wf-filter-pills" id="wf-filter-pills">
-                <button type="button" class="wf-filter-pill active" data-filter="all">All</button>
-                <button type="button" class="wf-filter-pill" data-filter="worker">Worker</button>
-                <button type="button" class="wf-filter-pill" data-filter="files">Files</button>
-                <button type="button" class="wf-filter-pill" data-filter="commands">Commands</button>
-                <button type="button" class="wf-filter-pill" data-filter="browser">Browser</button>
-                <button type="button" class="wf-filter-pill" data-filter="tests">Tests</button>
-                <button type="button" class="wf-filter-pill" data-filter="errors">Errors</button>
-                <button type="button" class="wf-filter-pill" data-filter="reviewer">Reviewer</button>
-              </div>
-              <div class="wf-controls-group">
-                <button type="button" class="wf-action-btn active" id="wf-auto-follow-btn" title="Automatically keep newest events in view">
-                  <span>↑</span> Auto-follow newest
-                </button>
-                <button type="button" class="wf-action-btn" id="wf-pause-btn" title="Freeze live activity scrolling to inspect earlier events">
-                  <span>⏸</span> <span id="wf-pause-btn-text">Pause Activity Feed</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Live Feed Stream Container -->
-            <div class="wf-stream-wrapper">
-              <button type="button" class="wf-jump-newest-btn" id="wf-jump-newest-btn" style="display: none;">
-                ↑ Jump to newest (<span id="wf-unread-count">0</span> new)
-              </button>
-              <div class="wf-stream-list detailed-mode" id="activity-stream">
-                <div class="activity-empty-state">
-                  <div class="empty-icon">🤖</div>
-                  <p>No technical events recorded.</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Collapsible Technical Logs Drawer -->
-            <details class="wf-tech-drawer" id="technical-logs-drawer">
-              <summary class="wf-tech-summary">
-                <span class="wf-tech-title">
-                  <span class="wf-tech-icon">💻</span>
-                  <span>Terminal &amp; Technical Logs (Sanitized)</span>
-                </span>
-                <span class="wf-tech-count" id="log-count-badge">0 lines</span>
-              </summary>
-              <div class="wf-tech-body" id="tech-drawer-content">
-                <div class="log-placeholder">Raw sanitized terminal logs will stream here during execution...</div>
-              </div>
-            </details>
-          </div>
-
-          <!-- Tab Pane 2: Task Instructions -->
-          <div class="ai-tab-pane" id="pane-execute-task" style="display: none;">
-            <div class="execute-tab-content">
-              <div class="instruction-header">
-                <div class="instruction-title-row">
-                  <h3 class="workspace-title">Task Instructions</h3>
-                </div>
-              </div>
-
-              <form id="task-form" class="workspace-form">
-                <div class="instruction-box-wrapper">
-                  <textarea 
-                    id="task-instruction" 
-                    class="main-instruction-input" 
-                    rows="3" 
-                    placeholder="Enter business instruction (e.g. &quot;Add a customer contact enquiry form to the test website&quot;)..."
-                    required
-                  ></textarea>
-
-                  <p class="cost-hint" id="cost-hint" style="display:none; margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--text-secondary, #6b7280);"></p>
-
-                  <div class="instruction-toolbar" style="display: flex; justify-content: flex-end; align-items: center; margin-top: 0.75rem;">
-                    <div class="submit-action-group" style="display: flex; align-items: center; gap: 1rem;">
-                      <label class="claude-auth-checkbox" title="Authorize Claude Code if beneficial for high-complexity tasks">
-                        <input type="checkbox" id="override-claude-checkbox">
-                        <span>Allow Claude for this task if beneficial</span>
-                      </label>
-                      <button type="submit" id="start-task-btn" class="btn btn-primary btn-large">
-                        <span class="btn-icon">⚡</span>
-                        <span>Execute Task</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Stage A: Proposed Plan Approval Card -->
-      <section class="section-card plan-approval-card" id="plan-approval-card" style="display: none;">
-        <div class="section-header plan-header">
-          <div class="plan-title-group">
-            <span class="plan-icon">📋</span>
-            <div>
-              <h2 class="section-title">Stage A: Proposed Plan Approval</h2>
-              <p class="section-desc">AI CTO proposed an execution plan. Review the approach, specialist, and worker before any code is modified.</p>
-            </div>
-          </div>
-          <div class="approval-status-badge">
-            <span class="badge-pill purple" id="plan-status-pill">Awaiting Plan Approval</span>
-          </div>
-        </div>
-
-        <div class="plan-details-grid">
-          <div class="plan-meta-col">
-            <div class="plan-meta-item">
-              <span class="p-meta-label">Target Project:</span>
-              <span class="p-meta-val" id="plan-project-val">Adaptive Router System</span>
-            </div>
-            <div class="plan-meta-item">
-              <span class="p-meta-label">Assigned Specialist:</span>
-              <span class="p-meta-val" id="plan-specialist-val">Frontend Architect</span>
-            </div>
-            <div class="plan-meta-item">
-              <span class="p-meta-label">Builder Worker:</span>
-              <span class="p-meta-val" id="plan-builder-val">Antigravity (gemini-3.8-flash-low)</span>
-            </div>
-            <div class="plan-meta-item">
-              <span class="p-meta-label">Independent Reviewer:</span>
-              <span class="p-meta-val" id="plan-reviewer-val">Independent Reviewer</span>
-            </div>
-          </div>
-
-          <div class="plan-jobs-col">
-            <h4 class="plan-jobs-heading">Proposed Work Plan & Jobs:</h4>
-            <div class="plan-goal-box" id="plan-goal-text">
-              Goal: Implement unified planning chat and dual-stage approvals without modifying unrelated deliverables.
-            </div>
-            <ol class="plan-jobs-checklist" id="plan-jobs-checklist">
-              <li>1. Bind task deliverable preview strictly to target project.</li>
-              <li>2. Implement in-dashboard correction and rejection drawers.</li>
-              <li>3. Verify complete unit test suite and run independent audit.</li>
-            </ol>
-          </div>
-        </div>
-
-        <div class="plan-actions-bar">
-          <div class="plan-safety-notice">
-            <span>🛡️ <strong>Safety Guarantee:</strong> Nothing executes and no files are touched until you approve this plan.</span>
-          </div>
-          <div class="plan-action-buttons">
-            <button type="button" id="approve-plan-btn" class="btn btn-primary btn-plan-approve">
-              <span class="btn-icon">⚡</span>
-              <span>Approve Plan &amp; Execute</span>
-            </button>
-            <button type="button" id="revise-plan-btn" class="btn btn-secondary">
-              <span class="btn-icon">✏️</span>
-              <span>Revise Plan</span>
-            </button>
-            <button type="button" id="continue-discussing-btn" class="btn btn-secondary">
-              <span class="btn-icon">💬</span>
-              <span>Continue Discussing</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Stage B: Ready for Human Approval & Deliverable Review -->
-      <section class="section-card approval-card" id="approval-card" style="display: none;">
-        <div class="section-header">
-          <div>
-            <h2 class="section-title">Ready for Your Approval</h2>
-            <p class="section-desc" id="approval-section-desc">Take a look, then approve, send back, or reject.</p>
-          </div>
-          <div class="approval-status-badge">
-            <span class="badge-pill green" id="approval-pill">Awaiting Approval</span>
-          </div>
-        </div>
-
-        <!-- Mismatch Safety Banner (Shown ONLY if deliverable context mismatch is detected) -->
-        <div class="alert-banner warning-banner" id="stageb-mismatch-banner" style="display: none; margin-bottom: 1rem;">
-          <div class="alert-icon">⚠️</div>
-          <div class="alert-content">
-            <h4 class="alert-title" style="color: #991b1b; font-weight: 700;">Approval Unavailable</h4>
-            <p class="alert-desc" style="color: #b91c1c;">Approval unavailable — deliverable context mismatch detected.</p>
-          </div>
-        </div>
-
-        <!-- Business Summary (always visible — what most people need to decide) -->
-        <div class="stageb-business-summary" id="stageb-business-summary">
-          <div class="stageb-summary-box" style="margin-top:0;">
-            <span class="stageb-box-label">What was asked for</span>
-            <div class="stageb-instruction-text" id="stageb-business-instruction">Loading instruction...</div>
-          </div>
-          <div class="stageb-summary-box">
-            <span class="stageb-box-label">What was delivered</span>
-            <div class="stageb-summary-text" id="stageb-business-summary-text">Loading summary...</div>
-          </div>
-        </div>
-
-        <label class="details-toggle-label stageb-details-toggle">
-          <input type="checkbox" id="stageb-show-technical-toggle">
-          <span>Show Technical Details</span>
-        </label>
-
-        <!-- Stage B Unified Deliverable Context Card -->
-        <div class="stageb-deliverable-card" id="stageb-deliverable-card">
-          <!-- Technical detail block — collapsed by default; toggled above.
-               Business users don't need tiers, models, or routing rationale
-               to decide whether to approve; technically-minded users (or
-               Claude, reviewing on the user's behalf) can expand it. -->
-          <div id="stageb-technical-detail" style="display:none;">
-          <!-- Task Metadata Header Bar -->
-          <div class="stageb-meta-header">
-            <div class="stageb-badge-row">
-              <span class="stageb-project-badge" id="stageb-project-name">Project Name</span>
-              <span class="stageb-id-badge" id="stageb-task-id">Task ID</span>
-              <span class="stageb-digest-badge" id="stageb-digest">Revision 1 • SHA-256</span>
-              <span class="stageb-time-badge" id="stageb-timestamp">Completed</span>
-            </div>
-          </div>
-
-          <!-- Original Instruction & Final Summary Grid -->
-          <div class="stageb-instruction-box">
-            <span class="stageb-box-label">Original Approved Task Instruction</span>
-            <div class="stageb-instruction-text" id="stageb-instruction">Loading instruction...</div>
-          </div>
-
-          <div class="stageb-summary-box">
-            <span class="stageb-box-label">Final Task Summary</span>
-            <div class="stageb-summary-text" id="stageb-summary">Loading summary...</div>
-          </div>
-
-          <!-- Worker Attribution & Verification Grid -->
-          <div class="stageb-details-grid">
-            <!-- Left: Workforce Execution Details -->
-            <div class="stageb-info-col">
-              <div class="stageb-info-card">
-                <span class="stageb-box-label">Workforce &amp; Specialist Attribution</span>
-                <div class="stageb-worker-row">
-                  <span class="stageb-worker-role">Builder:</span>
-                  <strong id="stageb-builder-info">-</strong>
-                </div>
-                <div class="stageb-worker-row">
-                  <span class="stageb-worker-role">Final Reviewer:</span>
-                  <strong id="stageb-reviewer-info">-</strong>
-                </div>
-                <div class="stageb-worker-row" id="stageb-qual-row" style="display: none; margin-top: 0.25rem;">
-                  <span class="stageb-worker-role">Qualification:</span>
-                  <span class="badge-qual" id="stageb-reviewer-qual">-</span>
-                </div>
-              </div>
-
-              <!-- Modified Files Box -->
-              <div class="stageb-info-card" style="margin-top: 0.75rem;">
-                <span class="stageb-box-label">Actual Modified Files for This Task</span>
-                <div class="stageb-files-list" id="stageb-modified-files">
-                  <!-- Injected dynamically -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Right: Automated Testing & Reviewer Audit -->
-            <div class="stageb-info-col">
-              <div class="stageb-info-card">
-                <span class="stageb-box-label">Automated Test Results</span>
-                <div class="check-result-row">
-                  <span class="check-badge passed" id="stageb-test-badge">✓ Tests Passed</span>
-                  <span class="check-meta" id="stageb-test-count">-</span>
-                </div>
-                <ul class="checks-list" id="stageb-checks-list">
-                  <!-- Injected dynamically -->
-                </ul>
-              </div>
-
-              <div class="stageb-info-card" style="margin-top: 0.75rem;">
-                <span class="stageb-box-label">Independent Review Audit Verdict</span>
-                <div class="check-result-row">
-                  <span class="check-badge passed" id="stageb-verdict-badge">✓ Audit Passed</span>
-                  <span class="check-meta" id="stageb-verdict-worker">-</span>
-                </div>
-                <p class="reviewer-comment" id="stageb-reviewer-comment">-</p>
-              </div>
-            </div>
-          </div>
-          </div>
-          <!-- /#stageb-technical-detail -->
-
-          <!-- Interactive Live Web Preview (if web deliverable) — always visible; this is
-               the actual "look at it and decide" view most people need. -->
-          <div class="preview-container" id="stageb-web-preview" style="margin-top: 1rem;">
-            <div class="preview-header">
-              <span class="preview-title">Live Interactive Deliverable Preview (Isolated Website)</span>
-              <div class="preview-actions">
-                <a href="#" id="preview-open-link" target="_blank" class="btn-link">Open in New Tab ↗</a>
-                <button id="preview-reload-btn" type="button" class="btn-link">Reload Preview ↻</button>
-              </div>
-            </div>
-            <div class="iframe-wrapper">
-              <iframe id="preview-iframe" src="about:blank" title="Deliverable Preview"></iframe>
-            </div>
-          </div>
-
-          <!-- Visual Screenshot Preview (if system deliverable preview image exists) -->
-          <div class="sys-preview-container" id="sys-preview-container" style="display: none; margin-top: 1rem;">
-            <div class="sys-preview-header">
-              <span class="sys-preview-title">UI Screenshot Preview (Adaptive Router Dashboard)</span>
-              <span class="sys-preview-tag">Verified Working UI</span>
-            </div>
-            <div class="sys-preview-img-wrapper">
-              <img id="system-preview-img" src="" alt="Adaptive Router UI Preview">
-            </div>
-          </div>
-        </div>
-
-        <!-- Human Approval Actions -->
-        <div class="approval-actions-bar" id="stageb-actions-bar">
-          <div class="approval-safety-notice">
-            <span>🛡️ <strong>Safety Guarantee:</strong> Approving accepts this draft locally. It never deploys to external servers, accesses billing, or alters production data.</span>
-          </div>
-          <div class="approval-buttons">
-            <button id="approve-btn" class="btn btn-approve">
-              <span class="btn-icon">✓</span>
-              <span>Approve</span>
-            </button>
-            <button id="correct-btn" class="btn btn-correct">
-              <span class="btn-icon">↺</span>
-              <span>Send Back</span>
-            </button>
-            <button id="reject-btn" class="btn btn-reject">
-              <span class="btn-icon">✕</span>
-              <span>Reject</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Correction Feedback Drawer (Hidden by default) -->
-        <div class="correction-drawer" id="correction-drawer" style="display: none;">
-          <h4 class="drawer-title">Request Corrections</h4>
-          <p class="drawer-desc">Specify what needs to be changed. Adaptive Router will automatically route your feedback to the builder in this same conversation.</p>
-          <textarea id="correction-feedback" class="text-area correction-textarea" rows="3" placeholder="e.g. Please adjust the styling, fix the button wording, or update the layout..."></textarea>
-          <div class="drawer-actions">
-            <button id="submit-correction-btn" class="btn btn-primary">Submit Correction</button>
-            <button id="cancel-correction-btn" class="btn btn-secondary">Cancel</button>
-          </div>
-        </div>
-
-        <!-- Rejection Drawer (Hidden by default) -->
-        <div class="correction-drawer rejection-drawer" id="rejection-drawer" style="display: none;">
-          <h4 class="drawer-title" style="color: #991b1b;">Reject Final Result</h4>
-          <p class="drawer-desc">Specify the reason for rejecting this work. The decision and reason will be permanently recorded with the task.</p>
-          <textarea id="rejection-reason" class="text-area rejection-textarea" rows="3" placeholder="e.g. Does not meet requirements or direction changed..."></textarea>
-          <div class="drawer-actions">
-            <button id="submit-rejection-btn" class="btn btn-danger">Reject Draft</button>
-            <button id="cancel-rejection-btn" class="btn btn-secondary">Cancel</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- ChatGPT Connection Panel -->
-      <section class="section-card chatgpt-connection-card" id="chatgpt-connection-section">
-        <div class="section-header chatgpt-conn-header">
-          <div class="chatgpt-conn-title-group">
-            <span class="chatgpt-conn-icon">🔗</span>
-            <div>
-              <h2 class="section-title">ChatGPT Connection</h2>
-              <p class="section-desc">MCP connector implementation is complete and dormant. Activation requires a supported ChatGPT plan.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Status Row -->
-        <div class="chatgpt-status-grid" id="chatgpt-status-grid">
-          <div class="chatgpt-status-item">
-            <span class="chatgpt-status-label">ChatGPT MCP</span>
-            <span class="chatgpt-status-value err" id="conn-mcp-status">
-              <span class="status-dot red"></span> Unavailable on current plan
-            </span>
-          </div>
-          <div class="chatgpt-status-item">
-            <span class="chatgpt-status-label">Secure MCP Tunnel</span>
-            <span class="chatgpt-status-value" id="conn-tunnel-status">
-              <span class="status-dot grey"></span> Not configured
-            </span>
-          </div>
-          <div class="chatgpt-status-item">
-            <span class="chatgpt-status-label">ChatGPT Connection</span>
-            <span class="chatgpt-status-value err" id="conn-ready-status">
-              <span class="status-dot red"></span> Not ready
-            </span>
-          </div>
-        </div>
-
-        <!-- Dormant notice -->
-        <div class="chatgpt-setup-notice" id="chatgpt-setup-notice" style="background:#f8fafc; border-color:#e2e8f0; color:#475569;">
-          <span class="setup-notice-icon">💤</span>
-          <div>
-            <strong>Connector dormant.</strong>
-            <span>
-              All MCP connector code is implemented and preserved. No action is needed.
-              The connector can be activated in a future session when a supported plan is available.
-            </span>
-          </div>
-        </div>
-
-        <!-- Token management only — tunnel buttons hidden until plan supports activation -->
-        <div class="chatgpt-action-buttons" id="chatgpt-action-buttons">
-          <button type="button" id="btn-copy-token" class="btn btn-secondary">
-            <span class="btn-icon">🔑</span>
-            <span>Copy Connector Token</span>
-          </button>
-          <button type="button" id="btn-rotate-token" class="btn btn-secondary btn-danger-soft">
-            <span class="btn-icon">🔄</span>
-            <span>Regenerate Connector Token</span>
-          </button>
-        </div>
-        <p class="chatgpt-token-note">
-          Token management is available for when activation is ready.
-          The token is never displayed — it is copied directly to your clipboard.
-        </p>
-
-        <!-- Hidden elements kept for JS compatibility — not visible -->
-        <span id="btn-start-tunnel" style="display:none;"></span>
-        <span id="btn-copy-mcp-address" style="display:none;"></span>
-      </section>
-
-      <!-- 6. Collapsible Lower Section: Recent Tasks & Technical Inspection -->
-      <div class="collapsible-bottom-grid">
-        <!-- Recent Tasks History -->
-        <details class="section-card history-accordion" open>
-          <summary class="accordion-summary">
-            <span class="accordion-title">Completed Work</span>
-            <span style="display:flex; align-items:center; gap:0.75rem;">
-              <span class="history-view-switch" id="history-view-switch">
-                <button type="button" class="btn-link history-view-btn active" data-history-view="business">Simple View</button>
-                <button type="button" class="btn-link history-view-btn" data-history-view="technical">Technical View</button>
-              </span>
-              <button type="button" id="refresh-history-btn" class="btn-link">Refresh</button>
-            </span>
-          </summary>
-          <div class="history-list" id="history-list-business">
-            <div class="empty-state">No completed work yet.</div>
-          </div>
-          <div class="history-list" id="history-list" style="display:none;">
-            <div class="empty-state">No recent tasks found.</div>
-          </div>
-        </details>
-
-        <!-- Advanced Details Section (Collapsible) -->
-        <details class="section-card advanced-details" id="advanced-details">
-          <summary class="accordion-summary">
-            <span class="accordion-title">Advanced Technical Inspection</span>
-            <span class="advanced-summary-tag">Digests & Raw Logs</span>
-          </summary>
-          <div class="advanced-body">
-            <div class="advanced-item">
-              <strong>Task ID:</strong> <span id="adv-task-id">-</span>
-            </div>
-            <div class="advanced-item">
-              <strong>Deliverable SHA-256 Digest:</strong> <span id="adv-digest">-</span>
-            </div>
-            <div class="advanced-item">
-              <strong>Modified Files:</strong> <span id="adv-files">-</span>
-            </div>
-            <div class="advanced-item">
-              <strong>Full Smart Routing Log:</strong>
-              <pre class="code-block" id="adv-routing-log">{}</pre>
-            </div>
-            <div class="advanced-item">
-              <strong>Full Approval Markdown Report:</strong>
-              <pre class="code-block" id="adv-approval-report">-</pre>
-            </div>
-          </div>
-        </details>
       </div>
+    </div>
 
-    </main>
-
-    <!-- Footer -->
-    <footer class="app-footer">
-      <span>Adaptive Router Business Dashboard &bull; Local Autonomous Multi-Model Routing</span>
-      <span>Operating Mode: Safe Local Workspace &bull; Claude Pro &bull; ChatGPT Pro &bull; Google &bull; Cline</span>
-    </footer>
+    <!-- Toast Notification Element -->
+    <div class="proto-toast" id="proto-toast">Notification</div>
 
   </div>
-
-  <dialog id="new-project-dialog" class="project-dialog" aria-labelledby="new-project-title">
-    <form id="new-project-form" class="project-dialog-form">
-      <div class="project-dialog-header">
-        <div>
-          <h2 id="new-project-title">New Project</h2>
-          <p>Create a shared project folder or link an existing repository. Every worker will use this registered root.</p>
-        </div>
-        <button type="button" id="new-project-close" class="dialog-close" aria-label="Close">×</button>
-      </div>
-      <label class="field-label" for="new-project-name">Project name</label>
-      <input id="new-project-name" class="project-field" required maxlength="80" placeholder="Job Assistant">
-      <label class="field-label" for="new-project-description">Description <span>(optional)</span></label>
-      <textarea id="new-project-description" class="project-field" rows="2" maxlength="500" placeholder="What this project is for"></textarea>
-      <fieldset class="project-folder-options">
-        <legend>Project folder</legend>
-        <label><input type="radio" name="project-folder-mode" value="create" checked> Create a new folder</label>
-        <p id="new-project-path-preview" class="folder-preview">Folder will be created under your ChatGPT Projects folder.</p>
-        <label><input type="radio" name="project-folder-mode" value="existing"> Use an existing folder or repository</label>
-        <div id="existing-project-path-row" style="display:none;">
-          <label class="field-label" for="existing-project-path">Existing folder path</label>
-          <input id="existing-project-path" class="project-field" placeholder="C:\projects\adaptive-router\Documents\ChatGPT\Projects\Existing Project">
-          <p class="field-help">The folder is linked in place; Adaptive Router does not copy or reinitialize it.</p>
-        </div>
-      </fieldset>
-      <div id="new-project-error" class="form-error" role="alert" style="display:none;"></div>
-      <div class="project-dialog-actions">
-        <button type="button" id="new-project-cancel" class="btn btn-secondary">Cancel</button>
-        <button type="submit" id="create-project-btn" class="btn btn-primary">Create Project</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="delete-project-dialog" class="project-dialog" aria-labelledby="delete-project-title">
-    <form id="delete-project-form" class="project-dialog-form">
-      <div class="project-dialog-header">
-        <div>
-          <h2 id="delete-project-title">Delete Project</h2>
-          <p>Remove <strong id="delete-project-name">this project</strong> from Adaptive Router. This cannot be undone.</p>
-        </div>
-        <button type="button" id="delete-project-close" class="dialog-close" aria-label="Close">×</button>
-      </div>
-      <p id="delete-project-path" class="folder-preview"></p>
-      <label class="checkbox-row">
-        <input type="checkbox" id="delete-project-remove-folder">
-        Also permanently delete the project's folder and all files in it from disk
-      </label>
-      <p class="field-help">Leave this unchecked to just remove the project from Adaptive Router's list — its files stay on disk and you can re-add it later with "Use an existing folder."</p>
-      <div id="delete-project-error" class="form-error" role="alert" style="display:none;"></div>
-      <div class="project-dialog-actions">
-        <button type="button" id="delete-project-cancel" class="btn btn-secondary">Cancel</button>
-        <button type="submit" id="delete-project-confirm-btn" class="btn btn-danger">Delete Project</button>
-      </div>
-    </form>
-  </dialog>
 
   <script src="app.js"></script>
 </body>

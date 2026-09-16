@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { json, read } from './storage.mjs';
 import { validate } from './contracts.mjs';
 import { sanitizeText } from './events.mjs';
+import { normalizeUsage } from './token-tracker.mjs';
 
 export function findClaudeExe(env = process.env) {
   const lookup = name => {
@@ -318,7 +319,7 @@ export function extractJson(text) {
 }
 
 export async function invoke(worker, opts = {}) {
-  const { root, dir, schema, prompt, timeout, paths, model, effort, projectRoot = null, onWorkerEvent, strictJsonRetry = false, max_tokens, maxTokens, signal = null } = opts;
+  const { root, dir, schema, prompt, timeout, paths, model, effort, projectRoot = null, onWorkerEvent, onUsage, strictJsonRetry = false, max_tokens, maxTokens, signal = null } = opts;
   fs.mkdirSync(dir, { recursive: true });
   const isolatedCwd = path.join(dir, 'workspace');
   fs.mkdirSync(isolatedCwd, { recursive: true });
@@ -344,6 +345,7 @@ export async function invoke(worker, opts = {}) {
     for (const feature of ['shell_tool', 'apps', 'plugins', 'hooks', 'multi_agent', 'browser_use', 'image_generation']) args.push('--disable', feature);
 
     let turnStarted = false;
+    let codexRawUsage = null;
     await runProcess(paths.codex, [...args, '-'], {
       ...common,
       input: prompt,
@@ -357,6 +359,8 @@ export async function invoke(worker, opts = {}) {
               turnStarted = true;
               onWorkerEvent?.({ platform: 'codex', worker: 'codex', model, effort, eventType: 'progress', title: 'Codex processing task instructions...' });
             }
+          } else if (obj.type === 'turn.completed' && obj.usage) {
+            codexRawUsage = obj.usage;
           } else if (obj.type === 'item.completed') {
             if (obj.item?.type === 'agent_message') {
               onWorkerEvent?.({ platform: 'codex', worker: 'codex', model, effort, eventType: 'progress', title: 'Codex drafted code deliverable', detail: 'Validating response against schema...' });
@@ -372,6 +376,9 @@ export async function invoke(worker, opts = {}) {
       }
     });
     result = read(output);
+    const codexUsage = normalizeUsage(codexRawUsage, 'codex');
+    json(path.join(dir, 'usage.json'), codexUsage);
+    onUsage?.(codexUsage);
   } else if (worker.adapter === 'antigravity') {
     configureReviewer(root, isolatedCwd);
     try {
@@ -427,6 +434,9 @@ export async function invoke(worker, opts = {}) {
     if (completed.length !== 1 || completed[0].result.status !== 'SUCCESS') throw Error('Antigravity did not complete successfully; see worker log.');
     result = extractJson(completed[0].result.response);
     json(path.join(dir, 'response.json'), result);
+    const agyUsage = normalizeUsage(completed[0].result?.usage, 'antigravity');
+    json(path.join(dir, 'usage.json'), agyUsage);
+    onUsage?.(agyUsage);
   } else if (worker.adapter === 'claude') {
     onWorkerEvent?.({ platform: 'claude', worker: 'claude-code', model, effort, eventType: 'worker_start', title: 'Claude Code worker initialized', detail: 'Running in non-interactive batch mode' });
     const settings = path.join(dir, 'claude-settings.json');
@@ -461,6 +471,9 @@ export async function invoke(worker, opts = {}) {
     onWorkerEvent?.({ platform: 'claude', worker: 'claude-code', model, effort, eventType: 'progress', title: 'Claude Code generated deliverable', status: 'success' });
     result = extractJson(envelope.result);
     json(path.join(dir, 'response.json'), result);
+    const claudeUsage = normalizeUsage(envelope.usage, 'claude');
+    json(path.join(dir, 'usage.json'), claudeUsage);
+    onUsage?.(claudeUsage);
   } else if (worker.adapter === 'cline') {
     onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'worker_start', title: 'Cline worker initialized', detail: 'Running via Cline CLI (auto-approve mode)' });
     const extra = schema.properties?.verdict ? 'Verdict evaluates the deliverable, not whether you completed the review. ' : '';
@@ -509,7 +522,8 @@ export async function invoke(worker, opts = {}) {
     // the parent process happens to be in.
     const clineArgs = ['--yolo', '--json', '--cwd', common.cwd];
     if (model && model !== 'cline-default') clineArgs.push('-m', model);
-    if (opts.provider || worker.provider) clineArgs.push('-P', opts.provider || worker.provider);
+    const provider = opts.provider || worker.provider || 'gemini';
+    clineArgs.push('-P', provider);
     if (opts.dataDir || worker.dataDir) clineArgs.push('--data-dir', opts.dataDir || worker.dataDir);
     if (effort) {
       const thinkingMap = { low: 'low', medium: 'medium', high: 'high', max: 'high' };
@@ -570,15 +584,39 @@ export async function invoke(worker, opts = {}) {
       });
       onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'progress', title: 'Cline task finished; parsing deliverable', status: 'success' });
       let deliverableCandidate = raw;
+      let clineRawUsage = null;
+      const editedFiles = new Map();
       const lines = raw.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      for (let i = 0; i < lines.length; i++) {
+        try {
+          const parsed = JSON.parse(lines[i]);
+          const inp = parsed.input || parsed.event?.input;
+          const tName = parsed.toolName || parsed.event?.toolName || parsed.tool;
+          if ((tName === 'editor' || tName === 'write_to_file') && inp?.path) {
+            const rel = path.relative(common.cwd, inp.path).replaceAll('\\', '/');
+            if (typeof inp.new_text === 'string') {
+              editedFiles.set(rel, inp.new_text);
+            } else if (typeof inp.content === 'string') {
+              editedFiles.set(rel, inp.content);
+            } else if (fs.existsSync(inp.path)) {
+              editedFiles.set(rel, fs.readFileSync(inp.path, 'utf8'));
+            }
+          }
+        } catch {}
+      }
       for (let i = lines.length - 1; i >= 0; i--) {
         try {
           const parsed = JSON.parse(lines[i]);
+          if ((parsed.type === 'run_result' || parsed.type === 'agent_event') && (parsed.aggregateUsage || parsed.usage)) {
+            if (!clineRawUsage) {
+              clineRawUsage = parsed.aggregateUsage || parsed.usage;
+            }
+          }
           if (parsed.type === 'run_result' && parsed.text) {
             deliverableCandidate = parsed.text;
             break;
           }
-          if (parsed.type === 'agent_event' && parsed.event?.type === 'done' && parsed.event?.text) {
+          if (parsed.event?.type === 'done' && parsed.event?.text) {
             deliverableCandidate = parsed.event.text;
             break;
           }
@@ -591,13 +629,32 @@ export async function invoke(worker, opts = {}) {
       try {
         result = extractJson(deliverableCandidate);
       } catch (jsonErr) {
-        const errorDetail = lastClineError || jsonErr.message;
-        const err = Error(`Cline deliverable parsing error: ${errorDetail}`);
-        err.isQuota = /\b(quota|usage[- ]limit|rate[- ]limit|too many requests|429|resource[- ]exhausted|overloaded|capacity)\b/i.test(errorDetail);
-        err.isModelUnavailable = /model[- ]?(?:not[- ]?found|unavailable|not supported)/i.test(errorDetail);
-        throw err;
+        if (editedFiles.size > 0 && schema.properties?.files) {
+          result = {
+            summary: typeof deliverableCandidate === 'string' && deliverableCandidate.trim().length > 0
+              ? deliverableCandidate.trim()
+              : 'Files edited by Cline',
+            files: Array.from(editedFiles.entries()).map(([filePath, content]) => {
+              const full = path.isAbsolute(filePath) ? filePath : path.join(common.cwd, filePath);
+              const fileContent = fs.existsSync(full) ? fs.readFileSync(full, 'utf8') : content;
+              return {
+                path: path.relative(common.cwd, full).replaceAll('\\', '/'),
+                content: fileContent
+              };
+            })
+          };
+        } else {
+          const errorDetail = lastClineError || jsonErr.message;
+          const err = Error(`Cline deliverable parsing error: ${errorDetail}`);
+          err.isQuota = /\b(quota|usage[- ]limit|rate[- ]limit|too many requests|429|resource[- ]exhausted|overloaded|capacity)\b/i.test(errorDetail);
+          err.isModelUnavailable = /model[- ]?(?:not[- ]?found|unavailable|not supported)/i.test(errorDetail);
+          throw err;
+        }
       }
       json(path.join(dir, 'response.json'), result);
+      const clineUsage = normalizeUsage(clineRawUsage, 'cline');
+      json(path.join(dir, 'usage.json'), clineUsage);
+      onUsage?.(clineUsage);
     } finally {
       try { fs.unlinkSync(promptFile); } catch {}
     }

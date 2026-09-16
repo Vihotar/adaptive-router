@@ -128,7 +128,8 @@ export const ALLOWED_EVENT_TYPES = new Set([
   'review_finding',
   'review_verdict',
   'correction',
-  'completion'
+  'completion',
+  'token_usage'
 ]);
 
 // Whitelisted platforms
@@ -172,6 +173,7 @@ export function createWorkerEvent({
     switch (normType) {
       case 'routing': eventIcon = '🎯'; break;
       case 'worker_start': eventIcon = '🤖'; break;
+      case 'token_usage': eventIcon = '📊'; break;
       case 'file_read': eventIcon = '📖'; break;
       case 'file_edit': eventIcon = '✏️'; break;
       case 'file_create': eventIcon = '📄'; break;

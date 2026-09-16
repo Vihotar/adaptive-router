@@ -119,11 +119,27 @@ export async function withFailover({
   taskCategory = '',
   projectRoot = null,
   onWorkerEvent = null,
+  onTokenUsage = null,
   signal = null
 }) {
   let lastWorkerError = null;
   let lastFailedWorker = null;
   let lastFailedModel = null;
+  let lastInvocationUsage = null;
+  const handleUsage = (u, attemptWorker, attemptModel) => {
+    lastInvocationUsage = u;
+    if (onTokenUsage) {
+      try {
+        onTokenUsage({
+          role,
+          stage,
+          worker: attemptWorker,
+          model: attemptModel,
+          usage: u
+        });
+      } catch {}
+    }
+  };
   for (const worker of candidates(config, role, excluded, failed, preferredFamily, difficulty, claudeReserve, allowClaude, { builderModel, builderTier, builderFamily, builderEffort, builderPlatform, taskRisk, taskCategory, availableModels, root })) {
     if (signal?.aborted) {
       throw Error('TASK_ABORTED_BY_USER');
@@ -238,6 +254,7 @@ export async function withFailover({
               effort: selection.effort,
               projectRoot,
               onWorkerEvent,
+              onUsage: (u) => handleUsage(u, worker.id, candidateModel),
               signal
             });
             modelSuccess = true;
@@ -272,6 +289,7 @@ export async function withFailover({
           effort: selection.effort,
           projectRoot,
           onWorkerEvent,
+          onUsage: (u) => handleUsage(u, worker.id, selection.model),
           signal
         });
       }
@@ -302,7 +320,8 @@ export async function withFailover({
         tier: selection.tier,
         tierNumber: selection.tierNumber,
         tierName: selection.tierName,
-        reason: selection.reason
+        reason: selection.reason,
+        usage: lastInvocationUsage
       };
     } catch (error) {
       if (signal?.aborted || error.message === 'TASK_STOPPED' || error.message === 'TASK_ABORTED_BY_USER' || error.message === 'TASK_PAUSED_BY_USER' || error.message?.includes('aborted by user')) {

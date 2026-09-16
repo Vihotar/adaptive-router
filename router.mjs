@@ -20,6 +20,15 @@ function show(task) {
       console.log(`  - ${r.role === 'build' ? 'Builder' : 'Reviewer'} (${r.worker}): ${r.model} [effort: ${r.effort}] (${r.tier}) - ${r.reason}`);
     }
   }
+  if (task.tokenUsage?.summaryText) {
+    console.log(`\nToken Usage: ${task.tokenUsage.summaryText}`);
+    if (task.tokenUsage.builder?.totalTokens != null) {
+      console.log(`  - Builder (${task.tokenUsage.builder.platform || 'unknown'}): ${task.tokenUsage.builder.totalTokens.toLocaleString()} tokens [${task.tokenUsage.builder.accuracy}]`);
+    }
+    if (task.tokenUsage.reviewer?.totalTokens != null) {
+      console.log(`  - Reviewer (${task.tokenUsage.reviewer.platform || 'unknown'}): ${task.tokenUsage.reviewer.totalTokens.toLocaleString()} tokens [${task.tokenUsage.reviewer.accuracy}]`);
+    }
+  }
   if (task.status === 'awaiting_approval') {
     if (task.websiteUrl) console.log(`Tested website:  ${task.websiteUrl}`);
     if (task.testedArtifact) console.log(`Tested artifact: ${task.testedArtifact}`);

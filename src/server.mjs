@@ -327,25 +327,51 @@ export function listRecentTasks(root, projectFilter = null) {
       if (!fs.existsSync(tFile)) continue;
       const t = read(tFile);
       const builderEntry = t.routingLog?.find(r => r.role === 'build');
+      const reviewerEntry = t.routingLog?.find(r => r.role === 'review');
       const project = t.project || (t.kind === 'system' || /adaptive\s*router|dashboard|planning\s*chat|workflow/i.test(t.instruction || '') ? 'adaptive-router' : 'test-site');
       const projectName = t.projectName || (project === 'adaptive-router' ? 'Adaptive Router System' : 'Adaptive Router Test Project');
       const kind = t.kind || (project === 'adaptive-router' ? 'system' : 'web');
       if (projectFilter && project !== projectFilter) continue;
+
+      let duration = null;
+      if (t.created) {
+        const start = new Date(t.created).getTime();
+        const end = t.completionTime ? new Date(t.completionTime).getTime() : Date.now();
+        const diffSec = Math.max(0, Math.floor((end - start) / 1000));
+        const m = Math.floor(diffSec / 60);
+        const s = diffSec % 60;
+        duration = `${m}m ${s < 10 ? '0' : ''}${s}s`;
+      }
+
+      let progress = 50;
+      if (t.status === 'completed' || t.status === 'approved') progress = 100;
+      else if (t.status === 'awaiting_approval') progress = 85;
+      else if (t.status === 'reviewing' || t.status === 'testing') progress = 70;
+      else if (t.status === 'building' || t.status === 'running') progress = 45;
+      else if (t.status === 'failed' || t.status === 'rejected') progress = 60;
+
       tasks.push({
         id: t.id,
         instruction: t.instruction,
         status: t.status,
         created: t.created,
+        completionTime: t.completionTime || null,
+        duration,
+        progress,
         revision: t.revision,
         builder: builderEntry?.worker || t.contributors?.[0] || 'Unknown',
         model: builderEntry?.model || 'default',
         effort: builderEntry?.effort || 'standard',
+        reviewer: t.reviewerWorker || t.selectedReviewer || t.reviewer || reviewerEntry?.worker || 'None',
+        reviewerModel: t.reviewerModel || reviewerEntry?.model || null,
+        reviewerEffort: t.reviewerEffort || reviewerEntry?.effort || null,
         specialist: builderEntry?.specialist || t.specialist || null,
         specialistName: builderEntry?.specialistName || t.specialistName || null,
         summary: t.summary || '',
         project,
         projectName,
-        kind
+        kind,
+        tokenUsage: t.tokenUsage || null
       });
     } catch {}
   }

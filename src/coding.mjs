@@ -19,6 +19,7 @@ import { getActiveProject, getProject } from './projects.mjs';
 import { classifySensitivity, containsLikelySecret } from './sensitivity.mjs';
 import { recordStaffCompletion } from './staff-log.mjs';
 import { formatTaskFailure } from './failure.mjs';
+import { createEmptyTokenUsage, accumulateInvocation, formatTokenUsageLog, normalizeUsage } from './token-tracker.mjs';
 
 export const codingInstruction = 'Add a contact form to the test website.';
 const names = ['index.html', 'styles.css', 'app.js'];
@@ -113,6 +114,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       task.routingLog = task.routingLog || [];
       task.activityLog = task.activityLog || [];
       task.contributors = task.contributors || [];
+      task.tokenUsage = task.tokenUsage || createEmptyTokenUsage();
       if (override_sensitive) {
         task.sensitiveOverridden = true;
       }
@@ -171,7 +173,8 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
         injectFault,
         claudeReserveMode: isClaudeReserve ? 'ON' : 'OFF',
         allowClaudeForTask: Boolean(allowClaude),
-        claudeQuotaAuthorized: Boolean(allowClaude)
+        claudeQuotaAuthorized: Boolean(allowClaude),
+        tokenUsage: createEmptyTokenUsage()
       };
       const seed = taskKind === 'web'
         ? names.map(name => ({ path: name, content: fs.readFileSync(path.join(registered.rootPath, name), 'utf8') }))
@@ -368,6 +371,31 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       }
     }
 
+    const recordTaskTokenUsage = ({ role, stage, worker, model, usage }) => {
+      const normalized = normalizeUsage(usage, worker);
+      task.tokenUsage = accumulateInvocation(task.tokenUsage, {
+        role,
+        stage,
+        worker,
+        model,
+        usage: normalized
+      });
+      json(path.join(dir, 'task.json'), task);
+      const logTitle = formatTokenUsageLog({ role, worker, model, usage: normalized });
+      publishEvent({
+        eventType: 'token_usage',
+        role: (role === 'build' || role === 'builder') ? 'builder' : 'reviewer',
+        worker,
+        model,
+        title: logTitle,
+        detail: `Input: ${normalized.inputTokens != null ? normalized.inputTokens.toLocaleString() : 'unavailable'}, Output: ${normalized.outputTokens != null ? normalized.outputTokens.toLocaleString() : 'unavailable'}, Total: ${normalized.totalTokens != null ? normalized.totalTokens.toLocaleString() : 'unavailable'} [${normalized.accuracy || 'Unavailable'}]`,
+        metadata: {
+          usage: normalized,
+          tokenUsage: task.tokenUsage
+        }
+      });
+    };
+
     const attempt = (role, stage, schema, prompt) => {
       const classification = classifyTask(task.instruction, feedback, task.revision, { claudeReserve: isClaudeReserve, allowClaude: effectiveAllowClaude });
       const buildEntry = task.routingLog?.find(r => r.role === 'build');
@@ -413,6 +441,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
           if (evt.model) currentActiveModel = evt.model;
           publishEvent(evt);
         },
+        onTokenUsage: recordTaskTokenUsage,
         signal
       });
     };
