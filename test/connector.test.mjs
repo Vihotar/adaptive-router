@@ -32,7 +32,9 @@ import {
   getFailoversAndErrors,
   toggleClaudeReserve,
   approveTask,
-  rejectTask
+  rejectTask,
+  submitTask,
+  isProjectTaskActive
 } from '../src/connector.mjs';
 
 import { handleMcpRequest, ALL_TOOLS, READ_TOOLS, WRITE_TOOLS } from '../src/mcp-server.mjs';
@@ -155,10 +157,44 @@ describe('Connector Read Operations', () => {
     assert.ok(projects.some(p => p.id === 'test-site'));
   });
 
+  test('submitTask rejects a new submission while this project has a genuinely active task (real concurrency gate, not a lock file)', async () => {
+    // This is the gate connector.mjs's isProjectTaskActive() now backs --
+    // previously this checked a '.router/router.lock' file that real code
+    // paths never write any more (storage.mjs's locked() always uses a
+    // per-project scoped filename), so external submissions via ChatGPT
+    // Work / scripts had no real protection against piling up a second
+    // task on a project that already has one awaiting approval.
+    await assert.rejects(
+      () => submitTask(tmpRoot, { instruction: 'Add another page', project: 'test-site' }),
+      /already running/i
+    );
+  });
+
+  test('submitTask does not block a DIFFERENT project just because test-site has an active task', async () => {
+    // Sanity check that the fix is scoped per-project, not a return to the
+    // old global unscoped-lock behavior -- a task active on 'test-site'
+    // must not block the concurrency GATE for 'adaptive-router'. This
+    // fixture's tmpRoot has no real adaptive-router project scaffolding
+    // (specialists.json, workers.json shape codeTask() needs to actually
+    // run a build), so rather than let the fire-and-forget codeTask()
+    // pipeline run for real (and fail for unrelated fixture-completeness
+    // reasons), assert directly on the exported gate function itself --
+    // this is what submitTask()'s pre-check actually calls.
+    assert.equal(isProjectTaskActive(tmpRoot, 'adaptive-router'), false, 'a task active on test-site must not read as active for a different project');
+    assert.equal(isProjectTaskActive(tmpRoot, 'test-site'), true, 'sanity: test-site itself should still read as active');
+  });
+
   test('getProjectStatus returns overview without secrets', () => {
     const status = getProjectStatus(tmpRoot);
     assert.equal(status.claudeReserve, true);
-    assert.equal(status.taskInProgress, false);
+    // The fixture task above is 'awaiting_approval' -- a real active status
+    // (see connector.mjs's isProjectTaskActive()) that genuinely blocks a
+    // new same-project task submission, the same way the dashboard's own
+    // getActiveTask()/409 gate treats it. taskInProgress reflects real
+    // on-disk task state now, not a lock file that's essentially never
+    // created (see connector.mjs's comment on isProjectTaskActive for why
+    // that was actually a latent bug in the external connector API).
+    assert.equal(status.taskInProgress, true);
     assert.ok(status.taskSummary);
     assert.equal(status.taskSummary.total, 1);
     assert.equal(status.token, undefined);

@@ -1286,23 +1286,6 @@ export function createDashboardServer(root, options = {}) {
           return sendJson({ error: 'Instruction cannot be empty' }, 400);
         }
 
-        // Check lock
-        const lockPath = path.join(root, '.router', 'router.lock');
-        if (fs.existsSync(lockPath)) {
-          let isStale = false;
-          try {
-            const staleOwner = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
-            if (staleOwner?.pid) {
-              try { process.kill(staleOwner.pid, 0); } catch (e) { if (e.code === 'ESRCH') isStale = true; }
-            }
-          } catch {}
-          if (isStale) {
-            try { fs.unlinkSync(lockPath); } catch {}
-          } else {
-            return sendJson({ error: 'Another task is currently running. Please wait for it to complete.' }, 409);
-          }
-        }
-
         // Run task asynchronously
         const allowClaude = Boolean(body.allowClaude);
         const unavailableBuilders = Array.isArray(body.unavailableBuilders) ? body.unavailableBuilders : [];
@@ -1697,12 +1680,6 @@ export function createDashboardServer(root, options = {}) {
           p.resolve(allowClaude ? 'allow_task' : 'deny', false);
         }
 
-        // Check lock
-        const lockPath = path.join(root, '.router', 'router.lock');
-        if (fs.existsSync(lockPath)) {
-          await new Promise(r => setTimeout(r, 200));
-        }
-
         // A human just explicitly triggered this resume (whether via the
         // manual Retry Now button or a decision button) — that supersedes
         // any pending auto-retry timer and resets the auto-retry attempt
@@ -1805,8 +1782,6 @@ export function createDashboardServer(root, options = {}) {
           try { activeTaskAbortControllers.get(taskId).abort(); } catch {}
           activeTaskAbortControllers.delete(taskId);
         }
-        const lockPath = path.join(root, '.router', 'router.lock');
-        try { if (fs.existsSync(lockPath)) fs.unlinkSync(lockPath); } catch {}
         const currentSlot = getActiveRunningTask(t.project);
         if (currentSlot === taskId || currentSlot === 'running') {
           setActiveRunningTask(t.project, null);
@@ -2035,23 +2010,6 @@ export function createDashboardServer(root, options = {}) {
         const body = await readBody();
         const project = body.project || 'adaptive-router';
         const allowClaude = Boolean(body.allowClaude);
-
-        // Check lock
-        const lockPath = path.join(root, '.router', 'router.lock');
-        if (fs.existsSync(lockPath)) {
-          let isStale = false;
-          try {
-            const staleOwner = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
-            if (staleOwner?.pid) {
-              try { process.kill(staleOwner.pid, 0); } catch (e) { if (e.code === 'ESRCH') isStale = true; }
-            }
-          } catch {}
-          if (isStale) {
-            try { fs.unlinkSync(lockPath); } catch {}
-          } else {
-            return sendJson({ error: 'Another task is currently running. Please wait for it to complete.' }, 409);
-          }
-        }
 
         const activeTask = getActiveTask(root, project);
         if (activeTask) {

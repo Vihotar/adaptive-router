@@ -18,6 +18,59 @@ import crypto from 'node:crypto';
 // ── Secret field detector ─────────────────────────────────────────────────────
 const SECRET_PATTERN = /token|password|secret|apikey|api_key|bearer|jwt|credential|auth_?token/i;
 
+// ── Real, per-project "is a task active" check ─────────────────────────────
+// Mirrors server.mjs's ACTIVE_TASK_STATUSES exactly (kept as its own literal
+// here rather than importing from server.mjs, to avoid a circular import --
+// server.mjs itself imports from this module). If server.mjs's set changes,
+// this one should be updated to match.
+//
+// Previously both getProjectStatus()'s taskInProgress field and
+// submitTask()'s concurrency gate read a single unscoped '.router/router.lock'
+// file. That filename is only ever written by storage.mjs's locked() when
+// called with no scope -- every real code path now calls it with a
+// per-project scope (see storage.mjs's lockFileName()), so the unscoped file
+// is essentially never created. The practical effect: taskInProgress almost
+// always reported false even mid-task, and the external connector API
+// (ChatGPT Work / scripts via submitTask) had no real concurrency
+// protection at all. This checks the actual on-disk task state instead,
+// the same source of truth server.mjs's getActiveTask() uses.
+const PROJECT_ACTIVE_TASK_STATUSES = new Set([
+  'running',
+  'building',
+  'testing',
+  'reviewing',
+  'waiting_for_worker',
+  'needs_cto_attention',
+  'needs_human_input',
+  'awaiting_plan_approval',
+  'waiting_for_reviewer',
+  'awaiting_approval',
+  'paused_by_user'
+]);
+
+export function isProjectTaskActive(root, project) {
+  try {
+    const tasksDir = path.join(root, '.router', 'tasks');
+    if (!fs.existsSync(tasksDir)) return false;
+    const ids = fs.readdirSync(tasksDir)
+      .filter(id => /^\d{8}T\d{6}-[a-f0-9]{8}$/.test(id))
+      .sort()
+      .reverse()
+      .slice(0, 30);
+    for (const id of ids) {
+      try {
+        const t = JSON.parse(fs.readFileSync(path.join(tasksDir, id, 'task.json'), 'utf8'));
+        if (project && t.project !== project) continue;
+        if (PROJECT_ACTIVE_TASK_STATUSES.has(t.status)) return true;
+        // Newest task for this project resolved and wasn't active -- no
+        // need to look further back.
+        if (!project || t.project === project) break;
+      } catch {}
+    }
+  } catch {}
+  return false;
+}
+
 export function sanitize(obj) {
   if (Array.isArray(obj)) return obj.map(sanitize);
   if (obj && typeof obj === 'object') {
@@ -131,8 +184,10 @@ export function listProjects(root) {
 export function getProjectStatus(root) {
   const configPath = path.join(root, 'workers.json');
   const config = safeRead(configPath) || {};
-  const lockPath = path.join(root, '.router', 'router.lock');
-  const isLocked = fs.existsSync(lockPath);
+  // See isProjectTaskActive()'s comment above: reads real on-disk task
+  // state across all projects, not a lock file that's essentially never
+  // created any more.
+  const isLocked = isProjectTaskActive(root, null);
 
   // Count tasks by status
   const tasksDir = path.join(root, '.router', 'tasks');
@@ -398,9 +453,15 @@ export function getFailoversAndErrors(root, taskId) {
  */
 export async function submitTask(root, { instruction, project = 'test-site', allowClaude = false }) {
   if (!instruction?.trim()) throw new Error('Instruction is required');
-  const lockPath = path.join(root, '.router', 'router.lock');
-  if (fs.existsSync(lockPath)) {
-    throw new Error('A task is already running. Please wait for it to complete before submitting a new one.');
+  // See isProjectTaskActive()'s comment above: this used to check a lock
+  // file that's essentially never created any more, which meant the
+  // external connector API (ChatGPT Work / scripts calling submitTask
+  // directly) had no real concurrency protection. Scoped to this specific
+  // project, matching how the dashboard's own POST /api/tasks gate works
+  // (server.mjs's getActiveTask(root, project)) -- a task active on a
+  // different project must not block this one.
+  if (isProjectTaskActive(root, project)) {
+    throw new Error('A task is already running for this project. Please wait for it to complete before submitting a new one.');
   }
   // Import codeTask dynamically to avoid circular deps
   const { codeTask } = await import('./coding.mjs');
