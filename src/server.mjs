@@ -60,7 +60,30 @@ export const TERMINAL_TASK_STATUSES = new Set([
 ]);
 
 const activeStreams = new Map(); // taskId -> Set of res objects
-let activeRunningTask = null; // Currently running taskId or null
+// Per-project active-task gate. Replaces the old single global
+// `activeRunningTask` variable: storage.mjs's locked() already scopes
+// router.lock per project (via its `scope` param) so tasks on DIFFERENT
+// projects can run truly concurrently, but this in-memory gate used to be a
+// single server-wide value that serialized ALL tasks regardless of project.
+// Keying it by projectId lets different projects' tasks genuinely run at
+// the same time while same-project task-starts remain exactly as strictly
+// serialized as before. Value per project is either the string 'running'
+// (a placeholder set immediately when a background task starts, before its
+// real taskId is known from the first worker event) or the resolved taskId,
+// mirroring the old sentinel's two states — just scoped per project now.
+const activeRunningTasks = new Map(); // projectId -> taskId | 'running' | undefined (absent = none)
+
+function getActiveRunningTask(projectId) {
+  return activeRunningTasks.get(projectId) || null;
+}
+function setActiveRunningTask(projectId, value) {
+  if (value == null) activeRunningTasks.delete(projectId);
+  else activeRunningTasks.set(projectId, value);
+}
+function isAnyTaskActive() {
+  return activeRunningTasks.size > 0;
+}
+
 const activeTaskAbortControllers = new Map(); // taskId -> AbortController
 
 export function broadcastTaskEvent(taskId, eventData) {
@@ -214,14 +237,14 @@ function runAutoRetry(root, project, taskId) {
   // error, which the catch below reports and reschedules from — same
   // conservative-cap and visible-logging behavior, just without a second,
   // less capable gatekeeper in front of it.
-  if (activeRunningTask) { maybeScheduleAutoRetry(root, project, taskId); return; }
+  if (getActiveRunningTask(project)) { maybeScheduleAutoRetry(root, project, taskId); return; }
   let task;
   try { task = read(path.join(taskDir(root, taskId), 'task.json')); } catch { return; }
   if (!STALL_STATUSES.has(task.status)) { clearAutoRetry(taskId, root); return; }
 
   (async () => {
     try {
-      activeRunningTask = taskId;
+      setActiveRunningTask(project, taskId);
       clearPersistedRetryCountdown(root, taskId); // it's happening now, not "in N seconds" anymore
       persistRouterActivity(root, taskId, '🔄', 'Auto-Retry Firing', 'Retrying automatically now.');
       await codeTask(root, '', {
@@ -236,7 +259,7 @@ function runAutoRetry(root, project, taskId) {
       console.error('Auto-retry background error:', err.message);
       persistRouterActivity(root, taskId, '⚠️', 'Auto-Retry Attempt Failed', err.message || 'Unknown error while retrying.');
     } finally {
-      activeRunningTask = null;
+      setActiveRunningTask(project, null);
       maybeScheduleAutoRetry(root, project, taskId);
     }
   })();
@@ -293,15 +316,13 @@ export async function getWorkerStatuses(root, requestedProject = null) {
   const activeProject = requestedProject
     ? getProject(root, requestedProject, { includeHidden: false })
     : getActiveProject(root);
-  let visibleRunningTask = activeRunningTask;
+  // The map is already project-keyed, so no need to separately check
+  // whether the running task belongs to this project the way the old
+  // single-variable version had to.
+  let visibleRunningTask = getActiveRunningTask(activeProject.id);
   if (!visibleRunningTask) {
     const active = getActiveTask(root, activeProject.id);
     if (active) visibleRunningTask = active.id;
-  } else if (visibleRunningTask !== 'running') {
-    try {
-      const running = read(path.join(taskDir(root, visibleRunningTask), 'task.json'));
-      if (running.project !== activeProject.id) visibleRunningTask = null;
-    } catch { visibleRunningTask = null; }
   }
   const workerHealth = getAllWorkerHealth(root);
   const withHealth = (w) => {
@@ -391,9 +412,18 @@ export function listRecentTasks(root, projectFilter = null) {
 }
 
 export function getActiveTask(root, projectId = null) {
-  if (activeRunningTask && activeRunningTask !== 'running') {
+  // When a specific project is requested, look up only that project's slot
+  // in the map. When no project is given (checked across all projects),
+  // fall back to scanning every currently-tracked project's running task —
+  // matching the old single-variable behavior of "is anything running
+  // anywhere" for callers that don't scope by project.
+  const candidateIds = projectId
+    ? [getActiveRunningTask(projectId)]
+    : [...activeRunningTasks.values()];
+  for (const candidate of candidateIds) {
+    if (!candidate || candidate === 'running') continue;
     try {
-      const t = read(path.join(taskDir(root, activeRunningTask), 'task.json'));
+      const t = read(path.join(taskDir(root, candidate), 'task.json'));
       if (!projectId || t.project === projectId) {
         if (ACTIVE_TASK_STATUSES.has(t.status)) return t;
       }
@@ -991,8 +1021,8 @@ export function createDashboardServer(root, options = {}) {
       // short timeout, since the process exits before it can always finish
       // writing a response), then start a fresh process.
       if (pathname === '/api/shutdown' && method === 'POST') {
-        if (activeRunningTask) {
-          return sendJson({ error: 'Refusing to shut down: a task is currently active. Stop or wait for it to finish first.', activeRunningTask }, 409);
+        if (isAnyTaskActive()) {
+          return sendJson({ error: 'Refusing to shut down: a task is currently active. Stop or wait for it to finish first.', activeRunningTask: [...activeRunningTasks.values()] }, 409);
         }
         sendJson({ success: true, message: 'Shutting down.' });
         setTimeout(() => {
@@ -1234,15 +1264,22 @@ export function createDashboardServer(root, options = {}) {
 
         // Kick off execution in background
         (async () => {
+          // Local sentinel, resolved independently of any other project's
+          // concurrently-running IIFE closure. Written into the shared
+          // per-project map alongside the local variable so this project's
+          // slot always mirrors what this closure currently knows, without
+          // interference from other projects' tasks resolving their own
+          // sentinels at the same time.
+          let resolvedTaskId = 'running';
           try {
-            activeRunningTask = 'running';
+            setActiveRunningTask(project, 'running');
             await codeTask(root, instruction, {
               project,
               allowClaude,
               unavailableBuilders,
               signal: abortController.signal,
               confirmClaudeUse: async (promptMsg) => {
-                const taskId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : 'current';
+                const taskId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : 'current';
                 const permResult = await requestPermission(taskId, {
                   type: 'claude_quota',
                   description: promptMsg,
@@ -1255,24 +1292,27 @@ export function createDashboardServer(root, options = {}) {
                 return permResult.decision === 'allow_once' || permResult.decision === 'allow_task';
               },
               log: (msg) => {
-                if (activeRunningTask && activeRunningTask !== 'running') {
-                  broadcastTaskEvent(activeRunningTask, { type: 'log', message: msg });
+                if (resolvedTaskId && resolvedTaskId !== 'running') {
+                  broadcastTaskEvent(resolvedTaskId, { type: 'log', message: msg });
                 }
               },
               onWorkerEvent: (event) => {
-                if (activeRunningTask === 'running' && event.taskId) activeRunningTask = event.taskId;
-                const targetId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : (event.taskId || 'current');
+                if (resolvedTaskId === 'running' && event.taskId) {
+                  resolvedTaskId = event.taskId;
+                  setActiveRunningTask(project, resolvedTaskId);
+                }
+                const targetId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : (event.taskId || 'current');
                 broadcastTaskEvent(targetId, { type: 'worker_event', event });
               },
               onActivity: (item) => {
-                if (activeRunningTask && activeRunningTask !== 'running') {
-                  broadcastTaskEvent(activeRunningTask, { type: 'activity', item });
+                if (resolvedTaskId && resolvedTaskId !== 'running') {
+                  broadcastTaskEvent(resolvedTaskId, { type: 'activity', item });
                 }
               }
             });
           } catch (err) {
             console.error('Task background error:', err.message);
-            const finishedTaskId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : null;
+            const finishedTaskId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : null;
             if (finishedTaskId) {
               try {
                 const dir = taskDir(root, finishedTaskId);
@@ -1292,9 +1332,9 @@ export function createDashboardServer(root, options = {}) {
               }
             }
           } finally {
-            const finishedTaskId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : null;
+            const finishedTaskId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : null;
             if (finishedTaskId) activeTaskAbortControllers.delete(finishedTaskId);
-            activeRunningTask = null;
+            setActiveRunningTask(project, null);
             if (finishedTaskId) maybeScheduleAutoRetry(root, project, finishedTaskId);
           }
         })();
@@ -1304,7 +1344,7 @@ export function createDashboardServer(root, options = {}) {
         const recent = listRecentTasks(root, project);
         const newest = recent[0];
         if (newest) {
-          activeRunningTask = newest.id;
+          setActiveRunningTask(project, newest.id);
           activeTaskAbortControllers.set(newest.id, abortController);
         }
 
@@ -1346,7 +1386,7 @@ export function createDashboardServer(root, options = {}) {
           const t = read(path.join(taskDir(root, taskId), 'task.json'));
           (async () => {
             try {
-              activeRunningTask = taskId;
+              setActiveRunningTask(t.project, taskId);
               await codeTask(root, t.instruction, {
                 resume: taskId,
                 onWorkerEvent: (event) => broadcastTaskEvent(taskId, { type: 'worker_event', event }),
@@ -1356,7 +1396,7 @@ export function createDashboardServer(root, options = {}) {
             } catch (err) {
               console.error('Execute plan error:', err.message);
             } finally {
-              activeRunningTask = null;
+              setActiveRunningTask(t.project, null);
               maybeScheduleAutoRetry(root, t.project, taskId);
             }
           })();
@@ -1392,7 +1432,7 @@ export function createDashboardServer(root, options = {}) {
           // Resume task with user feedback
           (async () => {
             try {
-              activeRunningTask = taskId;
+              setActiveRunningTask(t.project, taskId);
               await codeTask(root, t.instruction, {
                 resume: taskId,
                 feedback: { userComment: reason },
@@ -1403,7 +1443,7 @@ export function createDashboardServer(root, options = {}) {
             } catch (err) {
               console.error('Correction error:', err.message);
             } finally {
-              activeRunningTask = null;
+              setActiveRunningTask(t.project, null);
               maybeScheduleAutoRetry(root, t.project, taskId);
             }
           })();
@@ -1460,15 +1500,16 @@ export function createDashboardServer(root, options = {}) {
             const unavailableBuilders = decision === 'retry_other_worker' ? [oldTask.failure?.worker || oldTask.builderWorker].filter(Boolean) : [];
 
             (async () => {
+              let resolvedTaskId = 'running';
               try {
-                activeRunningTask = 'running';
+                setActiveRunningTask(cleanProject, 'running');
                 await codeTask(root, cleanInstruction, {
                   project: cleanProject,
                   allowClaude,
                   preferredWorker,
                   unavailableBuilders,
                   confirmClaudeUse: async (promptMsg) => {
-                    const currentId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : 'current';
+                    const currentId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : 'current';
                     const permResult = await requestPermission(currentId, {
                       type: 'claude_quota',
                       description: promptMsg,
@@ -1481,26 +1522,29 @@ export function createDashboardServer(root, options = {}) {
                     return permResult.decision === 'allow_once' || permResult.decision === 'allow_task';
                   },
                   log: (msg) => {
-                    if (activeRunningTask && activeRunningTask !== 'running') {
-                      broadcastTaskEvent(activeRunningTask, { type: 'log', message: msg });
+                    if (resolvedTaskId && resolvedTaskId !== 'running') {
+                      broadcastTaskEvent(resolvedTaskId, { type: 'log', message: msg });
                     }
                   },
                   onWorkerEvent: (event) => {
-                    if (activeRunningTask === 'running' && event.taskId) activeRunningTask = event.taskId;
-                    const targetId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : (event.taskId || 'current');
+                    if (resolvedTaskId === 'running' && event.taskId) {
+                      resolvedTaskId = event.taskId;
+                      setActiveRunningTask(cleanProject, resolvedTaskId);
+                    }
+                    const targetId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : (event.taskId || 'current');
                     broadcastTaskEvent(targetId, { type: 'worker_event', event });
                   },
                   onActivity: (item) => {
-                    if (activeRunningTask && activeRunningTask !== 'running') {
-                      broadcastTaskEvent(activeRunningTask, { type: 'activity', item });
+                    if (resolvedTaskId && resolvedTaskId !== 'running') {
+                      broadcastTaskEvent(resolvedTaskId, { type: 'activity', item });
                     }
                   }
                 });
               } catch (err) {
                 console.error('Clean rerun background error:', err.message);
               } finally {
-                const finishedTaskId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : null;
-                activeRunningTask = null;
+                const finishedTaskId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : null;
+                setActiveRunningTask(cleanProject, null);
                 if (finishedTaskId) maybeScheduleAutoRetry(root, cleanProject, finishedTaskId);
               }
             })();
@@ -1508,7 +1552,7 @@ export function createDashboardServer(root, options = {}) {
             await new Promise(r => setTimeout(r, 200));
             const recent = listRecentTasks(root, cleanProject);
             const newest = recent.find(t => t.id !== taskId);
-            if (newest) activeRunningTask = newest.id;
+            if (newest) setActiveRunningTask(cleanProject, newest.id);
 
             return sendJson({ success: true, oldTaskId: taskId, taskId: newest?.id || null, status: 'started' });
           } catch (e) {
@@ -1614,7 +1658,7 @@ export function createDashboardServer(root, options = {}) {
         // Resume coding in background
         (async () => {
           try {
-            activeRunningTask = taskId;
+            setActiveRunningTask(t.project, taskId);
             await codeTask(root, null, {
               resume: taskId,
               preferredWorker,
@@ -1640,7 +1684,7 @@ export function createDashboardServer(root, options = {}) {
             console.error('Resume background error:', err.message);
           } finally {
             activeTaskAbortControllers.delete(taskId);
-            activeRunningTask = null;
+            setActiveRunningTask(t.project, null);
             maybeScheduleAutoRetry(root, t.project, taskId);
           }
         })();
@@ -1705,8 +1749,9 @@ export function createDashboardServer(root, options = {}) {
         }
         const lockPath = path.join(root, '.router', 'router.lock');
         try { if (fs.existsSync(lockPath)) fs.unlinkSync(lockPath); } catch {}
-        if (activeRunningTask === taskId || activeRunningTask === 'running') {
-          activeRunningTask = null;
+        const currentSlot = getActiveRunningTask(t.project);
+        if (currentSlot === taskId || currentSlot === 'running') {
+          setActiveRunningTask(t.project, null);
         }
         t.status = 'cancelled_by_user';
         t.stoppedByUser = true;
@@ -1764,13 +1809,14 @@ export function createDashboardServer(root, options = {}) {
           const allowClaude = Boolean(oldTask.allowClaudeForTask || oldTask.claudeQuotaAuthorized);
 
           (async () => {
+            let resolvedTaskId = 'running';
             try {
-              activeRunningTask = 'running';
+              setActiveRunningTask(cleanProject, 'running');
               await codeTask(root, cleanInstruction, {
                 project: cleanProject,
                 allowClaude,
                 confirmClaudeUse: async (promptMsg) => {
-                  const currentId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : 'current';
+                  const currentId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : 'current';
                   const permResult = await requestPermission(currentId, {
                     type: 'claude_quota',
                     description: promptMsg,
@@ -1783,26 +1829,29 @@ export function createDashboardServer(root, options = {}) {
                   return permResult.decision === 'allow_once' || permResult.decision === 'allow_task';
                 },
                 log: (msg) => {
-                  if (activeRunningTask && activeRunningTask !== 'running') {
-                    broadcastTaskEvent(activeRunningTask, { type: 'log', message: msg });
+                  if (resolvedTaskId && resolvedTaskId !== 'running') {
+                    broadcastTaskEvent(resolvedTaskId, { type: 'log', message: msg });
                   }
                 },
                 onWorkerEvent: (event) => {
-                  if (activeRunningTask === 'running' && event.taskId) activeRunningTask = event.taskId;
-                  const targetId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : (event.taskId || 'current');
+                  if (resolvedTaskId === 'running' && event.taskId) {
+                    resolvedTaskId = event.taskId;
+                    setActiveRunningTask(cleanProject, resolvedTaskId);
+                  }
+                  const targetId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : (event.taskId || 'current');
                   broadcastTaskEvent(targetId, { type: 'worker_event', event });
                 },
                 onActivity: (item) => {
-                  if (activeRunningTask && activeRunningTask !== 'running') {
-                    broadcastTaskEvent(activeRunningTask, { type: 'activity', item });
+                  if (resolvedTaskId && resolvedTaskId !== 'running') {
+                    broadcastTaskEvent(resolvedTaskId, { type: 'activity', item });
                   }
                 }
               });
             } catch (err) {
               console.error('Clean rerun background error:', err.message);
             } finally {
-              const finishedTaskId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : null;
-              activeRunningTask = null;
+              const finishedTaskId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : null;
+              setActiveRunningTask(cleanProject, null);
               if (finishedTaskId) maybeScheduleAutoRetry(root, cleanProject, finishedTaskId);
             }
           })();
@@ -1810,7 +1859,7 @@ export function createDashboardServer(root, options = {}) {
           await new Promise(r => setTimeout(r, 200));
           const recent = listRecentTasks(root, cleanProject);
           const newest = recent.find(t => t.id !== taskId);
-          if (newest) activeRunningTask = newest.id;
+          if (newest) setActiveRunningTask(cleanProject, newest.id);
 
           return sendJson({ success: true, oldTaskId: taskId, taskId: newest?.id || null, status: 'started' });
         } catch (e) {
@@ -1958,26 +2007,30 @@ export function createDashboardServer(root, options = {}) {
         let resolvedTaskId = null;
         (async () => {
           try {
-            activeRunningTask = 'running';
+            setActiveRunningTask(project, 'running');
             resolvedTaskId = await approvePlanAndExecute(root, {
               project,
               allowClaude,
               log: (msg) => {
-                if (activeRunningTask && activeRunningTask !== 'running') {
-                  broadcastTaskEvent(activeRunningTask, { type: 'log', message: msg });
+                if (resolvedTaskId) {
+                  broadcastTaskEvent(resolvedTaskId, { type: 'log', message: msg });
                 }
               },
               onActivity: (item) => {
-                if (activeRunningTask && activeRunningTask !== 'running') {
-                  broadcastTaskEvent(activeRunningTask, { type: 'activity', item });
+                if (resolvedTaskId) {
+                  broadcastTaskEvent(resolvedTaskId, { type: 'activity', item });
                 }
               }
             });
+            // approvePlanAndExecute resolves with the real taskId directly
+            // (no onWorkerEvent callback here to resolve it incrementally),
+            // so reflect it into this project's map slot once known.
+            if (resolvedTaskId) setActiveRunningTask(project, resolvedTaskId);
           } catch (err) {
             console.error('Planning execute error:', err.message);
           } finally {
-            const finishedTaskId = resolvedTaskId || (activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : null);
-            activeRunningTask = null;
+            const finishedTaskId = resolvedTaskId || (getActiveRunningTask(project) && getActiveRunningTask(project) !== 'running' ? getActiveRunningTask(project) : null);
+            setActiveRunningTask(project, null);
             if (finishedTaskId) maybeScheduleAutoRetry(root, project, finishedTaskId);
           }
         })();
@@ -1986,7 +2039,7 @@ export function createDashboardServer(root, options = {}) {
         await new Promise(r => setTimeout(r, 150));
         const recent = listRecentTasks(root);
         const newest = recent[0];
-        if (newest) activeRunningTask = newest.id;
+        if (newest) setActiveRunningTask(project, newest.id);
 
         return sendJson({ success: true, taskId: newest?.id || null, status: 'started' });
       }
