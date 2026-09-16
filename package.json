@@ -1,9 +1,19 @@
 {
   "name": "adaptive-router",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Small local Codex builder and Antigravity review loop",
-  "scripts": { "start": "node router.mjs dashboard --port 3210 --open", "dashboard": "node router.mjs dashboard --port 3210 --open", "tunnel": "cloudflared tunnel --url http://localhost:3210", "test": "node --test test/cline-gemini-routing.test.mjs test/reviewer-seniority.test.mjs test/specialists.test.mjs test/specialist-routing.test.mjs test/permissions.test.mjs test/planning.test.mjs test/connector.test.mjs", "demo": "node router.mjs demo", "code-demo": "node router.mjs code-demo", "doctor": "node router.mjs doctor" },
-  "engines": { "node": ">=22" }
+  "description": "Adaptive Router \u2014 local multi-model AI task-routing dashboard with human approval gates",
+  "scripts": {
+    "start": "node router.mjs dashboard --port 3210 --open",
+    "dashboard": "node router.mjs dashboard --port 3210 --open",
+    "tunnel": "cloudflared tunnel --url http://localhost:3210",
+    "test": "node --test test/*.test.mjs",
+    "demo": "node router.mjs demo",
+    "code-demo": "node router.mjs code-demo",
+    "doctor": "node router.mjs doctor"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }
