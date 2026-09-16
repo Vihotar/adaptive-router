@@ -52,17 +52,41 @@ export function filterSpecialists({ category, priority, platform, portable } = {
   });
 }
 
+// Full specialist source documents can run to 100KB+ of generic
+// domain material. Sending the entire document on every build/review
+// call, on every revision, for tasks that don't need that depth is a
+// major source of wasted input tokens. Below this size the full
+// document is cheap enough to just send as-is; above it, callers
+// should default to the concise mode unless task complexity justifies
+// the full document (see loadSpecialistInstructions' concise option).
+export const SPECIALIST_CONCISE_THRESHOLD_BYTES = 8000;
+
 /**
  * Safely loads the actual markdown instruction body of a specialist from its local file.
  * Preserves the file intact; performs read-only extraction.
+ *
+ * By default returns the full source document. Pass `{ concise: true }` to
+ * instead return a short, task-appropriate profile built from the registry's
+ * own `expertise`/`recommendationReason` summary fields — no file read, no
+ * risk of altering the source, and typically a few hundred bytes instead of
+ * tens or hundreds of KB. Concise mode is for routine/low-difficulty work;
+ * genuinely complex or capability-sensitive work should still request the
+ * full document so review/build quality is never silently reduced to save
+ * tokens.
  * @param {string} id
  * @param {string} [root]
+ * @param {{concise?: boolean}} [options]
  * @returns {string}
  */
-export function loadSpecialistInstructions(id, root = defaultRoot) {
+export function loadSpecialistInstructions(id, root = defaultRoot, options = {}) {
   const specialist = getSpecialist(id, root);
   if (!specialist) {
     throw new Error(`Specialist '${id}' not found in registry.`);
+  }
+  if (options.concise) {
+    const lines = [`Specialist: ${specialist.name}`, `Expertise: ${specialist.expertise}`];
+    if (specialist.recommendationReason) lines.push(`Apply when relevant: ${specialist.recommendationReason}`);
+    return lines.join('\n');
   }
   if (!fs.existsSync(specialist.sourceFile)) {
     throw new Error(`Source file for specialist '${id}' not found at ${specialist.sourceFile}`);

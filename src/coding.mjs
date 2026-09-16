@@ -745,9 +745,19 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
 
           if (buildSpecialist) {
             try {
-              const specInst = loadSpecialistInstructions(buildSpecialist.id, root);
+              // Load the full specialist document only for genuinely
+              // complex/high-tier work or a security-sensitive specialist,
+              // where the extra depth materially matters. Routine/low-tier
+              // work gets a concise, registry-derived profile instead
+              // (a few hundred bytes vs. tens/hundreds of KB) so specialist
+              // guidance doesn't dominate the prompt for small tasks. This
+              // never reduces required expertise for work that needs it —
+              // only right-sizes it for work that doesn't.
+              const builderTierForSpecialist = task.builderTier || 2;
+              const needsFullSpecialist = builderTierForSpecialist >= 3 || buildSpecialist.priority === 'high' && /security|credential|auth/i.test(buildSpecialist.id);
+              const specInst = loadSpecialistInstructions(buildSpecialist.id, root, { concise: !needsFullSpecialist });
               buildPrompt = `Specialist Expertise Guidance (${buildSpecialist.name}):\n${specInst}\n\n${buildPrompt}`;
-              addActivity('👤', 'Specialist Loaded', `Loaded specialist expertise: ${buildSpecialist.name}`, { category: 'router' });
+              addActivity('👤', 'Specialist Loaded', `Loaded specialist expertise: ${buildSpecialist.name}${needsFullSpecialist ? '' : ' (concise profile)'}`, { category: 'router' });
             } catch (e) {
               log(`Note: Specialist instructions for ${buildSpecialist.id} could not be loaded: ${e.message}`);
             }
@@ -1137,9 +1147,16 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
         let reviewPrompt = `Independently review only this task and its supplied files. Return pass only if there are no substantive issues. Do not use tools and do not introduce requirements from any other task.\nTask ID: ${JSON.stringify(task.id)}\nProject: ${JSON.stringify(task.project)}\nProject root: ${JSON.stringify(task.projectRoot)}\nContext binding: ${JSON.stringify(task.contextHash)}\nRequest: ${JSON.stringify(task.instruction)}\nAcceptance criteria: ${JSON.stringify(task.acceptanceCriteria)}\nBaseline: ${JSON.stringify(relevantBaseline)}\nCurrent code: ${JSON.stringify(files)}\nActual validator results: ${JSON.stringify(tests)}`;
         if (reviewSpecialist) {
           try {
-            const specInst = loadSpecialistInstructions(reviewSpecialist.id, root);
+            // Same right-sizing as the build-side specialist load. Security-
+            // sensitive auditors always get the full document regardless of
+            // tier — review quality on security-relevant work is exactly
+            // what must not be reduced to save tokens.
+            const reviewTierForSpecialist = task.builderTier || 2;
+            const isSecuritySpecialist = /security|credential|auth/i.test(reviewSpecialist.id);
+            const needsFullReviewSpecialist = reviewTierForSpecialist >= 3 || isSecuritySpecialist;
+            const specInst = loadSpecialistInstructions(reviewSpecialist.id, root, { concise: !needsFullReviewSpecialist });
             reviewPrompt = `Independent Review Specialist Guidance (${reviewSpecialist.name}):\n${specInst}\n\n${reviewPrompt}`;
-            addActivity('👤', 'Auditor Loaded', `Loaded audit instructions: ${reviewSpecialist.name}`, { category: 'router' });
+            addActivity('👤', 'Auditor Loaded', `Loaded audit instructions: ${reviewSpecialist.name}${needsFullReviewSpecialist ? '' : ' (concise profile)'}`, { category: 'router' });
           } catch (e) {
             log(`Note: Review specialist instructions for ${reviewSpecialist.id} could not be loaded: ${e.message}`);
           }
