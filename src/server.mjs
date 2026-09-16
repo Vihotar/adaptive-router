@@ -1010,6 +1010,64 @@ export function createDashboardServer(root, options = {}) {
         return sendJson(status);
       }
 
+      // GET /api/office-view - Real multi-task runtime state across ALL
+      // registered projects at once (not just the single active project
+      // /api/status and /api/tasks are scoped to). Handover doc sections
+      // 28-32: Office View must show genuine simultaneous activity across
+      // the technical workforce, never fake or invented activity — so this
+      // reads the SAME activeRunningTasks map and on-disk task state every
+      // other endpoint uses, just aggregated across projects in one call
+      // rather than requiring the dashboard to poll per-project.
+      if (pathname === '/api/office-view' && method === 'GET') {
+        const projects = listRegisteredProjects(root, { includeHidden: false });
+        const RUNNING_WORKER_STATUSES = new Set(['building', 'testing', 'reviewing']);
+        const projectActivity = [];
+        const busyWorkerIds = new Set();
+        for (const project of projects) {
+          let activeTask = null;
+          try { activeTask = getActiveTask(root, project.id); } catch { activeTask = null; }
+          let entry = { projectId: project.id, projectName: project.name, task: null };
+          if (activeTask) {
+            // getActiveTask() returns two different shapes depending on
+            // which path resolved it: the in-memory activeRunningTasks map
+            // path returns the raw task.json (builderWorker/reviewerWorker
+            // fields), while its on-disk fallback (via listRecentTasks, used
+            // right after a restart before the map has repopulated) returns
+            // the dashboard-mapped shape (builder/reviewer fields instead).
+            // Read both so this stays correct regardless of which path a
+            // given call takes.
+            const builderWorker = activeTask.builderWorker || activeTask.builder || null;
+            const reviewerWorker = activeTask.reviewerWorker || activeTask.reviewer || null;
+            const isWorkerRunning = RUNNING_WORKER_STATUSES.has(activeTask.status);
+            const activeWorker = activeTask.status === 'reviewing' ? reviewerWorker : builderWorker;
+            if (isWorkerRunning && activeWorker) busyWorkerIds.add(activeWorker);
+            entry.task = {
+              id: activeTask.id,
+              status: activeTask.status,
+              instruction: (activeTask.instruction || '').slice(0, 200),
+              builderWorker,
+              reviewerWorker,
+              isWorkerRunning,
+              activeWorker: isWorkerRunning ? activeWorker : null,
+              // needs_cto_attention/needs_human_input/awaiting_approval etc:
+              // no worker is actively running, the task is waiting on the
+              // CTO — distinguished so the UI never shows a worker as busy
+              // when it is actually idle waiting for a human decision.
+              waitingOnCto: !isWorkerRunning && ACTIVE_TASK_STATUSES.has(activeTask.status)
+            };
+          }
+          projectActivity.push(entry);
+        }
+        const workerStatus = await getWorkerStatuses(root);
+        return sendJson({
+          projects: projectActivity,
+          workers: workerStatus.workers.map(w => ({
+            ...w,
+            busy: busyWorkerIds.has(w.id)
+          }))
+        });
+      }
+
       // 1a. POST /api/shutdown - Gracefully stop the AR server process.
       // Solves the documented restart-safety gap: AR's Node process has no
       // PID file or distinguishing window title, so guessing which process
