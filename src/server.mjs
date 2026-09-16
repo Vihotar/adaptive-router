@@ -18,6 +18,7 @@ import { getRecentStaffActivity } from './staff-log.mjs';
 import { discoverAntigravityModels, classifyTask } from './smart-router.mjs';
 import { classifySensitivity } from './sensitivity.mjs';
 import { formatTaskFailure } from './failure.mjs';
+import { getAllWorkerHealth } from './worker-health.mjs';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -301,12 +302,21 @@ export async function getWorkerStatuses(root, requestedProject = null) {
       if (running.project !== activeProject.id) visibleRunningTask = null;
     } catch { visibleRunningTask = null; }
   }
+  const workerHealth = getAllWorkerHealth(root);
+  const withHealth = (w) => {
+    const h = workerHealth[w.id];
+    if (h && h.state !== 'healthy') {
+      return { ...w, health: h.state, healthDetail: `${h.failureCount} recent failure(s), last: ${h.lastAt || 'unknown'}` };
+    }
+    return { ...w, health: 'healthy' };
+  };
+
   return {
     workers: [
-      { id: 'codex', name: 'Codex', platform: 'OpenAI / ChatGPT Pro', status: codexStatus, note: codexNote, userEnabled: isUserEnabled('codex') },
-      { id: 'claude-code', name: 'Claude Code', platform: 'Anthropic / Claude Pro', status: claudeStatus, note: claudeNote, isReserve, userEnabled: isUserEnabled('claude-code') },
-      { id: 'antigravity', name: 'Antigravity', platform: 'Google Deepmind', status: antigravityStatus, note: antigravityNote, userEnabled: isUserEnabled('antigravity') },
-      { id: 'cline', name: 'Cline', platform: 'Cline CLI (local)', status: clineStatus, note: clineNote, userEnabled: isUserEnabled('cline') }
+      withHealth({ id: 'codex', name: 'Codex', platform: 'OpenAI / ChatGPT Pro', status: codexStatus, note: codexNote, userEnabled: isUserEnabled('codex') }),
+      withHealth({ id: 'claude-code', name: 'Claude Code', platform: 'Anthropic / Claude Pro', status: claudeStatus, note: claudeNote, isReserve, userEnabled: isUserEnabled('claude-code') }),
+      withHealth({ id: 'antigravity', name: 'Antigravity', platform: 'Google Deepmind', status: antigravityStatus, note: antigravityNote, userEnabled: isUserEnabled('antigravity') }),
+      withHealth({ id: 'cline', name: 'Cline', platform: 'Cline CLI (local)', status: clineStatus, note: clineNote, userEnabled: isUserEnabled('cline') })
     ],
     claudeReserve: isReserve,
     reviewPolicy: config.reviewPolicy || 'independent',

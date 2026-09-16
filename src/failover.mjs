@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { childEnv, invoke } from './workers.mjs';
 import { read, event } from './storage.mjs';
 import { validate } from './contracts.mjs';
+import { recordWorkerOutcome } from './worker-health.mjs';
 import { discoverAntigravityModels } from './smart-router.mjs';
 
 export function workerReady(worker, paths) {
@@ -294,6 +295,7 @@ export async function withFailover({
         });
       }
       validate(result, schema);
+      recordWorkerOutcome(root, worker.id, 'success');
       event(dir, 'worker_completed', {
         worker: worker.id,
         stage,
@@ -333,6 +335,13 @@ export async function withFailover({
       lastFailedModel = selection.model;
       const quota = isQuotaError(error);
       const brokenInstall = isLikelyBrokenInstall(error);
+      // Quota exhaustion is expected/normal usage, not a sign the worker
+      // itself is unreliable — don't let it count toward degraded/cooldown
+      // health. Timeouts and genuine errors (including broken installs) do.
+      if (!quota) {
+        const isTimeout = /timed out/i.test(error.message || '');
+        recordWorkerOutcome(root, worker.id, isTimeout ? 'timeout' : 'failure', error.message);
+      }
       event(dir, 'worker_unavailable', {
         worker: worker.id,
         stage,

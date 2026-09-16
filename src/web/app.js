@@ -1580,6 +1580,25 @@
   // View 3: AI Team — Fleet Cards
   function renderTeamView() {
     const findW = (id) => State.workers.find(w => w.id === id);
+    // Worker health (degraded/cooldown) overrides the normal ACTIVE/AVAILABLE
+    // badge so a worker with recent repeated failures is visibly flagged,
+    // not just silently deprioritized in routing.
+    const applyHealthBadge = (worker, badgeEl) => {
+      if (!worker || !badgeEl || !worker.health || worker.health === 'healthy') return false;
+      if (worker.health === 'cooldown') {
+        badgeEl.textContent = 'COOLDOWN';
+        badgeEl.className = 'badge red';
+        badgeEl.title = worker.healthDetail || 'Temporarily excluded from routing after repeated failures';
+        return true;
+      }
+      if (worker.health === 'degraded') {
+        badgeEl.textContent = 'DEGRADED';
+        badgeEl.className = 'badge amber';
+        badgeEl.title = worker.healthDetail || 'Recent failures; still eligible but deprioritized';
+        return true;
+      }
+      return false;
+    };
 
     // Cline
     const wCline = findW('cline');
@@ -1590,6 +1609,7 @@
       const active = wCline?.userEnabled !== false && wCline?.status === 'Available';
       sCline.textContent = active ? 'ACTIVE (ON)' : (wCline?.userEnabled === false ? 'DISABLED (OFF)' : 'STANDBY');
       sCline.className = `badge ${active ? 'green' : 'gray'}`;
+      applyHealthBadge(wCline, sCline);
     }
 
     // Codex
@@ -1601,6 +1621,7 @@
       const active = wCodex?.userEnabled !== false && wCodex?.status === 'Available';
       sCodex.textContent = active ? 'AVAILABLE (ON)' : (wCodex?.userEnabled === false ? 'DISABLED (OFF)' : 'UNAVAILABLE');
       sCodex.className = `badge ${active ? 'green' : 'gray'}`;
+      applyHealthBadge(wCodex, sCodex);
     }
 
     // Claude Code
@@ -1630,6 +1651,7 @@
       const active = wAntigravity?.userEnabled !== false && wAntigravity?.status === 'Available';
       sAntigravity.textContent = active ? 'ACTIVE (ON)' : (wAntigravity?.userEnabled === false ? 'DISABLED (OFF)' : 'UNAVAILABLE');
       sAntigravity.className = `badge ${active ? 'green' : 'gray'}`;
+      applyHealthBadge(wAntigravity, sAntigravity);
     }
   }
 

@@ -184,6 +184,7 @@ import {
   isModelFamilyIndependent,
   normalizeReasoningEffort
 } from './capability-tiers.mjs';
+import { getWorkerHealthState } from './worker-health.mjs';
 
 export function selectModelAndEffort({
   platform,
@@ -402,6 +403,15 @@ export function rankCandidatesForRole(config, role, {
     .filter(w => {
       if (!w.enabled || !w.roles.includes(role) || excluded.includes(w.id) || failed.has(w.id)) return false;
 
+      // Worker health: a worker with 3+ recent failures/timeouts is in a
+      // temporary cooldown and excluded from selection until the cooldown
+      // window elapses or a success is recorded. This is separate from
+      // workers.json's `enabled` flag (deliberate on/off) and from `failed`
+      // (this-task-only, reset every new task) — cooldown persists across
+      // tasks but is always temporary and never a substitute for actually
+      // disabling a worker.
+      if (getWorkerHealthState(root, w.id).state === 'cooldown') return false;
+
       // When Claude Reserve Mode is ON and Claude use is not authorized,
       // exclude Claude Code from normal silent failover and candidate selection
       if ((w.id === 'claude-code' || w.adapter === 'claude') && claudeReserve && !allowClaude) {
@@ -454,6 +464,14 @@ export function rankCandidatesForRole(config, role, {
         if (aMatch && !bMatch) return -1;
         if (!aMatch && bMatch) return 1;
       }
+
+      // Worker health: rank a degraded worker after healthy alternatives.
+      // Still eligible (unlike cooldown, which excludes outright) — this is
+      // a soft preference, not a hard rule, so a degraded worker is still
+      // used when it's the only qualified candidate.
+      const aDegraded = getWorkerHealthState(root, a.id).state === 'degraded';
+      const bDegraded = getWorkerHealthState(root, b.id).state === 'degraded';
+      if (aDegraded !== bDegraded) return aDegraded ? 1 : -1;
 
       // If review role: Cost protection — sort qualified candidates so lowest sufficient tier / free tier comes first
       if (role === 'review' && typeof builderTier === 'number') {
