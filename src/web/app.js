@@ -554,7 +554,20 @@
     if (pctEl) pctEl.textContent = `${pct}%`;
 
     // Builder Card
-    const builderWorker = t.selectedBuilder || t.builderWorker || t.contributors?.[0] || 'cline';
+    const latestBuildLog = (t.routingLog || []).filter(r => r.role === 'build').pop();
+    const latestReviewLog = (t.routingLog || []).filter(r => r.role === 'review').pop();
+
+    const builderWorker = latestBuildLog?.worker || t.builderWorker || t.selectedBuilder || t.contributors?.[0] || 'cline';
+    const builderModel = latestBuildLog?.model || t.builderModel || t.model || 'gemini-3.5-flash-lite';
+    const builderTier = latestBuildLog?.tierNumber || t.builderTier || 1;
+    const builderTierName = latestBuildLog?.tierName || t.builderTierName || 'Lightweight';
+
+    const reviewerWorker = latestReviewLog?.worker || t.reviewerWorker || t.selectedReviewer || t.reviewer || 'antigravity';
+    const reviewerModel = latestReviewLog?.model || t.reviewerModel || 'gemini-3.8-flash-medium';
+    const reviewerTier = latestReviewLog?.tierNumber || t.reviewerTier || 2;
+    const reviewerTierName = latestReviewLog?.tierName || t.reviewerTierName || 'Standard';
+
+    const isHighTier = (builderTier >= 3) || String(builderTierName).toLowerCase().includes('advanced') || String(builderTierName).toLowerCase().includes('expert') || String(builderTierName).toLowerCase().includes('frontier');
     const builderAvatar = document.getElementById('builder-avatar');
     if (builderAvatar) {
       builderAvatar.textContent = getWorkerAvatarLetter(builderWorker);
@@ -569,10 +582,10 @@
     }
 
     const bRole = document.getElementById('builder-role');
-    if (bRole) bRole.textContent = builderWorker === 'cline' ? 'Economical Builder' : 'Lead Builder';
+    if (bRole) bRole.textContent = isHighTier ? 'Lead Builder' : 'Economical Builder';
 
     const bModel = document.getElementById('builder-model');
-    if (bModel) bModel.textContent = t.builderModel || t.model || 'gemini-3.5-flash-lite';
+    if (bModel) bModel.textContent = builderModel;
 
     const bEffort = document.getElementById('builder-effort');
     if (bEffort) bEffort.textContent = (t.builderEffort || 'medium').toUpperCase();
@@ -593,7 +606,6 @@
     if (bSpec) bSpec.textContent = t.specialistName || 'Workflow Architect';
 
     // Reviewer Card
-    const reviewerWorker = t.selectedReviewer || t.reviewerWorker || t.reviewer || 'antigravity';
     const reviewerAvatar = document.getElementById('reviewer-avatar');
     if (reviewerAvatar) {
       reviewerAvatar.textContent = getWorkerAvatarLetter(reviewerWorker);
@@ -616,10 +628,10 @@
     }
 
     const rModel = document.getElementById('reviewer-model');
-    if (rModel) rModel.textContent = t.reviewerModel || 'gemini-3.8-flash-medium';
+    if (rModel) rModel.textContent = reviewerModel;
 
     const rEffort = document.getElementById('reviewer-effort');
-    if (rEffort) rEffort.textContent = (t.reviewerEffort || 'medium').toUpperCase();
+    if (rEffort) rEffort.textContent = (latestReviewLog?.effort || t.reviewerEffort || 'medium').toUpperCase();
 
     const rVerdict = document.getElementById('reviewer-verdict');
     if (rVerdict) {
@@ -642,8 +654,10 @@
       const p1 = `Task classified as ${diff} difficulty (${taskType}) with low risk profile.`;
 
       const bWorkerName = formatWorkerName(builderWorker);
-      const bModelName = t.builderModel || t.model || 'Gemini 3.5 Flash Lite';
-      const p2 = `${bWorkerName} (${bModelName}) selected for economical, fast drafting.`;
+      const bModelName = builderModel;
+      const p2 = isHighTier
+        ? `${bWorkerName} (${bModelName}) escalated to advanced capability for this revision.`
+        : `${bWorkerName} (${bModelName}) selected for economical, fast drafting.`;
 
       const rWorkerName = formatWorkerName(reviewerWorker);
       const rModelName = t.reviewerModel || 'Gemini 3.8 Flash';
@@ -1000,7 +1014,7 @@
               <span class="badge green">Review Verdict: PASS (Verified Clean)</span>
             </div>
             <p style="color: #334155; margin-bottom: 0.35rem;"><strong>Instruction:</strong> ${escapeHtml(t.instruction || t.id)}</p>
-            <p style="color: #334155; margin-bottom: 0.35rem;"><strong>Builder:</strong> ${escapeHtml(formatWorkerName(t.selectedBuilder || 'cline'))} • <strong>Auditor:</strong> ${escapeHtml(formatWorkerName(t.selectedReviewer || 'antigravity'))} (✓ Approved)</p>
+            <p style="color: #334155; margin-bottom: 0.35rem;"><strong>Builder:</strong> ${escapeHtml(formatWorkerName(builderWorker))} • <strong>Auditor:</strong> ${escapeHtml(formatWorkerName(reviewerWorker))} (✓ Approved)</p>
             <p style="color: #64748b; font-family: var(--font-mono); font-size: 0.78rem;">Digest: ${escapeHtml(t.digest || t.baselineDigest || '033972cd67...')}</p>
           </div>
 
