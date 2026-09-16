@@ -35,7 +35,15 @@ function startTestServer(root) {
   });
 }
 
-test('Dashboard: serves static UI files index.html, styles.css, app.js with HTTP 200', async () => {
+test('Dashboard: serves static UI files index.html, prototype.css, app.js with HTTP 200', async () => {
+  // Note: the production dashboard's live stylesheet is src/web/prototype.css
+  // (index.html links it directly) -- src/web/styles.css was a dead,
+  // unreferenced leftover from an earlier prototype iteration and has been
+  // removed as part of the production UI cleanup. This is unrelated to the
+  // per-task-deliverable 'styles.css' filename used elsewhere (coding.mjs's
+  // fixed 3-file browser-project contract, fixtures/test-site) -- that is a
+  // different, still-live concept: the generic filename AR's own generated
+  // web deliverables are built with, not the dashboard's own asset.
   const root = fixture();
   const testServer = await startTestServer(root);
 
@@ -45,9 +53,9 @@ test('Dashboard: serves static UI files index.html, styles.css, app.js with HTTP
     assert.ok(htmlRes.headers.get('content-type').includes('text/html'));
     const htmlText = await htmlRes.text();
     assert.ok(htmlText.includes('Adaptive Router'));
-    assert.ok(htmlText.includes('Claude Reserve Mode'));
+    assert.ok(htmlText.includes('Claude Reserve'));
 
-    const cssRes = await fetch(`${testServer.url}/styles.css`);
+    const cssRes = await fetch(`${testServer.url}/prototype.css`);
     assert.equal(cssRes.status, 200);
     assert.ok(cssRes.headers.get('content-type').includes('text/css'));
 
