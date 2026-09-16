@@ -123,7 +123,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       }
       const resumableStatuses = ['waiting_for_worker', 'waiting_for_reviewer', 'needs_human_input', 'awaiting_approval', 'awaiting_plan_approval', 'paused_by_user'];
       // A task paused at needs_cto_attention is only resumable in the one
-      // case the CEO explicitly overrode the sensitivity gate on it (see
+      // case the CTO explicitly overrode the sensitivity gate on it (see
       // server.mjs's resume handler, which sets sensitiveOverridden before
       // calling here) — never generally, since this status exists solely
       // for that gate today and resuming it any other way would bypass the
@@ -228,7 +228,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       });
     };
     if (signal?.aborted) {
-      addActivity('⏹', 'Task Stopped', 'The CEO stopped this task.', { category: 'decision', eventType: 'completion', role: 'router' });
+      addActivity('⏹', 'Task Stopped', 'The CTO stopped this task.', { category: 'decision', eventType: 'completion', role: 'router' });
       state(dir, task, 'cancelled_by_user', { error: null, stoppedByUser: true });
       return task;
     }
@@ -255,7 +255,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       }
     }
 
-    // Sensitive-task hard stop (CEO-approved boundary): credentials, account
+    // Sensitive-task hard stop (CTO-approved boundary): credentials, account
     // access, payment processing, and system-level commands never reach a
     // worker model — not Codex, not Claude Code, not Antigravity, not
     // Cline. This check runs before classifyTask()/candidate selection
@@ -268,7 +268,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
     // reviewing why it was flagged (this is common with false positives —
     // e.g. an instruction that says "this does NOT involve credentials"
     // still contains the word "credentials" and trips the keyword scan).
-    // task.sensitiveOverridden is only ever set by the CEO clicking that
+    // task.sensitiveOverridden is only ever set by the CTO clicking that
     // button (wired in server.mjs's resume handler) — a worker or the
     // instruction text itself can never set it. This override does NOT
     // apply to the separate containsLikelySecret() check further below,
@@ -290,7 +290,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
           // Explicit options so the dashboard renders buttons specific to
           // this decision instead of falling back to the generic "Preserve
           // Claude / Use Claude" resume buttons, which would offer to send
-          // this task to a worker without the CEO having reviewed *why* it
+          // this task to a worker without the CTO having reviewed *why* it
           // was flagged first. Handled client-side only; see app.js.
           options: [
             { id: 'acknowledge_sensitive', label: 'Continue with Claude (CTO)', recommended: true },
@@ -302,12 +302,12 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       return task;
     }
     if (sensitivity.sensitive && task.sensitiveOverridden) {
-      addActivity('🔓', 'Sensitive-Task Warning Overridden', 'The CEO reviewed and manually overrode the sensitive-task advisory warning.', { category: 'decision', eventType: 'routing' });
+      addActivity('🔓', 'Sensitive-Task Warning Overridden', 'The CTO reviewed and manually overrode the sensitive-task advisory warning.', { category: 'decision', eventType: 'routing' });
       publishEvent({
         eventType: 'SENSITIVITY_OVERRIDE_BY_USER',
         role: 'router',
         title: 'Sensitive-Task Warning Overridden',
-        detail: 'The CEO reviewed and manually overrode the sensitive-task advisory warning.',
+        detail: 'The CTO reviewed and manually overrode the sensitive-task advisory warning.',
         taskId: task.id,
         category: 'credentials_or_access',
         rule: 'advisory_override',
@@ -316,7 +316,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
         overrideAction: 'continue_with_worker',
         timestamp: new Date().toISOString()
       });
-      log(`Task ${task.id} sensitivity warning overridden by CEO — proceeding to worker selection.`);
+      log(`Task ${task.id} sensitivity warning overridden by CTO — proceeding to worker selection.`);
     }
 
     log(`Coding task ${task.id}`);
@@ -345,7 +345,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
             approved = await confirmClaudeUse('Claude Code would be useful for this task. Use Claude quota? (Yes / No)');
           } catch (error) {
             if (error.message === 'TASK_STOPPED') {
-              addActivity('⏹', 'Task Stopped', 'The CEO stopped this task during the Claude quota request.', { category: 'decision', eventType: 'completion', role: 'router' });
+              addActivity('⏹', 'Task Stopped', 'The CTO stopped this task during the Claude quota request.', { category: 'decision', eventType: 'completion', role: 'router' });
               state(dir, task, 'cancelled', { stoppedByUser: true });
               return task;
             }
@@ -703,7 +703,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
           // someone pastes a live key into an otherwise ordinary task, or a
           // prior worker's feedback/snapshot happens to carry one), refuse to
           // send anything that looks like a real secret to any worker model
-          // unless explicitly overridden by the CEO.
+          // unless explicitly overridden by the CTO.
           if (containsLikelySecret(buildPrompt) && !task.sensitiveOverridden) {
             addActivity('🔒', 'Blocked — Possible Credential Detected', 'A value that looks like a real API key, token, or private key was found in this task\'s content. Adaptive Router refuses to send this to any worker model. Routed to Claude (CTO) instead.', { category: 'decision', eventType: 'routing' });
             state(dir, task, 'needs_cto_attention', {
@@ -1087,7 +1087,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
               { id: 'stop_task', label: 'Stop Task', recommended: false }
             ]
           };
-          addActivity('⚠️', 'Review Pending — Reviewer Required', `Builder tier is Tier ${bTier}. Completed build is safely saved. Waiting for CEO/CTO to enable a reviewer.`, { category: 'decision' });
+          addActivity('⚠️', 'Review Pending — Reviewer Required', `Builder tier is Tier ${bTier}. Completed build is safely saved. Waiting for CTO to enable a reviewer.`, { category: 'decision' });
           state(dir, task, 'waiting_for_reviewer', {
             builderTier: bTier,
             builderModel: bModel,
@@ -1198,7 +1198,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
               { id: 'stop_task', label: 'Stop Task', recommended: false }
             ]
           };
-          addActivity('⚠️', 'Review Failed — Action Required', `Reviewer error: ${error.message}. Completed build is safely saved. Waiting for CEO/CTO to enable a reviewer.`, { category: 'decision' });
+          addActivity('⚠️', 'Review Failed — Action Required', `Reviewer error: ${error.message}. Completed build is safely saved. Waiting for CTO to enable a reviewer.`, { category: 'decision' });
           state(dir, task, 'waiting_for_reviewer', { decisionRequired: task.decisionRequired, error: null });
           return task;
         }
@@ -1377,7 +1377,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       }
       const latestReview = feedback?.independentReview;
       const rejectReason = latestReview?.summary ? latestReview.summary.split('\n')[0].slice(0, 180) : (latestReview?.issues?.[0] || 'Quality requirements not satisfied');
-      const correctionDesc = `Correction limit reached.\nBuilder attempted ${task.revision} revisions.\nReviewer rejected the latest draft because: ${rejectReason}\nCEO/CTO decision required.`;
+      const correctionDesc = `Correction limit reached.\nBuilder attempted ${task.revision} revisions.\nReviewer rejected the latest draft because: ${rejectReason}\nCTO decision required.`;
       task.decisionRequired = {
         type: 'correction_limit',
         title: 'Decision Required',
@@ -1393,7 +1393,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       state(dir, task, 'needs_human_input', { note: 'Correction limit reached', feedback });
     } catch (error) {
       if (error.message === 'TASK_STOPPED' || error.message === 'TASK_ABORTED_BY_USER' || error.message?.includes('aborted by user') || signal?.aborted) {
-        addActivity('⏹', 'Task Stopped', 'The CEO stopped this task.', { category: 'decision', eventType: 'completion', role: 'router' });
+        addActivity('⏹', 'Task Stopped', 'The CTO stopped this task.', { category: 'decision', eventType: 'completion', role: 'router' });
         state(dir, task, 'cancelled_by_user', { error: null, stoppedByUser: true });
       } else if (error.message === 'TASK_PAUSED_BY_USER') {
         const fresh = read(path.join(dir, 'task.json'));

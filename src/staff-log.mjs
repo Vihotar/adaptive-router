@@ -6,7 +6,7 @@
 // a push notification — Claude reads it at the start of a session, or on
 // request, the same way a manager might skim a daily report.
 //
-// Business rule this supports: the CEO wants the CTO to know what staff
+// Business rule this supports: the CTO wants to know what staff
 // models are doing without having to babysit the dashboard personally.
 import fs from 'node:fs';
 import path from 'node:path';

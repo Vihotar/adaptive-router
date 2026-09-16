@@ -132,7 +132,7 @@ test('Builder + Reviewer Pre-Selection Suite', async (t) => {
     assert.ok(task.decisionRequired, 'Decision required card must be set');
   });
 
-  await t.test('3. AR asks CEO/CTO to enable a qualified reviewer with exact qualifying list and options', async () => {
+  await t.test('3. AR asks CTO to enable a qualified reviewer with exact qualifying list and options', async () => {
     const root = createTestFixture(baseWorkersConfig);
 
     const task = await codeTask(root, 'Add a contact form to the test website', {
@@ -182,7 +182,7 @@ test('Builder + Reviewer Pre-Selection Suite', async (t) => {
     assert.equal(buildAttempts, 0);
     assert.equal(task1.status, 'waiting_for_reviewer');
 
-    // Step B: CEO enables Antigravity in workers.json
+    // Step B: CTO enables Antigravity in workers.json
     const configPath = path.join(root, 'workers.json');
     const cfg = read(configPath);
     cfg.workers.find(w => w.id === 'antigravity').enabled = true;

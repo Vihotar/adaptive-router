@@ -1450,7 +1450,7 @@ input:checked + .slider:before {
   word-break: break-all;
 }
 
-/* Task Progress View (CEO-Friendly Business Progress) */
+/* Task Progress View (CTO-Friendly Business Progress) */
 .tp-header {
   display: flex;
   justify-content: space-between;
@@ -2844,7 +2844,7 @@ input:checked + .slider:before {
   scroll-behavior: smooth;
 }
 
-/* CEO message bubble */
+/* CTO message bubble */
 .planning-bubble-user {
   align-self: flex-end;
   max-width: 78%;

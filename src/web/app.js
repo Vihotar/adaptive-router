@@ -516,7 +516,7 @@
 
     const nextStepVal = document.getElementById('task-next-step-value');
     if (nextStepVal) {
-      if (t.status === 'awaiting_approval') nextStepVal.textContent = 'CEO Approval Required (Stage B)';
+      if (t.status === 'awaiting_approval') nextStepVal.textContent = 'CTO Approval Required (Stage B)';
       else if (t.status === 'needs_human_input') nextStepVal.textContent = 'Action Permission Needed';
       else if (t.status === 'building' || t.status === 'running') nextStepVal.textContent = 'Autonomous Build Phase';
       else if (t.status === 'reviewing' || t.status === 'testing') nextStepVal.textContent = 'Independent Review Phase';
@@ -990,7 +990,7 @@
             <div class="dialog-icon">🛡️</div>
             <div class="dialog-title-wrap">
               <h3>Stage B Deliverable Approval Required</h3>
-              <p>Independent review passed. The draft is waiting for CEO approval before applying to project root.</p>
+              <p>Independent review passed. The draft is waiting for CTO approval before applying to project root.</p>
             </div>
           </div>
 
@@ -1076,23 +1076,23 @@
       if (btnStopPerm) btnStopPerm.addEventListener('click', () => stopTask(t.id));
 
     } else if (t.status === 'needs_cto_attention') {
-      if (subtext) subtext.textContent = 'CEO Sensitivity Override Required';
+      if (subtext) subtext.textContent = 'CTO Sensitivity Override Required';
       container.innerHTML = `
         <div class="decision-dialog-card dialog-sensitivity">
           <div class="dialog-header">
             <div class="dialog-icon">🔒</div>
             <div class="dialog-title-wrap">
-              <h3>CEO Sensitivity Override Required</h3>
+              <h3>CTO Sensitivity Override Required</h3>
               <p>Sensitive keywords detected in task instruction. Task held for Stage A authorization.</p>
             </div>
           </div>
           <div class="dialog-details-box">
             <p style="color: #9a3412;">Instruction: <strong>${escapeHtml(t.instruction || t.id)}</strong></p>
-            <p style="color: #9a3412; margin-top: 0.3rem;">Adaptive Router automatically paused this task. To proceed without modification, explicit CEO override authorization is required.</p>
+            <p style="color: #9a3412; margin-top: 0.3rem;">Adaptive Router automatically paused this task. To proceed without modification, explicit CTO override authorization is required.</p>
           </div>
           <div class="dialog-actions-row">
             <div class="dialog-btn-group">
-              <button type="button" class="btn btn-warning" id="btn-action-override">Authorize CEO Override</button>
+              <button type="button" class="btn btn-warning" id="btn-action-override">Authorize CTO Override</button>
             </div>
             <div class="dialog-btn-group">
               <button type="button" class="btn btn-danger-outline" id="btn-action-stop-sens">Cancel Task</button>
@@ -1185,7 +1185,7 @@
       const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/decide`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision, reason: `Approved by CEO from production dashboard` })
+        body: JSON.stringify({ decision, reason: `Approved by CTO from production dashboard` })
       });
       const data = await res.json();
       if (res.ok) {
@@ -1567,7 +1567,7 @@
 
     const sStep = document.getElementById('prog-strip-step');
     if (sStep) {
-      if (t.status === 'awaiting_approval') sStep.textContent = 'Waiting for CEO Approval';
+      if (t.status === 'awaiting_approval') sStep.textContent = 'Waiting for CTO Approval';
       else if (t.status === 'completed' || t.status === 'approved') sStep.textContent = 'Completed & Delivered';
       else sStep.textContent = (t.status || 'Active').replace(/_/g, ' ');
     }

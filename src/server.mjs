@@ -101,7 +101,7 @@ function persistRouterActivity(root, taskId, icon, title, desc, category = 'rout
 // this so a rate limit or a transient hiccup doesn't just sit there needing
 // a manual click. At most 3 auto-retries per task, with a growing wait
 // between them (30 sec, then 1 min, then 2 min), then it stops and leaves
-// the normal manual "Retry Now" button for the CEO — this caps how much
+// the normal manual "Retry Now" button for the CTO — this caps how much
 // paid-worker quota a single broken/expensive task can burn on its own
 // before a human looks at it. A task that resolves itself (any status
 // other than the two stall states, including it being manually retried or
@@ -1178,6 +1178,25 @@ export function createDashboardServer(root, options = {}) {
             });
           } catch (err) {
             console.error('Task background error:', err.message);
+            const finishedTaskId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : null;
+            if (finishedTaskId) {
+              try {
+                const dir = taskDir(root, finishedTaskId);
+                const task = read(path.join(dir, 'task.json'));
+                task.status = 'failed';
+                task.failure = {
+                  reason: err.message || 'Task execution failed.',
+                  technicalError: err.stack || err.message,
+                  stage: 'background'
+                };
+                persistRouterActivity(root, finishedTaskId, '❌', 'Task Failed', err.message || 'Task execution failed.', 'error');
+                json(path.join(dir, 'task.json'), task);
+                event(dir, 'failed', task.failure);
+                broadcastTaskEvent(finishedTaskId, { type: 'status', status: 'failed' });
+              } catch (e) {
+                console.error('Failed to persist task failure state:', e.message);
+              }
+            }
           } finally {
             const finishedTaskId = activeRunningTask && activeRunningTask !== 'running' ? activeRunningTask : null;
             if (finishedTaskId) activeTaskAbortControllers.delete(finishedTaskId);
@@ -1436,7 +1455,7 @@ export function createDashboardServer(root, options = {}) {
           json(taskPath, t);
         }
 
-        // The CEO explicitly reviewed a "sensitive task" warning and chose to
+        // The CTO explicitly reviewed a "sensitive task" warning and chose to
         // send it to a worker anyway. Persist this to the task file itself —
         // codeTask() re-reads task.json fresh on resume, so this flag has to
         // be on disk, not just in this request's memory, for the sensitivity
@@ -1449,7 +1468,7 @@ export function createDashboardServer(root, options = {}) {
             time: new Date().toISOString(),
             icon: '🔓',
             title: 'Sensitive-Task Warning Overridden',
-            desc: 'The CEO reviewed and manually overrode the sensitive-task advisory warning.',
+            desc: 'The CTO reviewed and manually overrode the sensitive-task advisory warning.',
             category: 'decision',
             eventType: 'SENSITIVITY_OVERRIDE_BY_USER'
           };
@@ -1461,7 +1480,7 @@ export function createDashboardServer(root, options = {}) {
             eventType: 'SENSITIVITY_OVERRIDE_BY_USER',
             role: 'router',
             title: 'Sensitive-Task Warning Overridden',
-            detail: 'The CEO reviewed and manually overrode the sensitive-task advisory warning.',
+            detail: 'The CTO reviewed and manually overrode the sensitive-task advisory warning.',
             taskId,
             category: 'credentials_or_access',
             rule: 'advisory_override',

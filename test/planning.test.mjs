@@ -4,7 +4,7 @@
  * Verifies:
  *   1. getPlanningState returns default state when no file exists
  *   2. savePlanningState persists correctly
- *   3. sendPlanningMessage appends CEO message, handles AI, appends reply
+ *   3. sendPlanningMessage appends CTO message, handles AI, appends reply
  *   4. No project files are touched during planning
  *   5. proposedPlan is extracted when marker is present in reply
  *   6. resetPlanningState clears the conversation
@@ -88,9 +88,9 @@ describe('Planning State Management', () => {
 });
 
 describe('No Execution Workers in Planning', () => {
-  test('sendPlanningMessage appends CEO message to history before API call', async () => {
+  test('sendPlanningMessage appends CTO message to history before API call', async () => {
     // If Planning AI is unreachable, sendPlanningMessage should throw a "Planning AI unavailable" error.
-    // We verify the CEO message IS appended to state before the failure, so it's visible in the feed.
+    // We verify the CTO message IS appended to state before the failure, so it's visible in the feed.
     // To avoid network calls in tests, we stub the state and verify behavior.
 
     // Pre-populate state
@@ -108,10 +108,10 @@ describe('No Execution Workers in Planning', () => {
     } catch (err) {
       // If planning AI is not running, verify error is about the planning AI, not an execution worker
       assert.match(err.message, /Planning AI unavailable/i, 'Should throw Planning AI error, not worker error');
-      // Verify the CEO message WAS appended to state before the failure
+      // Verify the CTO message WAS appended to state before the failure
       const state = getPlanningState(tmpRoot, project);
       const userMsg = state.messages.find(m => m.role === 'user');
-      assert.ok(userMsg, 'CEO message should be appended to state even when API fails');
+      assert.ok(userMsg, 'CTO message should be appended to state even when API fails');
       assert.equal(userMsg.content, 'Test message');
     }
   });

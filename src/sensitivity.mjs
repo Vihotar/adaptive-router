@@ -1,12 +1,12 @@
 // Sensitive-task detection and credential-leak guarding.
 //
-// Business rule (set by the CEO): tasks that touch credentials, API keys,
+// Business rule (set by the CTO): tasks that touch credentials, API keys,
 // account access, payment processing, or system-level commands must never
 // be handed to any Adaptive Router worker model (Codex, Claude Code,
 // Antigravity, or Cline). Those tasks come to Claude (acting as CTO)
 // directly instead. Customer data and payment DETAILS (e.g. "email the
 // customer's shipping address to fulfillment", "record this order total")
-// are explicitly NOT considered sensitive by the CEO and may flow to
+// are explicitly NOT considered sensitive by the CTO and may flow to
 // worker models normally — only the credential/access/system-command
 // surface is blocked here.
 //
@@ -30,7 +30,7 @@ const SENSITIVE_PATTERNS = [
   /\b(cloudflare|hostinger)\b.*\b(account|token|api|dns|zone|dashboard|login)\b/i,
   /\b(two[\s_-]?factor|2fa|mfa|otp|recovery\s+code)\b/i,
   // Payment processing (processing/moving money — NOT customer payment
-  // details/records, which the CEO said are fine for workers to see)
+  // details/records, which the CTO said are fine for workers to see)
   /\b(charge|refund|payout|withdraw|transfer\s+funds|process\s+a?\s*payment|stripe\s+(api|secret|charge)|paypal\s+api)\b/i,
   // System-level commands / infra access
   /\b(ssh\s+into|remote\s+desktop|rdp\s+into|sudo\s|run\s+as\s+admin|elevate\s+privileges?)\b/i,

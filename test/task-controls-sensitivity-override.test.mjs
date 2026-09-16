@@ -46,7 +46,7 @@ const dummyFiles = [
   { path: 'app.js', content: 'console.log("ok");' }
 ];
 
-describe('Task Controls and CEO/CTO Sensitivity Override', () => {
+describe('Task Controls and CTO Sensitivity Override', () => {
   // Scenario 1: Sensitive keyword task enters warning state (needs_cto_attention)
   test('Scenario 1: Sensitive keyword task enters warning state (needs_cto_attention)', async () => {
     const root = fixture();

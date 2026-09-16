@@ -2,7 +2,7 @@
   "workers": [
     {
       "id": "codex",
-      "enabled": false,
+      "enabled": true,
       "roles": [
         "plan",
         "build",
