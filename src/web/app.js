@@ -22,7 +22,9 @@
     eventSource: null,
     pollTimer: null,
     ctoAttentionItems: [],
-    ctoAttentionFilter: ''
+    ctoAttentionFilter: '',
+    officeProjects: [],
+    officeWorkers: []
   };
 
   // Toast Notification System
@@ -164,6 +166,8 @@
       renderTechnicalLogsView();
     } else if (viewName === 'cto-inbox') {
       fetchCtoAttention();
+    } else if (viewName === 'office') {
+      fetchOfficeView();
     }
   }
 
@@ -288,6 +292,249 @@
         renderCtoInboxList();
       });
     });
+  }
+
+  // Office View — real multi-project runtime state, visualized as a set of
+  // worker desks plus per-project activity cards. Reads GET /api/office-view,
+  // which is the single source of truth for "is a worker genuinely running
+  // right now" (never invented/faked activity — see server.mjs comments on
+  // that endpoint). Only fetched when the Office View is the active tab, or
+  // on the shared 3s poll while it stays the active tab, matching the same
+  // "don't burn quota" pattern as the CTO Inbox badge.
+  async function fetchOfficeView() {
+    try {
+      const res = await fetch('/api/office-view');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      State.officeProjects = Array.isArray(data.projects) ? data.projects : [];
+      State.officeWorkers = Array.isArray(data.workers) ? data.workers : [];
+      renderOfficeFloor();
+      renderOfficeProjects();
+    } catch (err) {
+      console.warn('Error fetching /api/office-view:', err);
+    }
+  }
+
+  function officeWorkerCurrentTask(workerId) {
+    // A worker desk shows the task it is actively executing right now —
+    // find the project entry (if any) whose activeWorker is this worker.
+    for (const p of State.officeProjects) {
+      if (p.task && p.task.isWorkerRunning && p.task.activeWorker === workerId) {
+        return { project: p, task: p.task };
+      }
+    }
+    return null;
+  }
+
+  function renderOfficeFloor() {
+    const floor = document.getElementById('office-floor');
+    if (!floor) return;
+    if (State.officeWorkers.length === 0) {
+      floor.innerHTML = '<div class="office-empty">No workers configured.</div>';
+      return;
+    }
+    floor.innerHTML = State.officeWorkers.map(w => {
+      const busy = !!w.busy;
+      const current = busy ? officeWorkerCurrentTask(w.id) : null;
+      const avatarClass = getWorkerAvatarClass(w.id);
+      const avatarLetter = getWorkerAvatarLetter(w.id);
+      const name = formatWorkerName(w.id);
+      // Worker objects here come straight from getWorkerStatuses() (see
+      // server.mjs): userEnabled is the CTO's own on/off toggle, status is
+      // the platform's live reachability ('Available'/'Unavailable'/
+      // 'Reserved'). A desk is only ever shown running when both hold and
+      // office-view.js's busy flag (backed by a real activeRunningTasks
+      // entry) says so — never invented from just one of these.
+      const enabled = w.userEnabled !== false;
+      const reachable = w.status === 'Available' || w.status === 'Reserved';
+      let deskStateLabel, deskStateClass;
+      if (!enabled) {
+        deskStateLabel = 'Disabled';
+        deskStateClass = 'off';
+      } else if (!reachable) {
+        deskStateLabel = w.status || 'Unavailable';
+        deskStateClass = 'off';
+      } else if (busy) {
+        deskStateLabel = current?.task?.status === 'reviewing' ? 'Reviewing' : 'Building';
+        deskStateClass = 'busy';
+      } else {
+        deskStateLabel = 'Idle';
+        deskStateClass = 'idle';
+      }
+      return `
+        <div class="office-desk office-desk-${deskStateClass}" data-worker-id="${escapeHtml(w.id)}" role="button" tabindex="0">
+          <div class="office-desk-monitor">
+            <div class="office-desk-avatar ai-avatar ${avatarClass}">${avatarLetter}</div>
+            ${busy ? '<span class="office-desk-activity-dot"></span>' : ''}
+          </div>
+          <div class="office-desk-nameplate">
+            <span class="office-desk-name">${escapeHtml(name)}</span>
+            <span class="office-desk-state office-desk-state-${deskStateClass}">${escapeHtml(deskStateLabel)}</span>
+          </div>
+          ${current ? `<div class="office-desk-task">${escapeHtml((current.task.instruction || '').slice(0, 60))}${(current.task.instruction || '').length > 60 ? '…' : ''}</div>` : ''}
+          ${current ? `<div class="office-desk-project">on ${escapeHtml(current.project.projectName)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    floor.querySelectorAll('.office-desk').forEach(desk => {
+      const open = () => openOfficeWorkerModal(desk.getAttribute('data-worker-id'));
+      desk.addEventListener('click', open);
+      desk.addEventListener('keypress', (e) => { if (e.key === 'Enter' || e.key === ' ') open(); });
+    });
+  }
+
+  function renderOfficeProjects() {
+    const grid = document.getElementById('office-projects-grid');
+    if (!grid) return;
+    if (State.officeProjects.length === 0) {
+      grid.innerHTML = '<div class="office-empty">No registered projects yet.</div>';
+      return;
+    }
+    grid.innerHTML = State.officeProjects.map(p => {
+      if (!p.task) {
+        return `
+          <div class="office-project-card office-project-idle">
+            <div class="office-project-header">
+              <span class="office-project-name">${escapeHtml(p.projectName)}</span>
+              <span class="badge gray">Idle</span>
+            </div>
+            <div class="office-project-empty">No active task</div>
+          </div>
+        `;
+      }
+      const t = p.task;
+      if (t.isWorkerRunning) {
+        const badge = formatStatusBadge(t.status);
+        return `
+          <div class="office-project-card office-project-active">
+            <div class="office-project-header">
+              <span class="office-project-name">${escapeHtml(p.projectName)}</span>
+              <span class="badge ${badge.cls}">${escapeHtml(badge.label)}</span>
+            </div>
+            <div class="office-project-instruction">${escapeHtml(t.instruction || '')}</div>
+            <div class="office-project-worker-row">
+              <span class="office-project-worker-label">Active:</span>
+              <span class="office-project-worker-name">${escapeHtml(formatWorkerName(t.activeWorker))}</span>
+              <span class="office-desk-activity-dot office-desk-activity-dot-inline"></span>
+            </div>
+          </div>
+        `;
+      }
+      if (t.waitingOnCto) {
+        return `
+          <div class="office-project-card office-project-attention">
+            <div class="office-project-attention-banner">⚠ CTO ATTENTION REQUIRED</div>
+            <div class="office-project-header">
+              <span class="office-project-name">${escapeHtml(p.projectName)}</span>
+            </div>
+            <div class="office-project-attention-row"><strong>Task:</strong> ${escapeHtml((t.instruction || '').slice(0, 120))}</div>
+            <div class="office-project-attention-row"><strong>Status:</strong> ${escapeHtml((t.status || '').replace(/_/g, ' '))}</div>
+            <div class="office-project-attention-row"><strong>Action:</strong> Review in CTO Inbox</div>
+            <button type="button" class="btn btn-secondary office-project-goto-inbox">View CTO Inbox</button>
+          </div>
+        `;
+      }
+      // Any other non-running, non-waiting active status (e.g. waiting_for_worker) —
+      // show it plainly without implying a worker is busy.
+      const badge = formatStatusBadge(t.status);
+      return `
+        <div class="office-project-card office-project-idle">
+          <div class="office-project-header">
+            <span class="office-project-name">${escapeHtml(p.projectName)}</span>
+            <span class="badge ${badge.cls}">${escapeHtml(badge.label)}</span>
+          </div>
+          <div class="office-project-instruction">${escapeHtml((t.instruction || '').slice(0, 120))}</div>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.office-project-goto-inbox').forEach(btn => {
+      btn.addEventListener('click', () => switchView('cto-inbox'));
+    });
+  }
+
+  function openOfficeWorkerModal(workerId) {
+    const worker = State.officeWorkers.find(w => w.id === workerId);
+    if (!worker) return;
+    const busy = !!worker.busy;
+    const current = busy ? officeWorkerCurrentTask(workerId) : null;
+    const avatarClass = getWorkerAvatarClass(workerId);
+    const avatarLetter = getWorkerAvatarLetter(workerId);
+    const name = formatWorkerName(workerId);
+    const enabled = worker.userEnabled !== false;
+    const reachable = worker.status === 'Available' || worker.status === 'Reserved';
+
+    const body = document.getElementById('office-worker-modal-body');
+    if (!body) return;
+    body.innerHTML = `
+      <div class="ai-role-title-group" style="margin-bottom: 1rem;">
+        <div class="ai-avatar ${avatarClass}">${avatarLetter}</div>
+        <div>
+          <h3 class="ai-name">${escapeHtml(name)}</h3>
+          <span class="ai-platform">${escapeHtml(worker.platform || '')}</span>
+        </div>
+      </div>
+      <div class="team-stat-row">
+        <span class="team-stat-k">CTO Toggle</span>
+        <span class="badge ${enabled ? 'green' : 'gray'}">${enabled ? 'Enabled' : 'Disabled'}</span>
+      </div>
+      <div class="team-stat-row">
+        <span class="team-stat-k">Platform Status</span>
+        <span class="badge ${reachable ? 'green' : 'gray'}">${escapeHtml(worker.status || 'Unknown')}</span>
+      </div>
+      <div class="team-stat-row">
+        <span class="team-stat-k">Current Role</span>
+        <span class="team-stat-v">${busy ? (current?.task?.status === 'reviewing' ? 'Reviewer' : 'Builder') : 'Idle / Standby'}</span>
+      </div>
+      <div class="team-stat-row">
+        <span class="team-stat-k">Note</span>
+        <span class="team-stat-v">${escapeHtml(worker.note || '')}</span>
+      </div>
+      ${worker.health && worker.health !== 'healthy' ? `
+        <div class="team-stat-row">
+          <span class="team-stat-k">Health</span>
+          <span class="badge amber">${escapeHtml(worker.health)}</span>
+        </div>
+        <div class="team-stat-row">
+          <span class="team-stat-k">Health Detail</span>
+          <span class="team-stat-v">${escapeHtml(worker.healthDetail || '')}</span>
+        </div>
+      ` : ''}
+      ${current ? `
+        <div class="team-stat-row">
+          <span class="team-stat-k">Project</span>
+          <span class="team-stat-v">${escapeHtml(current.project.projectName)}</span>
+        </div>
+        <div class="team-stat-row">
+          <span class="team-stat-k">Current Role</span>
+          <span class="team-stat-v">${escapeHtml(current.task.status === 'reviewing' ? 'Reviewer' : 'Builder')}</span>
+        </div>
+        <div class="team-stat-row">
+          <span class="team-stat-k">Task</span>
+          <span class="team-stat-v">${escapeHtml(current.task.instruction || '')}</span>
+        </div>
+        <div class="team-stat-row">
+          <span class="team-stat-k">Task Status</span>
+          <span class="team-stat-v">${escapeHtml((current.task.status || '').replace(/_/g, ' '))}</span>
+        </div>
+      ` : `
+        <div class="team-stat-row">
+          <span class="team-stat-k">Current Task</span>
+          <span class="team-stat-v" style="color: var(--text-muted);">None — idle</span>
+        </div>
+      `}
+    `;
+    document.getElementById('office-worker-modal').classList.add('active');
+  }
+
+  function initOfficeViewControls() {
+    const modal = document.getElementById('office-worker-modal');
+    const close = () => modal && modal.classList.remove('active');
+    document.getElementById('office-worker-modal-close')?.addEventListener('click', close);
+    document.getElementById('office-worker-modal-close-btn')?.addEventListener('click', close);
+    modal?.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    document.getElementById('office-view-inbox-link')?.addEventListener('click', () => switchView('cto-inbox'));
   }
 
   async function fetchTasks() {
@@ -1973,6 +2220,7 @@
     initTechnicalLogsControls();
     initSettingsControls();
     initCtoInboxControls();
+    initOfficeViewControls();
     initModals();
 
     // Initial load
@@ -1983,11 +2231,13 @@
     // Periodic poll every 3 seconds for fresh task records and status.
     // CTO Attention piggybacks on this same cadence rather than a separate
     // timer — cheap, and matches the handover doc's "do not burn quota
-    // simply waiting" / "avoid polling aggressively" guidance.
+    // simply waiting" / "avoid polling aggressively" guidance. Office View
+    // only refetches while it is the active tab, same reasoning.
     State.pollTimer = setInterval(async () => {
       await fetchStatus();
       await fetchTasks();
       await fetchCtoAttention();
+      if (State.activeView === 'office') await fetchOfficeView();
     }, 3000);
   }
 

@@ -81,6 +81,10 @@
             <span class="nav-icon">📊</span>
             <span class="nav-label">Overview</span>
           </a>
+          <a class="proto-nav-item" data-view="office" id="nav-item-office">
+            <span class="nav-icon">🏢</span>
+            <span class="nav-label">Office View</span>
+          </a>
           <a class="proto-nav-item" data-view="cto-inbox" id="nav-item-cto-inbox">
             <span class="nav-icon">📥</span>
             <span class="nav-label">CTO Inbox</span>
@@ -777,6 +781,34 @@
         </div>
 
         <!-- ========================================================================= -->
+        <!-- VIEW: OFFICE VIEW (real multi-project runtime state, visualized)          -->
+        <!-- ========================================================================= -->
+        <div class="proto-view" id="view-office">
+          <section class="proto-card">
+            <div class="proto-card-header">
+              <div>
+                <h2 class="proto-card-title">Office View</h2>
+                <p class="proto-card-subtitle">A live look at the technical workforce — who's actually working right now, and on what. Nothing shown here is invented; a desk is only lit up while a worker is genuinely running.</p>
+              </div>
+              <button type="button" class="btn-secondary" id="office-view-inbox-link">
+                📥 View CTO Inbox
+              </button>
+            </div>
+
+            <div class="office-floor" id="office-floor">
+              <!-- Worker desks rendered dynamically by app.js -->
+            </div>
+
+            <div class="office-projects-section">
+              <h3 class="office-section-title">Active Projects</h3>
+              <div class="office-projects-grid" id="office-projects-grid">
+                <!-- Project activity cards rendered dynamically by app.js -->
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ========================================================================= -->
         <!-- VIEW 5: TECHNICAL LOGS                                                    -->
         <!-- ========================================================================= -->
         <!-- ========================================================================= -->
@@ -1024,6 +1056,19 @@
         </div>
         <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
           <button type="button" class="btn btn-secondary" id="btn-close-modal">Close Details</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Office View: Worker Detail Modal -->
+    <div class="proto-modal-overlay" id="office-worker-modal">
+      <div class="proto-modal">
+        <button type="button" class="proto-modal-close" id="office-worker-modal-close">&times;</button>
+        <div id="office-worker-modal-body">
+          <!-- Loaded dynamically on desk click -->
+        </div>
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="office-worker-modal-close-btn">Close</button>
         </div>
       </div>
     </div>

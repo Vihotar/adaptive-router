@@ -1472,3 +1472,224 @@ input:checked + .slider:before {
   display: flex;
   gap: 0.5rem;
 }
+
+/* ============================================================= */
+/* Office View — visualized real multi-project runtime state.    */
+/* A desk only ever shows "busy"/"Building"/"Reviewing" when the  */
+/* backing GET /api/office-view data says a worker is genuinely   */
+/* running — see server.mjs's comments on that endpoint. Keep     */
+/* animation lightweight (a small pulse), no heavy frameworks.    */
+/* ============================================================= */
+.office-floor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.office-empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 1.5rem;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+.office-desk {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.office-desk:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.office-desk-off {
+  opacity: 0.55;
+}
+
+.office-desk-busy {
+  border-color: #93c5fd;
+  background: linear-gradient(180deg, #eff6ff 0%, var(--bg-card) 60%);
+}
+
+.office-desk-monitor {
+  position: relative;
+}
+
+.office-desk-avatar {
+  width: 48px;
+  height: 48px;
+  font-size: 1.1rem;
+}
+
+.office-desk-activity-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 2px solid var(--bg-card);
+  animation: pulse-ring 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.office-desk-activity-dot-inline {
+  position: static;
+  border: none;
+  width: 8px;
+  height: 8px;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
+.office-desk-nameplate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.office-desk-name {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-main);
+}
+
+.office-desk-state {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.office-desk-state-busy { background: #dbeafe; color: #1d4ed8; }
+.office-desk-state-idle { background: #f1f5f9; color: #64748b; }
+.office-desk-state-off { background: #fee2e2; color: #b91c1c; }
+
+.office-desk-task {
+  font-size: 0.78rem;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+
+.office-desk-project {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.office-projects-section {
+  margin-top: 0.5rem;
+}
+
+.office-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 1rem;
+}
+
+.office-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.office-project-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.office-project-active {
+  border-color: #93c5fd;
+}
+
+.office-project-attention {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.office-project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.office-project-name {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-main);
+}
+
+.office-project-empty {
+  font-size: 0.82rem;
+  color: var(--text-subtle);
+}
+
+.office-project-instruction {
+  font-size: 0.82rem;
+  color: var(--text-main);
+  line-height: 1.4;
+}
+
+.office-project-worker-row {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.office-project-worker-label {
+  margin-right: 0.35rem;
+}
+
+.office-project-worker-name {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.office-project-attention-banner {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.55rem;
+  display: inline-block;
+  width: fit-content;
+}
+
+.office-project-attention-row {
+  font-size: 0.8rem;
+  color: var(--text-main);
+  line-height: 1.4;
+}
+
+.office-project-attention-row strong {
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
