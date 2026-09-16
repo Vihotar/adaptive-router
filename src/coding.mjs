@@ -389,6 +389,62 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       }
     }
 
+    // Token/time guardrails: practical limits on excessive retries/token
+    // growth for a task's overall scope, not a hard kill-on-threshold.
+    // Thresholds scale with builder tier (a legitimately complex Tier 3+
+    // task is expected to use more tokens than a small Tier 1 fix) and are
+    // deliberately generous — the goal is catching the kind of runaway
+    // seen in the ~1.8-1.99M token incident, not second-guessing normal
+    // variance. Crossing the soft threshold only records a visible warning
+    // (task keeps running normally). Crossing the hard threshold (2x soft)
+    // additionally flags the task for CTO Attention once the current call
+    // finishes, WITHOUT killing in-flight work or blocking future progress
+    // — the CTO can then decide whether to let it continue, since by then
+    // real work may already be done and worth keeping.
+    const TOKEN_GUARDRAIL_SOFT = { 1: 150_000, 2: 300_000, 3: 600_000 };
+    const TOKEN_GUARDRAIL_HARD_MULTIPLIER = 2;
+    const INVOCATION_GUARDRAIL_SOFT = 8; // total build+review calls across all revisions
+    const checkTokenGuardrails = () => {
+      if (task.guardrailHardFlagged) return; // only escalate once per task
+      const tierForGuardrail = task.builderTier || 2;
+      const softLimit = TOKEN_GUARDRAIL_SOFT[tierForGuardrail] || TOKEN_GUARDRAIL_SOFT[2];
+      const hardLimit = softLimit * TOKEN_GUARDRAIL_HARD_MULTIPLIER;
+      const total = task.tokenUsage?.totalTokens;
+      const invocationCount = task.tokenUsage?.invocations?.length || 0;
+      const overSoftTokens = typeof total === 'number' && total >= softLimit;
+      const overSoftInvocations = invocationCount >= INVOCATION_GUARDRAIL_SOFT;
+      if (!overSoftTokens && !overSoftInvocations) return;
+
+      const overHardTokens = typeof total === 'number' && total >= hardLimit;
+      const reasonParts = [];
+      if (overSoftTokens) reasonParts.push(`cumulative token usage (${total.toLocaleString()}) has passed the guardrail threshold for a Tier ${tierForGuardrail} task (${softLimit.toLocaleString()})`);
+      if (overSoftInvocations) reasonParts.push(`${invocationCount} build/review calls have been made across this task's revisions`);
+      const reason = reasonParts.join('; ');
+
+      if (!task.guardrailSoftWarned) {
+        task.guardrailSoftWarned = true;
+        addActivity('⚠️', 'Token/Time Guardrail — Elevated Usage', `This task's ${reason}. Still within normal execution; no action taken automatically.`, { category: 'decision', eventType: 'progress' });
+      }
+      if (overHardTokens && !task.guardrailHardFlagged) {
+        task.guardrailHardFlagged = true;
+        task.guardrailReason = `Cumulative token usage (${total.toLocaleString()}) has passed 2x the guardrail threshold for a Tier ${tierForGuardrail} task (hard limit ${hardLimit.toLocaleString()}). ${reason}.`;
+        addActivity('🚨', 'Token/Time Guardrail — CTO Attention Flagged', task.guardrailReason, { category: 'decision', eventType: 'error' });
+        publishEvent({
+          eventType: 'error',
+          role: 'router',
+          title: 'Token/time guardrail exceeded',
+          detail: task.guardrailReason,
+          status: 'failed',
+          metadata: { totalTokens: total, invocationCount, hardLimit, softLimit, builderTier: tierForGuardrail }
+        });
+        // Flag only — does not stop in-flight work, does not change task
+        // status, and does not block future progress. Surfaced via
+        // task.guardrailHardFlagged/guardrailReason for the dashboard and
+        // for Stage B approval review to see and factor into the CTO's
+        // decision once the task reaches a natural decision point.
+      }
+    };
+
     const recordTaskTokenUsage = ({ role, stage, worker, model, usage }) => {
       const normalized = normalizeUsage(usage, worker);
       task.tokenUsage = accumulateInvocation(task.tokenUsage, {
@@ -412,6 +468,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
           tokenUsage: task.tokenUsage
         }
       });
+      try { checkTokenGuardrails(); } catch (e) { log(`Guardrail check failed (non-fatal): ${e.message}`); }
     };
 
     const attempt = (role, stage, schema, prompt) => {
@@ -1343,13 +1400,16 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
                 quotaEvents.map(e => `- **${e.worker}** reached quota/usage limit on stage \`${e.stage}\` (Model: \`${e.model || 'default'}\`, Effort: \`${e.effort || 'default'}\`). Switched to next worker.`).join('\n') + '\n';
             }
           }
+          const guardrailSection = task.guardrailHardFlagged
+            ? `\n\n## Token/Time Guardrail\n- **Status**: \`FLAGGED\` — this task's usage passed the guardrail threshold during execution.\n- **Reason**: ${task.guardrailReason || 'Guardrail threshold exceeded.'}\n- Work still completed and passed review; use this to judge whether the usage was reasonable for what was delivered.\n`
+            : '';
           let claudeReserveSection = '';
           if (task.claudeReserveMode) {
             claudeReserveSection = `\n\n## Claude Reserve Mode Status\n- **Claude Reserve Mode**: \`${task.claudeReserveMode}\`\n- **Claude Quota Requested**: ${task.claudeQuotaRequested ? 'Yes' : 'No'}\n- **Claude Quota Authorized**: ${task.claudeQuotaAuthorized ? 'Yes' : 'No'}\n`;
           }
           const completionTime = new Date().toISOString();
           const changedFiles = read(path.join(dir, `changes-${task.revision}.json`)).files || [];
-          const report = `# Project deliverable ready for Stage B approval\n\n- Task ID: \`${task.id}\`\n- Project: ${task.projectName} (\`${task.project}\`)\n- Project root: \`${task.projectRoot}\`\n- Context binding: \`${task.contextHash}\`\n- Revision: ${task.revision}\n- Deliverable digest: \`${task.digest}\`\n- Completion time: ${completionTime}\n\n## Original instruction\n\n${task.instruction}\n\n## Final summary\n\n${task.summary || ''}\n\nBuilder(s): ${task.contributors.join(', ')}. Qualified premium independent reviewer: ${reviewed.worker}.\n\nValidator checks: all ${tests.checks.length} passed. ${review.summary}${senioritySection}${routingSection}${quotaEventsSection}${claudeReserveSection}\n\n## Modified files\n${changedFiles.length ? changedFiles.map(file => `- \`${file}\``).join('\n') : '- No file changes reported'}\n\n## Reviewed deliverable\n- **Entry artifact**: [${artifactRel}](${artifactRel})\n- **Local task artifact**: \`${artifactAbs}\`\n- **Local task URL**: ${artifactUrl || 'Not applicable'}\n- **Deliverable digest (SHA-256)**: \`${task.digest}\`\n- **Validation results**: [tests-${task.revision}.json](tests-${task.revision}.json)\n\nApproval applies this exact reviewed revision to the registered project root. It never deploys or changes an external service.\n`;
+          const report = `# Project deliverable ready for Stage B approval\n\n- Task ID: \`${task.id}\`\n- Project: ${task.projectName} (\`${task.project}\`)\n- Project root: \`${task.projectRoot}\`\n- Context binding: \`${task.contextHash}\`\n- Revision: ${task.revision}\n- Deliverable digest: \`${task.digest}\`\n- Completion time: ${completionTime}\n\n## Original instruction\n\n${task.instruction}\n\n## Final summary\n\n${task.summary || ''}\n\nBuilder(s): ${task.contributors.join(', ')}. Qualified premium independent reviewer: ${reviewed.worker}.\n\nValidator checks: all ${tests.checks.length} passed. ${review.summary}${senioritySection}${routingSection}${quotaEventsSection}${claudeReserveSection}${guardrailSection}\n\n## Modified files\n${changedFiles.length ? changedFiles.map(file => `- \`${file}\``).join('\n') : '- No file changes reported'}\n\n## Reviewed deliverable\n- **Entry artifact**: [${artifactRel}](${artifactRel})\n- **Local task artifact**: \`${artifactAbs}\`\n- **Local task URL**: ${artifactUrl || 'Not applicable'}\n- **Deliverable digest (SHA-256)**: \`${task.digest}\`\n- **Validation results**: [tests-${task.revision}.json](tests-${task.revision}.json)\n\nApproval applies this exact reviewed revision to the registered project root. It never deploys or changes an external service.\n`;
           fs.writeFileSync(approvalReport, report);
           log(`Ready for your approval: ${approvalReport}`);
           log(`Tested website: ${artifactUrl}`);
