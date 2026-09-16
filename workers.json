@@ -44,5 +44,6 @@
   "maxCorrections": 2,
   "workerTimeoutSeconds": 600,
   "claudeReserve": true,
-  "connectorToken": "CONNECTOR_TOKEN_REGENERATED_ON_FIRST_RUN"
+  "connectorToken": "CONNECTOR_TOKEN_REGENERATED_ON_FIRST_RUN",
+  "reviewPolicy": "independent"
 }
