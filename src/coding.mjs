@@ -108,6 +108,18 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
     if (!Number.isInteger(config.maxCorrections) || config.maxCorrections < 0 || config.maxCorrections > 3) throw Error('Invalid correction limit');
     if (!Number.isInteger(config.workerTimeoutSeconds) || config.workerTimeoutSeconds < 10 || config.workerTimeoutSeconds > 600) throw Error('Invalid timeout');
     const isClaudeReserve = claudeReserve !== undefined ? claudeReserve : (config.claudeReserve !== false);
+    // Review policy: 'independent' (default) requires a qualified independent
+    // reviewer before/after build, hard-blocking with a Decision Required
+    // screen if none is enabled/qualified. 'cto_only' and 'disabled' both
+    // skip that hard block by authorizing Claude as reviewer-fallback
+    // instead (never a truly review-free path in this implementation — Stage
+    // B CTO approval always follows, and 'disabled' is intentionally treated
+    // as conservatively as 'cto_only' rather than skipping review outright,
+    // to avoid weakening security). Set via POST /api/review-policy; stored
+    // in workers.json as reviewPolicy.
+    const reviewPolicyRaw = config.reviewPolicy;
+    const reviewPolicy = ['independent', 'cto_only', 'disabled'].includes(reviewPolicyRaw) ? reviewPolicyRaw : 'independent';
+    const skipIndependentReview = reviewPolicy === 'cto_only' || reviewPolicy === 'disabled';
     let task, dir;
     if (resume) {
       dir = taskDir(root, resume); task = read(path.join(dir, 'task.json'));
@@ -323,6 +335,11 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
     const failed = new Set();
     let feedback = task.feedback || null;
     let effectiveAllowClaude = Boolean(allowClaude || task.allowClaudeForTask || task.claudeQuotaAuthorized);
+    // Review-role Claude authorization is tracked separately from build-role
+    // effectiveAllowClaude, which gets reset to false whenever Antigravity is
+    // the preferred builder (quota preservation) — that reset must not also
+    // revoke Claude's reviewer-fallback authorization under reviewPolicy.
+    let reviewAllowClaude = effectiveAllowClaude || skipIndependentReview;
     task.allowClaudeForTask = effectiveAllowClaude;
     if (effectiveAllowClaude) task.claudeQuotaAuthorized = true;
     const availableModels = call ? {} : discoverAvailableModels(paths);
@@ -353,6 +370,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
           }
           if (approved) {
             effectiveAllowClaude = true;
+            reviewAllowClaude = true;
             task.claudeQuotaAuthorized = true;
             addActivity('⚡', 'Claude Quota Authorized', 'User authorized Claude Pro quota for this task.', { category: 'decision' });
             log('Claude quota authorized by user.');
@@ -505,7 +523,9 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       // - meet existing effort requirement
       // - be independent from the builder
       // - not be the same worker/model family when current independence rules prohibit it
-      const qualifiedReviewers = candidates(config, 'review', [preBuilder.id, ...task.contributors], failed, undefined, classification.difficulty, isClaudeReserve, effectiveAllowClaude, {
+      //
+      // Step 2: Select Reviewer
+      const qualifiedReviewers = candidates(config, 'review', [preBuilder.id, ...task.contributors], failed, undefined, classification.difficulty, isClaudeReserve, reviewAllowClaude, {
         builderModel: preBuilderSelection.model,
         builderTier: bTierNum,
         builderFamily: bFamily,
@@ -935,7 +955,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
         const bEffort = task.builderEffort || currentBuild.effort || 'medium';
         const classification = classifyTask(task.instruction, feedback, task.revision, { claudeReserve: isClaudeReserve, allowClaude: effectiveAllowClaude });
 
-        const qualifiedReviewers = candidates(config, 'review', task.contributors, failed, undefined, classification.difficulty, isClaudeReserve, effectiveAllowClaude, {
+        const qualifiedReviewers = candidates(config, 'review', task.contributors, failed, undefined, classification.difficulty, isClaudeReserve, reviewAllowClaude, {
           builderModel: bModel,
           builderTier: bTier,
           builderFamily: bFamily,
@@ -981,7 +1001,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
           });
           const claudeIsSoleCandidate = allWithClaude.some(w => w.id === 'claude-code' || w.adapter === 'claude');
 
-          if (claudeIsSoleCandidate && isClaudeReserve && !effectiveAllowClaude) {
+          if (claudeIsSoleCandidate && isClaudeReserve && !reviewAllowClaude) {
             task.decisionRequired = {
               type: 'claude_review_approval',
               title: 'Decision Required',

@@ -923,6 +923,17 @@
               </div>
               <span class="badge green">Enforced</span>
             </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Reviewer Policy</span>
+                <span class="settings-desc">Independent Review requires a qualified independent reviewer before Stage B. CTO Review Only and Review Disabled fall back to CTO (Claude) approval alone and should be used deliberately, not as the default.</span>
+              </div>
+              <select id="review-policy-select" style="padding: 0.4rem 0.7rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 600;">
+                <option value="independent">Independent Review (default)</option>
+                <option value="cto_only">CTO Review Only</option>
+                <option value="disabled">Review Disabled</option>
+              </select>
+            </div>
           </div>
 
           <!-- Sensitivity Section -->

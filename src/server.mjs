@@ -309,6 +309,7 @@ export async function getWorkerStatuses(root, requestedProject = null) {
       { id: 'cline', name: 'Cline', platform: 'Cline CLI (local)', status: clineStatus, note: clineNote, userEnabled: isUserEnabled('cline') }
     ],
     claudeReserve: isReserve,
+    reviewPolicy: config.reviewPolicy || 'independent',
     routingMode: 'Auto',
     activeRunningTask: visibleRunningTask,
     activeProject,
@@ -974,6 +975,28 @@ export function createDashboardServer(root, options = {}) {
         cfg.claudeReserve = Boolean(body.enabled);
         fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + '\n');
         return sendJson({ success: true, claudeReserve: cfg.claudeReserve });
+      }
+
+      // 2b. POST /api/review-policy - Set the independent-review policy.
+      // 'independent' (default): a qualified independent reviewer is required.
+      // 'cto_only': skip the independent-reviewer gate; CTO (Claude) approval
+      //   at Stage B is the only review. Intended for when no independent
+      //   reviewer is available/qualified, or the CTO deliberately decides.
+      // 'disabled': skip independent review entirely for explicitly
+      //   authorized very-low-risk tasks. Never the default; does not
+      //   remove or alter the independent-review architecture itself.
+      if (pathname === '/api/review-policy' && method === 'POST') {
+        const body = await readBody();
+        const allowed = new Set(['independent', 'cto_only', 'disabled']);
+        const policy = String(body.policy || '').trim();
+        if (!allowed.has(policy)) {
+          return sendJson({ error: `Invalid review policy. Must be one of: ${[...allowed].join(', ')}` }, 400);
+        }
+        const configPath = path.join(root, 'workers.json');
+        const cfg = read(configPath);
+        cfg.reviewPolicy = policy;
+        fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + '\n');
+        return sendJson({ success: true, reviewPolicy: cfg.reviewPolicy });
       }
 
       // 2a. POST /api/workers/toggle - Manually enable/disable a worker platform

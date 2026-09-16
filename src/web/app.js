@@ -9,6 +9,7 @@
     projects: [],
     workers: [],
     claudeReserve: true,
+    reviewPolicy: 'independent',
     tasks: [],
     currentTaskId: null,
     currentTask: null,
@@ -171,6 +172,7 @@
 
       State.workers = data.workers || [];
       State.claudeReserve = data.claudeReserve !== false;
+      State.reviewPolicy = ['independent', 'cto_only', 'disabled'].includes(data.reviewPolicy) ? data.reviewPolicy : 'independent';
       State.projects = data.projects || [];
       if (data.activeProject?.id) {
         State.activeProjectId = data.activeProject.id;
@@ -321,6 +323,12 @@
     if (label) {
       label.textContent = State.claudeReserve ? 'RESERVE ON' : 'RESERVE OFF';
       label.style.color = State.claudeReserve ? '#8b5cf6' : '#64748b';
+    }
+
+    // Reviewer Policy select
+    const reviewPolicySelect = document.getElementById('review-policy-select');
+    if (reviewPolicySelect && reviewPolicySelect.value !== State.reviewPolicy) {
+      reviewPolicySelect.value = State.reviewPolicy;
     }
   }
 
@@ -1763,6 +1771,33 @@
 
   // View 6: Settings Controls
   function initSettingsControls() {
+    const reviewPolicySelect = document.getElementById('review-policy-select');
+    if (reviewPolicySelect) {
+      reviewPolicySelect.value = State.reviewPolicy;
+      reviewPolicySelect.addEventListener('change', async (e) => {
+        const policy = e.target.value;
+        const previous = State.reviewPolicy;
+        try {
+          const res = await fetch('/api/review-policy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ policy })
+          });
+          if (res.ok) {
+            State.reviewPolicy = policy;
+            const labels = { independent: 'Independent Review', cto_only: 'CTO Review Only', disabled: 'Review Disabled' };
+            showToast(`Reviewer policy set to ${labels[policy] || policy}`, 'success');
+          } else {
+            e.target.value = previous;
+            showToast('Failed to update reviewer policy', 'error');
+          }
+        } catch (err) {
+          e.target.value = previous;
+          showToast('Reviewer policy update request failed', 'error');
+        }
+      });
+    }
+
     const btnAdv = document.getElementById('btn-advanced-settings-toggle');
     const contentAdv = document.getElementById('advanced-settings-content');
     if (btnAdv && contentAdv) {
