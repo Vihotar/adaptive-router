@@ -746,6 +746,7 @@ function recoverOrphanedTasks(root) {
 
 export function createDashboardServer(root, options = {}) {
   const webDir = path.join(root, 'src', 'web');
+  const processStartedAt = new Date().toISOString();
 
   // See ORPHANABLE_STATUSES above — this must run before anything else
   // touches tasks, so a stuck task is fixed before the dashboard or
@@ -937,11 +938,44 @@ export function createDashboardServer(root, options = {}) {
         return sendJson({ started: false, note: 'Tunnel configuration not yet set. Please provide your Tunnel ID and tunnel-client.exe location.' });
       }
 
+      // 0a. GET /api/pid - This process's PID, for restart-safety
+      // verification (confirming a shutdown actually happened and a new
+      // process has taken its place, without ever needing to guess which
+      // process to kill via Task Manager).
+      if (pathname === '/api/pid' && method === 'GET') {
+        return sendJson({ pid: process.pid, startedAt: processStartedAt });
+      }
+
       // 1. GET /api/status - System and worker statuses
       if (pathname === '/api/status' && method === 'GET') {
         const requestedProject = parsedUrl.searchParams.get('project');
         const status = await getWorkerStatuses(root, requestedProject);
         return sendJson(status);
+      }
+
+      // 1a. POST /api/shutdown - Gracefully stop the AR server process.
+      // Solves the documented restart-safety gap: AR's Node process has no
+      // PID file or distinguishing window title, so guessing which process
+      // to kill via Task Manager is unsafe. This endpoint is the safe
+      // alternative — it runs inside the process being shut down, so there
+      // is no guessing involved, and it refuses outright while a task is
+      // genuinely mid-execution rather than risking a corrupted build.
+      // Intended flow: POST here, wait for the connection to close (or a
+      // short timeout, since the process exits before it can always finish
+      // writing a response), then start a fresh process.
+      if (pathname === '/api/shutdown' && method === 'POST') {
+        if (activeRunningTask) {
+          return sendJson({ error: 'Refusing to shut down: a task is currently active. Stop or wait for it to finish first.', activeRunningTask }, 409);
+        }
+        sendJson({ success: true, message: 'Shutting down.' });
+        setTimeout(() => {
+          server.close(() => process.exit(0));
+          // Backstop: if close() hangs (e.g. a lingering keep-alive
+          // connection), force exit anyway rather than leaving a zombie
+          // process that a future restart attempt would collide with.
+          setTimeout(() => process.exit(0), 3000).unref();
+        }, 150);
+        return;
       }
 
       // Project registry — production projects only. Hidden fixtures remain
