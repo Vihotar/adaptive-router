@@ -88,9 +88,22 @@ function pidIsAlive(pid) {
   catch (e) { return e.code !== 'ESRCH'; }
 }
 
-export async function locked(root, action) {
+// scope: an optional short identifier (e.g. a project id) that partitions
+// the lock into its own file (router.lock.<scope> instead of router.lock).
+// This is what allows two DIFFERENT projects' tasks to run concurrently
+// while same-project tasks still fully serialize through one lock, exactly
+// as before scope existed. Deliberately narrow: this only changes which
+// lock FILE is used, not any of the stale-lock recovery or safety logic
+// below, which is unchanged and applies identically per-scope.
+function lockFileName(scope) {
+  if (!scope) return 'router.lock';
+  const safeScope = String(scope).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 100);
+  return `router.lock.${safeScope}`;
+}
+
+export async function locked(root, action, scope = null) {
   fs.mkdirSync(root, { recursive: true });
-  const lock = path.join(root, 'router.lock');
+  const lock = path.join(root, lockFileName(scope));
   let fd;
   try {
     fd = fs.openSync(lock, 'wx');

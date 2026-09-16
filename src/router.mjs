@@ -160,6 +160,13 @@ export async function createTask(root, instruction, { demo = false, invokeWorker
 
 export async function decide(root, id, decision, reason = '') {
   if (!['approved', 'rejected'].includes(decision)) throw Error('Invalid decision');
+  // Scope this to the task's own project, same reasoning as codeTask()'s
+  // lockScope in coding.mjs: a cheap, safe, read-only peek so approving a
+  // task on one project doesn't block approving or building a task on a
+  // different one. Falls back to the unscoped global lock if the peek
+  // fails for any reason.
+  let lockScope = null;
+  try { lockScope = read(path.join(taskDir(root, id), 'task.json')).project || null; } catch { lockScope = null; }
   return locked(path.join(root, '.router'), async () => {
     const dir = taskDir(root, id), task = read(path.join(dir, 'task.json'));
     if (task.status !== 'awaiting_approval') throw Error('Only a successfully reviewed draft can be approved or rejected');
@@ -195,5 +202,5 @@ export async function decide(root, id, decision, reason = '') {
     const approval = { decision, reason, digest: task.digest, contextHash: task.contextHash, taskId: task.id, project: task.project, projectRoot: task.projectRoot, appliedFiles, time: new Date().toISOString(), actor: 'local-user-command', scope: 'accept this exact reviewed local project revision; no external action authorized or executed' };
     json(path.join(dir, 'approval.json'), approval);
     return update(dir, task, decision, { approval, appliedFiles });
-  });
+  }, lockScope);
 }

@@ -103,6 +103,24 @@ export function validateWebFiles(files) {
 function state(dir, task, status, details = {}) { Object.assign(task, details, { status }); json(path.join(dir, 'task.json'), task); event(dir, status, details); }
 export async function codeTask(root, instruction, { resume, injectFault = false, call, ready, test = null, paths = executables(root), log = console.log, unavailableBuilders = [], claudeReserve, allowClaude = false, confirmClaudeUse = null, onActivity = null, onWorkerEvent = null, preferredWorker = null, feedback: correctionFeedback = null, project = null, signal = null, override_sensitive = false } = {}) {
   if (!instruction?.trim() && !resume) throw Error('Provide a task instruction');
+  // Lock scope: which project this task belongs to, so tasks on DIFFERENT
+  // projects can run concurrently while same-project tasks still fully
+  // serialize (same guarantee as before this existed). Resolved before
+  // acquiring any lock: for a resume, a cheap read-only peek at the
+  // existing task's own task.json (never a write, never contends with
+  // anything); for a fresh task, the explicit project param or the
+  // registry's active project — both plain reads. If this peek fails for
+  // any reason, fall back to the unscoped global lock (the original,
+  // always-safe behavior) rather than risk guessing wrong.
+  let lockScope = null;
+  try {
+    if (resume) {
+      const peeked = read(path.join(taskDir(root, resume), 'task.json'));
+      lockScope = peeked.project || null;
+    } else {
+      lockScope = project || getActiveProject(root).id;
+    }
+  } catch { lockScope = null; }
   return locked(path.join(root, '.router'), async () => {
     const config = read(path.join(root, 'workers.json'));
     if (!Number.isInteger(config.maxCorrections) || config.maxCorrections < 0 || config.maxCorrections > 3) throw Error('Invalid correction limit');
@@ -1547,5 +1565,5 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       }
     }
     return task;
-  });
+  }, lockScope);
 }
