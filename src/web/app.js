@@ -355,6 +355,9 @@
       State.officeWorkers = Array.isArray(data.workers) ? data.workers : [];
       renderOfficeFloor();
       renderOfficeProjects();
+      renderOfficeFlowStats();
+      renderOfficeSystemStatus();
+      renderOfficeRecentActivity();
     } catch (err) {
       console.warn('Error fetching /api/office-view:', err);
     }
@@ -371,62 +374,280 @@
     return null;
   }
 
+  // Business-facing Office View seat layout — 7 fixed radial positions around
+  // the AR hub, matching the CTO-approved reference image and roster
+  // (2026-09-17 Fix B revision): Claude, Codex, Antigravity, Grok, Gemini,
+  // NVIDIA NIM, OpenRouter. Cline is deliberately NOT a visible seat here —
+  // it may still exist as internal execution plumbing in workers.json, but
+  // per the approved brief it must not appear as an Office View employee.
+  // Only claude-code/codex/antigravity have a real backing worker today;
+  // the other 4 (Grok, Gemini, NVIDIA NIM, OpenRouter) show an honest
+  // "Available" / not-yet-connected state with no invented activity — see
+  // the `live` flag below. Angles are degrees clockwise from the top (12
+  // o'clock = -90 in standard SVG/canvas angle convention), evenly spaced.
+  const OFFICE_SEATS = [
+    { id: 'claude-code', label: 'Claude', backingWorkerId: 'claude-code', live: true, angleDeg: -90, accent: '#d97706' },
+    { id: 'codex', label: 'Codex', backingWorkerId: 'codex', live: true, angleDeg: -38.57, accent: '#16a34a' },
+    { id: 'antigravity', label: 'Antigravity', backingWorkerId: 'antigravity', live: true, angleDeg: 12.86, accent: '#4f46e5' },
+    { id: 'grok', label: 'Grok', backingWorkerId: null, live: false, angleDeg: 64.29, accent: '#475569' },
+    { id: 'nvidia-nim', label: 'NVIDIA NIM', backingWorkerId: null, live: false, angleDeg: 115.71, accent: '#16a34a' },
+    { id: 'openrouter', label: 'OpenRouter', backingWorkerId: null, live: false, angleDeg: 167.14, accent: '#9333ea' },
+    { id: 'gemini', label: 'Gemini', backingWorkerId: null, live: false, angleDeg: 218.57, accent: '#2563eb' }
+  ];
+
+  // A substantial inline-SVG robot avatar, oriented so it visually faces
+  // the center hub. `facingDeg` is the rotation applied to the avatar's
+  // default "facing up" pose to point it toward the hub — verified against
+  // both the top seat (-90 -> 180deg, facing straight down toward the hub
+  // below it) and an off-axis seat. Do not change this to angleDeg + 180 —
+  // that was tried and verified wrong (points seats away from center).
+  function renderRobotAvatarSvg(facingDeg, isLive, isBusy, accent) {
+    const eyeColor = !isLive ? '#94a3b8' : isBusy ? '#2563eb' : '#16a34a';
+    const bodyAccent = isLive ? accent : '#cbd5e1';
+    const glow = isBusy ? `filter: drop-shadow(0 0 6px ${accent}88);` : '';
+    return `
+      <svg class="office-seat-avatar-svg" viewBox="0 0 64 64" style="transform: rotate(${facingDeg}deg); ${glow}" aria-hidden="true">
+        <line x1="32" y1="12" x2="32" y2="4" stroke="${bodyAccent}" stroke-width="2.5" stroke-linecap="round" />
+        <circle cx="32" cy="3.5" r="3.2" fill="${bodyAccent}" />
+        <rect x="9" y="21" width="4.5" height="13" rx="2.2" fill="#cbd5e1" />
+        <rect x="50.5" y="21" width="4.5" height="13" rx="2.2" fill="#cbd5e1" />
+        <rect x="13" y="12" width="38" height="32" rx="9" fill="#ffffff" stroke="${bodyAccent}" stroke-width="2" />
+        <rect x="17.5" y="19" width="29" height="17" rx="5.5" fill="#f1f5f9" stroke="${bodyAccent}" stroke-width="1.5" />
+        <circle cx="25.5" cy="27.5" r="3.4" fill="${eyeColor}" />
+        <circle cx="38.5" cy="27.5" r="3.4" fill="${eyeColor}" />
+        <rect x="27.5" y="44" width="9" height="4.5" rx="1.2" fill="#cbd5e1" />
+        <path d="M18 49 C18 49, 23 47.5, 32 47.5 C41 47.5, 46 49, 46 49 L48.5 61 C48.5 61, 39 63.5, 32 63.5 C25 63.5, 15.5 61, 15.5 61 Z" fill="#f8fafc" stroke="${bodyAccent}" stroke-width="2" />
+        <circle cx="32" cy="54" r="3" fill="${bodyAccent}" />
+      </svg>
+    `;
+  }
+
   function renderOfficeFloor() {
-    const floor = document.getElementById('office-floor');
-    if (!floor) return;
+    const seatsLayer = document.getElementById('office-seats-layer');
+    const svgLayer = document.getElementById('office-connectors-svg');
+    const hub = document.getElementById('office-hub');
+    const hubLabel = document.getElementById('office-hub-label');
+    const hubAttention = document.getElementById('office-hub-attention');
+    if (!seatsLayer || !svgLayer) return;
+
     if (State.officeWorkers.length === 0) {
-      floor.innerHTML = '<div class="office-empty">No workers configured.</div>';
+      seatsLayer.innerHTML = '<div class="office-empty">No workers configured.</div>';
+      svgLayer.innerHTML = '';
       return;
     }
-    floor.innerHTML = State.officeWorkers.map(w => {
-      const busy = !!w.busy;
-      const current = busy ? officeWorkerCurrentTask(w.id) : null;
-      const avatarClass = getWorkerAvatarClass(w.id);
-      const avatarLetter = getWorkerAvatarLetter(w.id);
-      const name = formatWorkerName(w.id);
-      // Worker objects here come straight from getWorkerStatuses() (see
-      // server.mjs): userEnabled is the CTO's own on/off toggle, status is
-      // the platform's live reachability ('Available'/'Unavailable'/
-      // 'Reserved'). A desk is only ever shown running when both hold and
-      // office-view.js's busy flag (backed by a real activeRunningTasks
-      // entry) says so — never invented from just one of these.
-      const enabled = w.userEnabled !== false;
-      const reachable = w.status === 'Available' || w.status === 'Reserved';
-      let deskStateLabel, deskStateClass;
-      if (!enabled) {
-        deskStateLabel = 'Disabled';
-        deskStateClass = 'off';
-      } else if (!reachable) {
-        deskStateLabel = w.status || 'Unavailable';
-        deskStateClass = 'off';
-      } else if (busy) {
-        deskStateLabel = current?.task?.status === 'reviewing' ? 'Reviewing' : 'Building';
-        deskStateClass = 'busy';
+
+    const center = 500;
+    const radius = 320; // kept well inside the 1000x1000 viewBox so pods don't clip on narrow screens
+    let anyBusy = false;
+    // Any task genuinely waiting on the CTO (not just a worker being idle) —
+    // drives the hub's attention indicator. Never shown unless real task
+    // state says so (see /api/office-view's waitingOnCto field).
+    const anyWaitingOnCto = State.officeProjects.some(p => p.task && p.task.waitingOnCto);
+
+    const seatGeom = OFFICE_SEATS.map(seat => {
+      const rad = (seat.angleDeg * Math.PI) / 180;
+      return { seat, x: center + radius * Math.cos(rad), y: center + radius * Math.sin(rad) };
+    });
+
+    const seatsHtml = seatGeom.map(({ seat, x, y }) => {
+      const backingWorker = seat.backingWorkerId ? State.officeWorkers.find(w => w.id === seat.backingWorkerId) : null;
+      const isLive = seat.live && Boolean(backingWorker);
+      const busy = isLive && !!backingWorker.busy;
+      const current = busy ? officeWorkerCurrentTask(backingWorker.id) : null;
+      if (busy) anyBusy = true;
+
+      const name = seat.label;
+
+      let stateLabel, stateClass;
+      if (!isLive) {
+        stateLabel = 'Available';
+        stateClass = 'available';
       } else {
-        deskStateLabel = 'Idle';
-        deskStateClass = 'idle';
+        const enabled = backingWorker.userEnabled !== false;
+        const reachable = backingWorker.status === 'Available' || backingWorker.status === 'Reserved';
+        if (!enabled) {
+          stateLabel = 'Disabled';
+          stateClass = 'off';
+        } else if (!reachable) {
+          stateLabel = backingWorker.status || 'Unavailable';
+          stateClass = 'off';
+        } else if (busy) {
+          stateLabel = current?.task?.status === 'reviewing' ? 'Reviewing' : 'Building';
+          stateClass = 'busy';
+        } else {
+          stateLabel = 'Idle';
+          stateClass = 'idle';
+        }
       }
+
+      const leftPct = ((x / 1000) * 100).toFixed(2);
+      const topPct = ((y / 1000) * 100).toFixed(2);
+      const facingDeg = seat.angleDeg - 90;
+      const interactiveAttrs = isLive ? 'role="button" tabindex="0"' : 'aria-disabled="true"';
+      const taskLine = (busy && current?.task?.instruction)
+        ? `<div class="office-pod-task">${escapeHtml(current.task.instruction.slice(0, 46))}${current.task.instruction.length > 46 ? '…' : ''}</div>`
+        : '';
+
       return `
-        <div class="office-desk office-desk-${deskStateClass}" data-worker-id="${escapeHtml(w.id)}" role="button" tabindex="0">
-          <div class="office-desk-monitor">
-            <div class="office-desk-avatar ai-avatar ${avatarClass}">${avatarLetter}</div>
-            ${busy ? '<span class="office-desk-activity-dot"></span>' : ''}
+        <div class="office-seat-node ${busy ? 'seat-busy' : ''} ${isLive ? 'seat-live' : 'seat-non-live'}"
+             id="office-seat-${escapeHtml(seat.id)}"
+             data-worker-id="${escapeHtml(backingWorker?.id || seat.id)}"
+             data-live="${isLive ? '1' : '0'}"
+             style="left: ${leftPct}%; top: ${topPct}%; --seat-accent: ${escapeHtml(seat.accent)};"
+             ${interactiveAttrs}
+             aria-label="${escapeHtml(name)} workstation — ${escapeHtml(stateLabel)}">
+          <div class="office-pod">
+            <div class="office-pod-ring"></div>
+            <div class="office-pod-avatar-wrap">
+              ${renderRobotAvatarSvg(facingDeg, isLive, busy, seat.accent)}
+              ${busy ? '<span class="office-desk-activity-dot"></span>' : ''}
+            </div>
+            <div class="office-pod-desk"></div>
           </div>
-          <div class="office-desk-nameplate">
-            <span class="office-desk-name">${escapeHtml(name)}</span>
-            <span class="office-desk-state office-desk-state-${deskStateClass}">${escapeHtml(deskStateLabel)}</span>
+          <div class="office-pod-plate">
+            <span class="office-seat-name">${escapeHtml(name)}</span>
+            <span class="office-seat-state office-seat-state-${stateClass}">${escapeHtml(stateLabel)}</span>
           </div>
-          ${current ? `<div class="office-desk-task">${escapeHtml((current.task.instruction || '').slice(0, 60))}${(current.task.instruction || '').length > 60 ? '…' : ''}</div>` : ''}
-          ${current ? `<div class="office-desk-project">on ${escapeHtml(current.project.projectName)}</div>` : ''}
+          ${taskLine}
         </div>
       `;
     }).join('');
+    seatsLayer.innerHTML = seatsHtml;
 
-    floor.querySelectorAll('.office-desk').forEach(desk => {
-      const open = () => openOfficeWorkerModal(desk.getAttribute('data-worker-id'));
-      desk.addEventListener('click', open);
-      desk.addEventListener('keypress', (e) => { if (e.key === 'Enter' || e.key === ' ') open(); });
+    // Connectors: a dashed line per seat plus a small moving "task packet"
+    // dot on any connector that's genuinely active, so routing reads as
+    // motion rather than just a static arrow. Only ever animated when the
+    // real backing worker is actually busy — never decorative-only.
+    const lines = seatGeom.map(({ seat, x, y }) => {
+      const backingWorker = seat.backingWorkerId ? State.officeWorkers.find(w => w.id === seat.backingWorkerId) : null;
+      const isLive = seat.live && Boolean(backingWorker);
+      const busy = isLive && !!backingWorker.busy;
+      const current = busy ? officeWorkerCurrentTask(backingWorker.id) : null;
+      const isReviewing = current?.task?.status === 'reviewing';
+      let cls = 'office-connector-line';
+      let marker = '';
+      let packet = '';
+      if (!isLive) {
+        cls += ' connector-dormant';
+      } else if (busy) {
+        cls += isReviewing ? ' connector-active-return' : ' connector-active-out';
+        marker = isReviewing ? 'url(#office-arrow-return)' : 'url(#office-arrow-out)';
+        // Packet travels center->seat while building, seat->center while
+        // reviewing (work goes out to build, comes back in for review).
+        const [px1, py1, px2, py2] = isReviewing ? [x, y, center, center] : [center, center, x, y];
+        packet = `
+          <circle class="office-task-packet ${isReviewing ? 'packet-return' : 'packet-out'}" r="7">
+            <animateMotion dur="1.6s" repeatCount="indefinite" path="M${px1},${py1} L${px2},${py2}" />
+          </circle>
+        `;
+      } else {
+        cls += ' connector-dormant';
+      }
+      const markerAttr = marker ? `marker-end="${marker}"` : '';
+      return `<line class="${cls}" x1="${center}" y1="${center}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" ${markerAttr} />${packet}`;
+    }).join('');
+    svgLayer.innerHTML = `
+      <defs>
+        <marker id="office-arrow-out" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 Z" fill="var(--primary)"></path>
+        </marker>
+        <marker id="office-arrow-return" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 Z" fill="var(--success)"></path>
+        </marker>
+      </defs>
+      ${lines}
+    `;
+
+    if (hub) hub.classList.toggle('hub-active', anyBusy);
+    if (hub) hub.classList.toggle('hub-attention', anyWaitingOnCto);
+    if (hubAttention) hubAttention.hidden = !anyWaitingOnCto;
+    if (hubLabel) hubLabel.textContent = anyWaitingOnCto ? 'CTO Decision Needed' : (anyBusy ? 'Routing Tasks' : 'Orchestrator Ready');
+
+    seatsLayer.querySelectorAll('.office-seat-node[data-live="1"]').forEach(node => {
+      const open = () => openOfficeWorkerModal(node.getAttribute('data-worker-id'));
+      node.addEventListener('click', open);
+      node.addEventListener('keypress', (e) => { if (e.key === 'Enter' || e.key === ' ') open(); });
     });
+  }
+
+  // Left panel: honest counts of tasks by pipeline stage, derived from real
+  // task state across all registered projects — never invented totals.
+  function renderOfficeFlowStats() {
+    const el = document.getElementById('office-flow-stats');
+    if (!el) return;
+    let building = 0, reviewing = 0, waiting = 0, idle = 0;
+    for (const p of State.officeProjects) {
+      if (!p.task) { idle++; continue; }
+      if (p.task.isWorkerRunning) {
+        if (p.task.status === 'reviewing') reviewing++; else building++;
+      } else if (p.task.waitingOnCto) {
+        waiting++;
+      } else {
+        idle++;
+      }
+    }
+    const rows = [
+      { label: 'Building', count: building, cls: 'busy' },
+      { label: 'Reviewing', count: reviewing, cls: 'busy' },
+      { label: 'Needs CTO', count: waiting, cls: 'attention' },
+      { label: 'No Active Task', count: idle, cls: 'idle' }
+    ];
+    el.innerHTML = rows.map(r => `
+      <div class="office-stat-row">
+        <span class="office-stat-dot office-stat-dot-${r.cls}"></span>
+        <span class="office-stat-label">${escapeHtml(r.label)}</span>
+        <span class="office-stat-count">${r.count}</span>
+      </div>
+    `).join('');
+  }
+
+  // Right panel: real worker/system counts — enabled/disabled from
+  // workers.json state, CTO Inbox count from the actual inbox badge.
+  function renderOfficeSystemStatus() {
+    const el = document.getElementById('office-status-list');
+    if (!el) return;
+    const active = State.officeWorkers.filter(w => w.userEnabled !== false).length;
+    const disabled = State.officeWorkers.filter(w => w.userEnabled === false).length;
+    const waitingCount = State.officeProjects.filter(p => p.task?.waitingOnCto).length;
+    const rows = [
+      { label: 'Router', value: 'Online', ok: true },
+      { label: 'Workers', value: `${active} active, ${disabled} disabled`, ok: true },
+      { label: 'Registered Projects', value: String(State.officeProjects.length), ok: true },
+      { label: 'CTO Inbox', value: waitingCount > 0 ? `${waitingCount} pending` : 'Clear', ok: waitingCount === 0 }
+    ];
+    el.innerHTML = rows.map(r => `
+      <div class="office-status-row">
+        <span class="office-status-icon">${r.ok ? '✓' : '!'}</span>
+        <span class="office-status-label">${escapeHtml(r.label)}</span>
+        <span class="office-status-value ${r.ok ? '' : 'office-status-value-warn'}">${escapeHtml(r.value)}</span>
+      </div>
+    `).join('');
+  }
+
+  // Bottom-left panel: a short real recent-activity feed sourced from the
+  // same per-project task state already on hand — not a separate log
+  // fetch, and never fabricated when there's nothing to show.
+  function renderOfficeRecentActivity() {
+    const el = document.getElementById('office-recent-activity');
+    if (!el) return;
+    const items = [];
+    for (const p of State.officeProjects) {
+      if (!p.task) continue;
+      let desc;
+      if (p.task.isWorkerRunning) {
+        desc = `${formatWorkerName(p.task.activeWorker)} ${p.task.status === 'reviewing' ? 'reviewing' : 'building'} on ${p.projectName}`;
+      } else if (p.task.waitingOnCto) {
+        desc = `Waiting on CTO — ${p.projectName}`;
+      } else {
+        continue;
+      }
+      items.push(desc);
+    }
+    if (items.length === 0) {
+      el.innerHTML = '<div class="office-empty office-empty-inline">No active work right now.</div>';
+      return;
+    }
+    el.innerHTML = items.map(desc => `<div class="office-activity-row">${escapeHtml(desc)}</div>`).join('');
   }
 
   function renderOfficeProjects() {

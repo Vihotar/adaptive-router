@@ -799,28 +799,85 @@
         <!-- VIEW: OFFICE VIEW (real multi-project runtime state, visualized)          -->
         <!-- ========================================================================= -->
         <div class="proto-view" id="view-office">
-          <section class="proto-card">
-            <div class="proto-card-header">
-              <div>
-                <h2 class="proto-card-title">Office View</h2>
-                <p class="proto-card-subtitle">A live look at the technical workforce — who's actually working right now, and on what. Nothing shown here is invented; a desk is only lit up while a worker is genuinely running.</p>
+          <div class="office-view-header">
+            <div>
+              <h2 class="office-view-title">Office View</h2>
+              <p class="office-view-subtitle">A live look at the technical workforce — who's actually working right now, and on what. Nothing shown here is invented; a station only lights up while a worker is genuinely running.</p>
+            </div>
+            <button type="button" class="btn-secondary" id="office-view-inbox-link">
+              📥 View CTO Inbox
+            </button>
+          </div>
+
+          <div class="office-scene-layout">
+            <!-- Left support panel: task flow counts, honest counts only -->
+            <aside class="office-side-panel office-side-panel-left">
+              <h3 class="office-panel-title">Tasks Flowing In</h3>
+              <div class="office-flow-stats" id="office-flow-stats">
+                <!-- Rendered dynamically by app.js -->
               </div>
-              <button type="button" class="btn-secondary" id="office-view-inbox-link">
-                📥 View CTO Inbox
-              </button>
+            </aside>
+
+            <!-- Main hero scene: full-bleed office floor -->
+            <div class="office-scene-wrapper" id="office-floor-wrapper">
+              <div class="office-scene" id="office-floor">
+                <div class="office-scene-backdrop" aria-hidden="true">
+                  <div class="office-backdrop-glow office-backdrop-glow-1"></div>
+                  <div class="office-backdrop-glow office-backdrop-glow-2"></div>
+                  <div class="office-backdrop-grid"></div>
+                </div>
+                <svg class="office-connectors-svg" id="office-connectors-svg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                  <defs>
+                    <marker id="office-arrow-out" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                      <path d="M0,0 L10,5 L0,10 Z" fill="var(--primary)"></path>
+                    </marker>
+                    <marker id="office-arrow-return" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                      <path d="M0,0 L10,5 L0,10 Z" fill="var(--success)"></path>
+                    </marker>
+                  </defs>
+                </svg>
+                <div class="office-hub" id="office-hub">
+                  <div class="office-hub-outer-ring"></div>
+                  <div class="office-hub-ring"></div>
+                  <div class="office-hub-core">
+                    <span class="office-hub-mark">AR</span>
+                    <span class="office-hub-sub">Adaptive Router</span>
+                    <span class="office-hub-label" id="office-hub-label">Orchestrator Ready</span>
+                  </div>
+                  <div class="office-hub-attention" id="office-hub-attention" hidden>
+                    <span class="office-attention-icon">⚠</span>
+                    <span>CTO Attention</span>
+                  </div>
+                </div>
+                <div class="office-seats-layer" id="office-seats-layer">
+                  <!-- Radial worker pods rendered dynamically by app.js -->
+                </div>
+              </div>
             </div>
 
-            <div class="office-floor" id="office-floor">
-              <!-- Worker desks rendered dynamically by app.js -->
-            </div>
+            <!-- Right support panel: system status, honest counts only -->
+            <aside class="office-side-panel office-side-panel-right">
+              <h3 class="office-panel-title">System Status</h3>
+              <div class="office-status-list" id="office-status-list">
+                <!-- Rendered dynamically by app.js -->
+              </div>
+            </aside>
+          </div>
 
-            <div class="office-projects-section">
+          <div class="office-bottom-panels">
+            <section class="office-bottom-panel">
+              <h3 class="office-section-title">Recent Activity</h3>
+              <div class="office-recent-activity" id="office-recent-activity">
+                <!-- Rendered dynamically by app.js -->
+              </div>
+            </section>
+            <section class="office-bottom-panel office-projects-section">
               <h3 class="office-section-title">Active Projects</h3>
               <div class="office-projects-grid" id="office-projects-grid">
                 <!-- Project activity cards rendered dynamically by app.js -->
               </div>
-            </div>
-          </section>
+            </section>
+          </div>
         </div>
 
         <!-- ========================================================================= -->

@@ -1480,11 +1480,643 @@ input:checked + .slider:before {
 /* running — see server.mjs's comments on that endpoint. Keep     */
 /* animation lightweight (a small pulse), no heavy frameworks.    */
 /* ============================================================= */
-.office-floor {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+/* ============================================================= */
+/* Office View — full-bleed radial office scene (Post-Release     */
+/* Fix B). AR sits centered as the orchestrator; 7 workforce pods */
+/* sit on a ring around it. Only seats with a real backing worker */
+/* (data-live="1") ever show live status or respond to clicks —   */
+/* see renderOfficeFloor() in app.js. Nothing here is decorative  */
+/* fakery: an animated route/packet only ever plays while the     */
+/* backing worker is genuinely busy.                              */
+/* ============================================================= */
+.office-view-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
+}
+
+.office-view-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.office-view-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  max-width: 62ch;
+}
+
+/* Three-column layout: slim stat panels flank the hero scene. The side
+   panels collapse below it on narrower viewports (see media query) so the
+   scene itself always gets the most room, per the "office must dominate
+   the page" requirement. */
+.office-scene-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 200px;
+  gap: 1rem;
+  align-items: stretch;
+  margin-bottom: 1.25rem;
+}
+
+.office-side-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.office-panel-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.office-flow-stats, .office-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.office-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.office-stat-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.office-stat-dot-busy { background: var(--primary); }
+.office-stat-dot-attention { background: var(--warning); }
+.office-stat-dot-idle { background: var(--text-subtle); }
+
+.office-stat-label {
+  color: var(--text-main);
+  flex: 1;
+}
+
+.office-stat-count {
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.office-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.office-status-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: var(--success-bg);
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+.office-status-row:has(.office-status-value-warn) .office-status-icon {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.office-status-label {
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.office-status-value {
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: right;
+}
+
+.office-status-value-warn {
+  color: var(--warning);
+}
+
+/* The hero scene itself — full-bleed, tall, square-aspect canvas so the
+   radial geometry stays clean at any width. */
+.office-scene-wrapper {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.office-scene {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 78vh;
+  margin: 0 auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  background: linear-gradient(180deg, #f4f8ff 0%, #eef3fb 55%, #e8eefb 100%);
+}
+
+.office-scene-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.office-backdrop-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.5;
+}
+
+.office-backdrop-glow-1 {
+  width: 46%;
+  height: 46%;
+  top: -8%;
+  left: -6%;
+  background: radial-gradient(circle, #bfdbfe 0%, transparent 70%);
+}
+
+.office-backdrop-glow-2 {
+  width: 40%;
+  height: 40%;
+  bottom: -6%;
+  right: -4%;
+  background: radial-gradient(circle, #ddd6fe 0%, transparent 70%);
+}
+
+.office-backdrop-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at 50% 45%, black 0%, transparent 72%);
+}
+
+.office-connectors-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.office-connector-line {
+  stroke: var(--border-strong);
+  stroke-width: 2.5;
+  stroke-dasharray: 8 8;
+  fill: none;
+  opacity: 0.5;
+}
+
+.office-connector-line.connector-active-out {
+  stroke: var(--primary);
+  stroke-width: 3;
+  opacity: 0.95;
+  animation: office-flow-out 1s linear infinite;
+}
+
+.office-connector-line.connector-active-return {
+  stroke: var(--success);
+  stroke-width: 3;
+  opacity: 0.95;
+  animation: office-flow-return 1s linear infinite;
+}
+
+@keyframes office-flow-out {
+  to { stroke-dashoffset: -32; }
+}
+
+@keyframes office-flow-return {
+  to { stroke-dashoffset: 32; }
+}
+
+.office-task-packet {
+  fill: var(--primary);
+  filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.7));
+}
+
+.office-task-packet.packet-return {
+  fill: var(--success);
+  filter: drop-shadow(0 0 4px rgba(16, 163, 74, 0.7));
+}
+
+/* Central hub — deliberately the largest, brightest element in the scene so
+   AR reads as the manager/dispatcher, not just another node. */
+.office-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 21%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.office-hub-outer-ring {
+  position: absolute;
+  inset: -14%;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(37, 99, 235, 0.25);
+}
+
+.office-hub-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--primary-bg);
+  box-shadow: 0 0 0 14px var(--primary-bg);
+}
+
+.office-hub-core {
+  position: relative;
+  width: 86%;
+  height: 86%;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #1d4ed8 0%, #2563eb 50%, #4f46e5 100%);
+  color: var(--text-inverse);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  box-shadow: var(--shadow-xl);
+  text-align: center;
+}
+
+.office-hub.hub-active .office-hub-core {
+  box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.2), var(--shadow-xl);
+  animation: office-hub-pulse 2s ease-in-out infinite;
+}
+
+@keyframes office-hub-pulse {
+  0%, 100% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.2), var(--shadow-xl); }
+  50% { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0.12), var(--shadow-xl); }
+}
+
+.office-hub.hub-attention .office-hub-core {
+  background: linear-gradient(160deg, #b45309 0%, #d97706 50%, #f59e0b 100%);
+  box-shadow: 0 0 0 8px rgba(217, 119, 6, 0.22), var(--shadow-xl);
+}
+
+.office-hub-mark {
+  font-weight: 800;
+  font-size: clamp(1.1rem, 3vw, 2.1rem);
+  letter-spacing: 0.02em;
+}
+
+.office-hub-sub {
+  font-size: clamp(0.5rem, 1vw, 0.7rem);
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.office-hub-label {
+  font-size: clamp(0.55rem, 1.2vw, 0.72rem);
+  font-weight: 700;
+  opacity: 0.95;
+  padding: 0.1rem 0.5rem;
+  margin-top: 0.15rem;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-full);
+}
+
+.office-hub-attention {
+  position: absolute;
+  top: -13%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--warning);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+  z-index: 4;
+}
+
+.office-hub-attention[hidden] {
+  display: none;
+}
+
+.office-attention-icon {
+  font-size: 0.75rem;
+}
+
+.office-seats-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+/* Each seat is a "pod": a desk-shaped base under a circular monitor/avatar
+   frame, with the platform name and status on a plate beneath. Substantial
+   by design — not a small icon — per the reference composition. */
+.office-seat-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 15.5%;
+  min-width: 108px;
+  max-width: 156px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.35rem;
+  cursor: default;
+}
+
+.office-seat-node.seat-live {
+  cursor: pointer;
+}
+
+.office-seat-node.seat-live:hover .office-pod,
+.office-seat-node.seat-live:focus-visible .office-pod {
+  transform: translateY(-3px);
+}
+
+.office-seat-node.seat-live:hover .office-pod-avatar-wrap,
+.office-seat-node.seat-live:focus-visible .office-pod-avatar-wrap {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--seat-accent, var(--border-strong));
+}
+
+.office-seat-node.seat-non-live {
+  opacity: 0.62;
+}
+
+.office-pod {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.office-pod-ring {
+  position: absolute;
+  top: 4%;
+  width: 78%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--seat-accent, var(--border-strong)) 45%, transparent);
+  opacity: 0.7;
+}
+
+.office-seat-node.seat-busy .office-pod-ring {
+  border-style: solid;
+  opacity: 1;
+  animation: office-pod-ring-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes office-pod-ring-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.08); opacity: 0.4; }
+}
+
+.office-pod-avatar-wrap {
+  position: relative;
+  width: 74%;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.office-seat-node.seat-busy .office-pod-avatar-wrap {
+  border-color: var(--seat-accent, #93c5fd);
+  background: color-mix(in srgb, var(--seat-accent, var(--primary)) 8%, var(--bg-card));
+}
+
+.office-seat-avatar-svg {
+  width: 70%;
+  height: 70%;
+}
+
+.office-pod-desk {
+  width: 108%;
+  height: 22%;
+  margin-top: -8%;
+  background: linear-gradient(180deg, #ffffff 0%, #e7edf6 100%);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-sm) var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.office-pod-desk::before {
+  /* A thin accent strip along the desk front — the seat's platform color,
+     a restrained nod to individual identity without needing a logo asset. */
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 0;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--seat-accent, var(--border-strong));
+  opacity: 0.7;
+}
+
+.office-desk-activity-dot {
+  position: absolute;
+  top: 2%;
+  right: 2%;
+  width: 14%;
+  height: 14%;
+  min-width: 10px;
+  min-height: 10px;
+  border-radius: 50%;
+  background: var(--seat-accent, #2563eb);
+  border: 2px solid var(--bg-card);
+  animation: pulse-ring 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  z-index: 2;
+}
+
+.office-pod-plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  margin-top: 0.1rem;
+}
+
+.office-seat-name {
+  font-weight: 800;
+  font-size: 0.86rem;
+  color: var(--text-main);
+  line-height: 1.15;
+}
+
+.office-seat-state {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.office-seat-state-busy { background: #dbeafe; color: #1d4ed8; }
+.office-seat-state-idle { background: #f1f5f9; color: #64748b; }
+.office-seat-state-off { background: #fee2e2; color: #b91c1c; }
+.office-seat-state-available { background: #f1f5f9; color: #94a3b8; }
+
+.office-pod-task {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  max-width: 130px;
+  line-height: 1.25;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.4rem;
+}
+
+.office-bottom-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.office-bottom-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.office-recent-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.office-activity-row {
+  font-size: 0.82rem;
+  color: var(--text-main);
+  padding: 0.4rem 0.55rem;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.office-empty-inline {
+  padding: 0.75rem;
+  text-align: left;
+}
+
+/* Tablet: drop side panels below the scene so the office itself keeps the
+   most room, matching "desktop is primary, but don't collapse into generic
+   stacked cards" guidance. */
+@media (max-width: 1180px) {
+  .office-scene-layout {
+    grid-template-columns: 1fr;
+  }
+  .office-side-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .office-side-panel-left, .office-side-panel-right {
+    order: 2;
+  }
+  .office-scene-wrapper {
+    order: 1;
+  }
+  .office-flow-stats, .office-status-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .office-bottom-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Below 640px the scene itself renders well under 300px wide, and 7 pods
+     evenly spaced on a ring only leaves a small fraction of that for
+     center-to-center clearance between neighbors. A fixed min-width fights
+     the shrink here, so this breakpoint drops it and sizes the pod off the
+     container instead — verified live (not just assumed) to keep pods from
+     visually overlapping down to 375px. */
+  .office-seat-node {
+    width: 13%;
+    min-width: 0;
+    gap: 0.15rem;
+  }
+  .office-pod-desk {
+    display: none;
+  }
+  .office-pod-task {
+    display: none;
+  }
+  .office-seat-name {
+    font-size: 0.56rem;
+    line-height: 1.1;
+  }
+  .office-seat-state {
+    /* Status text is dropped in favor of a compact color dot at this size —
+       the seat's aria-label still carries the full status for screen
+       readers, and the worker detail modal (tap/click) has the full text. */
+    font-size: 0;
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    padding: 0;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .office-hub-mark {
+    font-size: 0.85rem;
+  }
+  .office-hub-sub, .office-hub-label {
+    display: none;
+  }
 }
 
 .office-empty {
@@ -1495,102 +2127,19 @@ input:checked + .slider:before {
   grid-column: 1 / -1;
 }
 
-.office-desk {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: var(--shadow-sm);
-}
-
-.office-desk:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--border-strong);
-  transform: translateY(-1px);
-}
-
-.office-desk-off {
-  opacity: 0.55;
-}
-
-.office-desk-busy {
-  border-color: #93c5fd;
-  background: linear-gradient(180deg, #eff6ff 0%, var(--bg-card) 60%);
-}
-
-.office-desk-monitor {
-  position: relative;
-}
-
-.office-desk-avatar {
-  width: 48px;
-  height: 48px;
-  font-size: 1.1rem;
-}
-
-.office-desk-activity-dot {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #2563eb;
-  border: 2px solid var(--bg-card);
-  animation: pulse-ring 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
+/* Applied together with .office-desk-activity-dot (which supplies the
+   background/animation/border-radius) to override its absolute positioning
+   for the inline usage inside renderOfficeProjects()'s worker-row text. */
 .office-desk-activity-dot-inline {
   position: static;
   border: none;
   width: 8px;
   height: 8px;
+  min-width: 0;
+  min-height: 0;
   margin-left: 0.35rem;
   vertical-align: middle;
-}
-
-.office-desk-nameplate {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-}
-
-.office-desk-name {
-  font-weight: 700;
-  font-size: 0.92rem;
-  color: var(--text-main);
-}
-
-.office-desk-state {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0.1rem 0.5rem;
-  border-radius: var(--radius-full);
-}
-
-.office-desk-state-busy { background: #dbeafe; color: #1d4ed8; }
-.office-desk-state-idle { background: #f1f5f9; color: #64748b; }
-.office-desk-state-off { background: #fee2e2; color: #b91c1c; }
-
-.office-desk-task {
-  font-size: 0.78rem;
-  color: var(--text-main);
-  line-height: 1.3;
-}
-
-.office-desk-project {
-  font-size: 0.72rem;
-  color: var(--text-muted);
+  display: inline-block;
 }
 
 .office-projects-section {
