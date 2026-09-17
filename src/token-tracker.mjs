@@ -33,7 +33,12 @@ export function createEmptyTokenUsage() {
     totalTokens: null,
     totalAccuracy: 'Unavailable',
     summaryText: 'Unavailable',
-    invocations: []
+    invocations: [],
+    // Every provider attempt, successful or not, with the provider/model that
+    // actually served it, its latency and its outcome. Failed attempts are
+    // kept here rather than in `invocations` so they never distort the task's
+    // token totals or accuracy labelling, while still being auditable.
+    attempts: []
   };
 }
 
@@ -109,12 +114,54 @@ export function normalizeUsage(raw, platform) {
   };
 }
 
+/**
+ * Append one provider attempt (success or failure) to the audit trail. This is
+ * deliberately separate from accumulateInvocation: it records what happened,
+ * not what the task consumed.
+ */
+export function recordProviderAttempt(tokenUsage = createEmptyTokenUsage(), {
+  id = `att_${randomUUID().slice(0, 8)}`,
+  role = 'builder',
+  stage = '',
+  worker = '',
+  provider = null,
+  providerLabel = null,
+  model = '',
+  usage = null,
+  latencyMs = null,
+  success = true
+} = {}) {
+  const current = tokenUsage || createEmptyTokenUsage();
+  current.attempts = Array.isArray(current.attempts) ? current.attempts : [];
+  const u = usage && usage.accuracy ? usage : normalizeUsage(usage, worker);
+  current.attempts.push({
+    id,
+    role: (role === 'build' || role === 'builder') ? 'builder' : 'reviewer',
+    stage,
+    worker,
+    provider: provider || u.provider || null,
+    providerLabel: providerLabel || u.providerLabel || null,
+    model,
+    inputTokens: u.inputTokens,
+    outputTokens: u.outputTokens,
+    totalTokens: u.totalTokens,
+    accuracy: u.accuracy,
+    latencyMs: typeof latencyMs === 'number' ? latencyMs : null,
+    success: success !== false,
+    timestamp: new Date().toISOString()
+  });
+  return current;
+}
+
 export function accumulateInvocation(tokenUsage = createEmptyTokenUsage(), {
   id = `inv_${randomUUID().slice(0, 8)}`,
   role = 'builder',
   stage = '',
   worker = '',
+  provider = null,
+  providerLabel = null,
   model = '',
+  latencyMs = null,
   usage = null
 }) {
   const normRole = (role === 'build' || role === 'builder') ? 'builder' : 'reviewer';
@@ -134,7 +181,13 @@ export function accumulateInvocation(tokenUsage = createEmptyTokenUsage(), {
     role: normRole,
     stage,
     worker,
+    // The real provider behind this invocation (Gemini / NVIDIA NIM /
+    // OpenRouter when the Cline runtime was used); null when the worker is
+    // its own provider.
+    provider: provider || u.provider || null,
+    providerLabel: providerLabel || u.providerLabel || null,
     model,
+    latencyMs: typeof latencyMs === 'number' ? latencyMs : null,
     inputTokens: u.inputTokens,
     outputTokens: u.outputTokens,
     totalTokens: u.totalTokens,
@@ -145,6 +198,8 @@ export function accumulateInvocation(tokenUsage = createEmptyTokenUsage(), {
 
   const roleStats = current[normRole];
   roleStats.platform = worker || roleStats.platform;
+  roleStats.provider = record.provider || roleStats.provider || null;
+  roleStats.providerLabel = record.providerLabel || roleStats.providerLabel || null;
   roleStats.model = model || roleStats.model;
   roleStats.invocations = (roleStats.invocations || 0) + 1;
 
@@ -207,10 +262,13 @@ export function accumulateInvocation(tokenUsage = createEmptyTokenUsage(), {
   return current;
 }
 
-export function formatTokenUsageLog({ role, worker, model, usage }) {
+export function formatTokenUsageLog({ role, worker, model, usage, providerLabel = null }) {
   const u = usage && usage.accuracy ? usage : normalizeUsage(usage, worker);
   const roleName = (role === 'build' || role === 'builder') ? 'Builder' : 'Reviewer';
-  const workerDisplay = worker ? (worker.charAt(0).toUpperCase() + worker.slice(1)) : 'Unknown';
+  // Report the provider that actually served the request when one is known,
+  // so token accounting reads as "NVIDIA NIM" rather than a generic "Cline".
+  const label = providerLabel || u.providerLabel;
+  const workerDisplay = label || (worker ? (worker.charAt(0).toUpperCase() + worker.slice(1)) : 'Unknown');
   const modelDisplay = model || 'default';
   const totalDisplay = u?.totalTokens != null ? u.totalTokens.toLocaleString() : 'unknown';
   const inDisplay = u?.inputTokens != null ? u.inputTokens.toLocaleString() : 'unavailable';

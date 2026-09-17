@@ -38,7 +38,12 @@
         "build"
       ],
       "priority": 35,
-      "adapter": "cline"
+      "adapter": "cline",
+      "providerOrder": [
+        "gemini",
+        "nvidia",
+        "openrouter"
+      ]
     }
   ],
   "maxCorrections": 2,

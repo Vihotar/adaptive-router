@@ -19,6 +19,7 @@ import { discoverAntigravityModels, classifyTask } from './smart-router.mjs';
 import { classifySensitivity } from './sensitivity.mjs';
 import { formatTaskFailure } from './failure.mjs';
 import { getAllWorkerHealth } from './worker-health.mjs';
+import { listProviders } from './cline-providers.mjs';
 import { getAttentionSummary, listAttention, setAttentionState, resolveAttentionForTask } from './cto-attention.mjs';
 import { taskDisplayTitle } from './web/task-title.mjs';
 
@@ -299,7 +300,8 @@ export async function getWorkerStatuses(root, requestedProject = null) {
   let clineNote = 'Cline CLI not found (install with: npm i -g cline)';
   if (paths.cline) {
     clineStatus = 'Available';
-    clineNote = 'Connected via Cline CLI (local install, model set by connected provider)';
+    // Cline is the runtime; the provider named per task is the real identity.
+    clineNote = `Runtime for direct providers: ${listProviders().map(p => p.shortLabel).join(', ')} (AR names the provider and model for every task)`;
   }
 
   const activeProject = requestedProject

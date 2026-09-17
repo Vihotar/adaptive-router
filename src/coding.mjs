@@ -21,7 +21,7 @@ import { recordStaffCompletion } from './staff-log.mjs';
 import { deriveTaskTitle, normalizeTaskTitle } from './web/task-title.mjs';
 import { notifyFromTaskStatus, notifyCtoAttention } from './cto-attention.mjs';
 import { formatTaskFailure } from './failure.mjs';
-import { createEmptyTokenUsage, accumulateInvocation, formatTokenUsageLog, normalizeUsage } from './token-tracker.mjs';
+import { createEmptyTokenUsage, accumulateInvocation, recordProviderAttempt, formatTokenUsageLog, normalizeUsage } from './token-tracker.mjs';
 
 export const codingInstruction = 'Add a contact form to the test website.';
 const names = ['index.html', 'styles.css', 'app.js'];
@@ -508,26 +508,42 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       }
     };
 
-    const recordTaskTokenUsage = ({ role, stage, worker, model, usage }) => {
+    const recordTaskTokenUsage = ({ role, stage, worker, model, usage, provider = null, providerLabel = null, latencyMs = null, success = true }) => {
       const normalized = normalizeUsage(usage, worker);
-      task.tokenUsage = accumulateInvocation(task.tokenUsage, {
-        role,
-        stage,
-        worker,
-        model,
-        usage: normalized
+      // Every attempt is recorded with its real provider, model, latency and
+      // outcome. Only successful attempts feed the task's token totals, so a
+      // failed provider call is fully auditable without silently changing what
+      // the task is reported to have consumed.
+      task.tokenUsage = recordProviderAttempt(task.tokenUsage || createEmptyTokenUsage(), {
+        role, stage, worker, provider, providerLabel, model, usage: normalized, latencyMs, success
       });
+      if (success !== false) {
+        task.tokenUsage = accumulateInvocation(task.tokenUsage, {
+          role,
+          stage,
+          worker,
+          provider,
+          providerLabel,
+          model,
+          latencyMs,
+          usage: normalized
+        });
+      }
       json(path.join(dir, 'task.json'), task);
-      const logTitle = formatTokenUsageLog({ role, worker, model, usage: normalized });
+      const logTitle = formatTokenUsageLog({ role, worker, model, usage: normalized, providerLabel });
       publishEvent({
         eventType: 'token_usage',
         role: (role === 'build' || role === 'builder') ? 'builder' : 'reviewer',
         worker,
         model,
-        title: logTitle,
-        detail: `Input: ${normalized.inputTokens != null ? normalized.inputTokens.toLocaleString() : 'unavailable'}, Output: ${normalized.outputTokens != null ? normalized.outputTokens.toLocaleString() : 'unavailable'}, Total: ${normalized.totalTokens != null ? normalized.totalTokens.toLocaleString() : 'unavailable'} [${normalized.accuracy || 'Unavailable'}]`,
+        title: success === false ? `${logTitle} [failed attempt]` : logTitle,
+        detail: `Input: ${normalized.inputTokens != null ? normalized.inputTokens.toLocaleString() : 'unavailable'}, Output: ${normalized.outputTokens != null ? normalized.outputTokens.toLocaleString() : 'unavailable'}, Total: ${normalized.totalTokens != null ? normalized.totalTokens.toLocaleString() : 'unavailable'} [${normalized.accuracy || 'Unavailable'}]${latencyMs != null ? `, Latency: ${Math.round(latencyMs / 100) / 10}s` : ''}`,
         metadata: {
           usage: normalized,
+          provider,
+          providerLabel,
+          latencyMs,
+          success: success !== false,
           tokenUsage: task.tokenUsage
         }
       });
@@ -998,9 +1014,16 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
           task.builderModel = built.model;
           task.builderEffort = built.effort;
           task.builderWorker = built.worker;
+          // When the Cline runtime was used, the builder's business-facing
+          // identity is the direct provider that actually served it (Gemini /
+          // NVIDIA NIM / OpenRouter), not "Cline".
+          task.builderProviderId = built.provider || null;
+          task.builderProviderLabel = built.providerLabel || null;
+          task.builderRuntime = built.runtime || null;
 
+          const builderIdentity = built.providerLabel || built.worker.toUpperCase();
           const draftTitle = task.revision === 1 ? 'Builder Completed First Draft' : `Builder Completed Revision ${task.revision}`;
-          addActivity('✍️', draftTitle, `${built.worker.toUpperCase()} completed draft deliverables (${files.length} file${files.length === 1 ? '' : 's'}).`, { category: 'worker', eventType: 'file_edit' });
+          addActivity('✍️', draftTitle, `${builderIdentity} (${built.model}) completed draft deliverables (${files.length} file${files.length === 1 ? '' : 's'}).`, { category: 'worker', eventType: 'file_edit' });
           task.routingLog.push({
             role: 'build',
             stage: `build-${task.revision}`,
@@ -1012,6 +1035,9 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
             tierName: bTierName,
             family: bTierMeta.family,
             provider: bTierMeta.provider,
+            providerId: built.provider || null,
+            providerLabel: built.providerLabel || null,
+            runtime: built.runtime || null,
             projectRoot: task.projectRoot,
             specialist: buildSpecialist?.id || null,
             specialistName: buildSpecialist?.name || null,
@@ -1488,7 +1514,11 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
                 projectName: task.projectName,
                 instruction: task.instruction,
                 summary: task.summary || review.summary,
-                builder: task.builderWorker || 'cline',
+                // Name the provider/model that actually did the work, not the
+                // runtime that carried it.
+                builder: task.builderProviderLabel
+                  ? `${task.builderProviderLabel} (${task.builderModel})`
+                  : (task.builderWorker || 'cline'),
                 reviewer: reviewed.worker,
                 completionTime
               });

@@ -216,10 +216,15 @@ test('Cline Gemini Routing Test Suite', async (t) => {
     });
 
     assert.equal(result.worker, 'antigravity');
-    // Both Cline easy models (3.5-flash-lite and 3.1-flash-lite) should have been attempted before cascading
+    // Every approved Cline provider/model route (both easy Gemini models, then
+    // NVIDIA NIM, then both OpenRouter models) is exhausted before AR cascades
+    // to the next worker — and nothing outside the approved pool is attempted.
     assert.deepEqual(attemptedCalls, [
       { worker: 'cline', model: 'gemini-3.5-flash-lite' },
       { worker: 'cline', model: 'gemini-3.1-flash-lite' },
+      { worker: 'cline', model: 'nvidia/nemotron-3-super-120b-a12b' },
+      { worker: 'cline', model: 'cohere/north-mini-code:free' },
+      { worker: 'cline', model: 'poolside/laguna-s-2.1:free' },
       { worker: 'antigravity', model: 'gemini-3.8-flash-low' }
     ]);
   });

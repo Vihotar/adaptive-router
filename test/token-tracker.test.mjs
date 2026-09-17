@@ -232,7 +232,9 @@ test('codeTask accurately tracks and persists token usage for builder and review
     const events = fs.readFileSync(eventsFile, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
     const tokenEvents = events.filter(e => e.eventType === 'token_usage');
     assert.equal(tokenEvents.length, 2);
-    assert.equal(tokenEvents[0].title, '[TOKEN_USAGE] Builder (Cline — gemini-3.5-flash-lite) consumed 10,600 tokens (input: 8,420, output: 2,180) [Exact]');
+    // Token accounting names the provider that actually served the request
+    // (the Cline runtime is plumbing, not a provider identity).
+    assert.equal(tokenEvents[0].title, '[TOKEN_USAGE] Builder (Google AI Studio (Gemini) — gemini-3.5-flash-lite) consumed 10,600 tokens (input: 8,420, output: 2,180) [Exact]');
     assert.equal(tokenEvents[1].title, '[TOKEN_USAGE] Reviewer (Antigravity — gemini-3.8-flash-medium) consumed 5,000 tokens (input: 4,200, output: 800) [Exact]');
 
     // Verify activity.jsonl has no raw token telemetry noise

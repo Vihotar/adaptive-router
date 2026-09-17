@@ -6,6 +6,7 @@ import { read, event } from './storage.mjs';
 import { validate } from './contracts.mjs';
 import { recordWorkerOutcome } from './worker-health.mjs';
 import { discoverAntigravityModels } from './smart-router.mjs';
+import { buildClineRouteSequence } from './cline-providers.mjs';
 
 export function workerReady(worker, paths) {
   const exe = paths[worker.adapter];
@@ -121,14 +122,20 @@ export async function withFailover({
   projectRoot = null,
   onWorkerEvent = null,
   onTokenUsage = null,
-  signal = null
+  signal = null,
+  // Explicit provider/model pin for the Cline runtime. Both are optional and
+  // validated against the approved registry; they exist so a caller (or a
+  // live verification run) can say "use NVIDIA NIM" deliberately instead of
+  // relying on failover order.
+  clineProvider = null,
+  clineModel = null
 }) {
   let lastWorkerError = null;
   let lastFailedWorker = null;
   let lastFailedModel = null;
   let lastInvocationUsage = null;
-  const handleUsage = (u, attemptWorker, attemptModel) => {
-    lastInvocationUsage = u;
+  const handleUsage = (u, attemptWorker, attemptModel, extra = {}) => {
+    if (extra.success !== false) lastInvocationUsage = u;
     if (onTokenUsage) {
       try {
         onTokenUsage({
@@ -136,7 +143,11 @@ export async function withFailover({
           stage,
           worker: attemptWorker,
           model: attemptModel,
-          usage: u
+          usage: u,
+          success: extra.success !== false,
+          provider: extra.provider || null,
+          providerLabel: extra.providerLabel || null,
+          latencyMs: typeof extra.latencyMs === 'number' ? extra.latencyMs : null
         });
       } catch {}
     }
@@ -219,58 +230,104 @@ export async function withFailover({
       });
       let result;
       let usedModel = selection.model;
+      let usedRoute = null;
       if (worker.adapter === 'cline') {
-        const pool = (Array.isArray(selection.fallbackModels) && selection.fallbackModels.length > 0)
-          ? [selection.model, ...selection.fallbackModels]
-          : [selection.model];
+        // Cline is the runtime; the real identity of each attempt is the
+        // direct provider behind it. The sequence is deterministic and comes
+        // entirely from the approved registry — failover can never reach a
+        // provider or model that is not on that list.
+        const routes = buildClineRouteSequence({
+          primaryModel: selection.model,
+          fallbackModels: selection.fallbackModels,
+          providerOrder: worker.providerOrder,
+          pinnedProvider: clineProvider || worker.provider || null,
+          pinnedModel: clineModel || worker.model || null
+        });
 
         let modelSuccess = false;
         let lastModelError = null;
 
-        for (let i = 0; i < pool.length; i++) {
-          const candidateModel = pool[i];
-          usedModel = candidateModel;
+        for (let i = 0; i < routes.length; i++) {
+          const route = routes[i];
+          usedModel = route.model;
+          usedRoute = route;
+          const attemptStartedAt = Date.now();
           try {
             if (i > 0) {
-              log(`Cline model ${pool[i - 1]} failed (${lastModelError?.message || 'error'}). Retrying with fallback model ${candidateModel}.`);
+              const previous = routes[i - 1];
+              log(`${previous.label} (${previous.model}) failed (${lastModelError?.message || 'error'}). Retrying with ${route.label} (${route.model}).`);
               onWorkerEvent?.({
                 platform: 'cline',
                 worker: 'cline',
-                model: candidateModel,
+                model: route.model,
                 role,
                 eventType: 'retry',
-                title: `Retrying with fallback model ${candidateModel}`,
-                detail: lastModelError?.message || `Fallback from ${pool[i - 1]}`,
-                status: 'info'
+                title: `Retrying with ${route.label} (${route.model})`,
+                detail: lastModelError?.message || `Fallback from ${previous.label} (${previous.model})`,
+                status: 'info',
+                metadata: { provider: route.provider, providerLabel: route.label, previousProvider: previous.provider }
               });
             }
             result = await call(worker, {
               root,
-              dir: path.join(dir, `${stage}-${worker.id}${i > 0 ? '-' + candidateModel : ''}`),
+              dir: path.join(dir, `${stage}-${worker.id}${i > 0 ? '-' + route.provider + '-' + route.model.replace(/[\\/:]/g, '_') : ''}`),
               schema,
               prompt,
               timeout: config.workerTimeoutSeconds * 1000,
               paths,
-              model: candidateModel,
+              model: route.model,
+              provider: route.clineProvider,
+              providerId: route.provider,
+              providerLabel: route.label,
               effort: selection.effort,
               projectRoot,
               onWorkerEvent,
-              onUsage: (u) => handleUsage(u, worker.id, candidateModel),
+              onUsage: (u) => handleUsage(u, worker.id, route.model, {
+                provider: route.provider,
+                providerLabel: route.label,
+                latencyMs: Date.now() - attemptStartedAt,
+                success: true
+              }),
               signal
             });
             modelSuccess = true;
+            recordWorkerOutcome(root, route.healthId, 'success');
             break;
           } catch (modelErr) {
             lastModelError = modelErr;
             if (signal?.aborted || modelErr.message?.includes('aborted') || modelErr.message?.includes('TASK_STOPPED')) {
               throw modelErr;
             }
+            // Per-route health telemetry: a provider/model pair that keeps
+            // failing is tracked on its own, separately from "Cline". Quota
+            // exhaustion stays excluded from failure counts here for the same
+            // reason it is at worker level — it is normal usage, not a fault.
+            const routeQuota = isQuotaError(modelErr);
+            const routeTimeout = /timed out/i.test(modelErr.message || '');
+            recordWorkerOutcome(root, route.healthId, routeQuota ? 'quota' : (routeTimeout ? 'timeout' : 'failure'), modelErr.message);
+            handleUsage(modelErr.usage || { inputTokens: null, outputTokens: null, totalTokens: null, accuracy: 'Unavailable' }, worker.id, route.model, {
+              provider: route.provider,
+              providerLabel: route.label,
+              latencyMs: Date.now() - attemptStartedAt,
+              success: false
+            });
+            onWorkerEvent?.({
+              platform: 'cline',
+              worker: 'cline',
+              model: route.model,
+              role,
+              eventType: 'failover',
+              title: `${route.label} (${route.model}) failed`,
+              detail: modelErr.message || 'Provider attempt failed',
+              status: 'failed',
+              metadata: { provider: route.provider, providerLabel: route.label, isQuota: routeQuota }
+            });
             if (isLikelyBrokenInstall(modelErr)) {
               throw modelErr;
             }
             const isRetryable = isClineModelFailoverError(modelErr) || isQuotaError(modelErr);
-            const hasNextModel = i + 1 < pool.length;
-            if (!isRetryable || !hasNextModel) {
+            const hasNextRoute = i + 1 < routes.length;
+            if (!isRetryable || !hasNextRoute) {
               throw modelErr;
             }
           }
@@ -301,7 +358,9 @@ export async function withFailover({
         stage,
         model: usedModel,
         effort: selection.effort,
-        tier: selection.tier
+        tier: selection.tier,
+        provider: usedRoute?.provider,
+        providerLabel: usedRoute?.label
       });
       onWorkerEvent?.({
         platform: worker.adapter || 'router',
@@ -310,7 +369,7 @@ export async function withFailover({
         effort: selection.effort,
         role,
         eventType: 'progress',
-        title: `Worker completed: ${(worker.name || worker.id).toUpperCase()}`,
+        title: `Worker completed: ${(usedRoute ? usedRoute.label : (worker.name || worker.id)).toUpperCase()}`,
         detail: `Generated output for stage ${stage}`,
         status: 'success'
       });
@@ -323,7 +382,12 @@ export async function withFailover({
         tierNumber: selection.tierNumber,
         tierName: selection.tierName,
         reason: selection.reason,
-        usage: lastInvocationUsage
+        usage: lastInvocationUsage,
+        // Real provider identity for this invocation (Cline runtime only);
+        // undefined for workers that are their own provider.
+        provider: usedRoute?.provider,
+        providerLabel: usedRoute?.label,
+        runtime: usedRoute ? 'cline' : undefined
       };
     } catch (error) {
       if (signal?.aborted || error.message === 'TASK_STOPPED' || error.message === 'TASK_ABORTED_BY_USER' || error.message === 'TASK_PAUSED_BY_USER' || error.message?.includes('aborted by user')) {

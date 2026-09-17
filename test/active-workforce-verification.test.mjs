@@ -189,9 +189,15 @@ test('Active Workforce & Eradication Verification Suite', async (t) => {
     });
 
     assert.equal(res.worker, 'antigravity');
+    // The Cline runtime now covers every approved provider route (Gemini, then
+    // NVIDIA NIM, then both OpenRouter models) before AR cascades to the next
+    // worker — and nothing outside that approved pool is ever attempted.
     assert.deepEqual(calls, [
       { worker: 'cline', model: 'gemini-3.5-flash-lite' },
       { worker: 'cline', model: 'gemini-3.1-flash-lite' },
+      { worker: 'cline', model: 'nvidia/nemotron-3-super-120b-a12b' },
+      { worker: 'cline', model: 'cohere/north-mini-code:free' },
+      { worker: 'cline', model: 'poolside/laguna-s-2.1:free' },
       { worker: 'antigravity', model: 'gemini-3.8-flash-low' }
     ]);
   });

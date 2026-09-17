@@ -231,6 +231,33 @@
         "review": 3,
         "security": 3
       }
+    },
+    "nvidia/nemotron-3-super-120b-a12b": {
+      "provider": "nvidia",
+      "family": "nemotron",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
+      }
+    },
+    "cohere/north-mini-code:free": {
+      "provider": "openrouter",
+      "family": "north",
+      "defaultTier": 1,
+      "domains": {
+        "coding": 1,
+        "review": 1
+      }
+    },
+    "poolside/laguna-s-2.1:free": {
+      "provider": "openrouter",
+      "family": "laguna",
+      "defaultTier": 1,
+      "domains": {
+        "coding": 1,
+        "review": 1
+      }
     }
   }
 }

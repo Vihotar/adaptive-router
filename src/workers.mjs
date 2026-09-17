@@ -6,6 +6,7 @@ import { json, read } from './storage.mjs';
 import { validate } from './contracts.mjs';
 import { sanitizeText } from './events.mjs';
 import { normalizeUsage } from './token-tracker.mjs';
+import { resolveClineRoute } from './cline-providers.mjs';
 
 export function findClaudeExe(env = process.env) {
   const lookup = name => {
@@ -341,6 +342,87 @@ export function extractJson(text) {
   throw Error(`Could not parse JSON response: ${trimmed.slice(0, 300)}`);
 }
 
+// Reads Cline's NDJSON event stream once and returns everything callers need
+// from it: the final deliverable text, the provider-reported token usage, and
+// any files the run edited. Kept as one function so a FAILED run's usage is
+// parsed by exactly the same code as a successful one — token accounting must
+// not depend on whether the attempt worked.
+export function parseClineStream(raw, cwd) {
+  const text = typeof raw === 'string' ? raw : '';
+  let deliverable = text;
+  let usage = null;
+  const editedFiles = new Map();
+  const lines = text.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line);
+      const inp = parsed.input || parsed.event?.input;
+      const tName = parsed.toolName || parsed.event?.toolName || parsed.tool;
+      if ((tName === 'editor' || tName === 'write_to_file') && inp?.path) {
+        const rel = path.relative(cwd, inp.path).replaceAll('\\', '/');
+        if (typeof inp.new_text === 'string') {
+          editedFiles.set(rel, inp.new_text);
+        } else if (typeof inp.content === 'string') {
+          editedFiles.set(rel, inp.content);
+        } else if (fs.existsSync(inp.path)) {
+          editedFiles.set(rel, fs.readFileSync(inp.path, 'utf8'));
+        }
+      }
+    } catch {}
+  }
+  // Assistant messages, newest first. Some providers (NVIDIA NIM's Nemotron
+  // consistently does this) print the requested JSON as a normal assistant
+  // message and then end the run with Cline's `submit_and_exit` tool, whose
+  // acknowledgement — "Submission recorded (verified): ..." — becomes the
+  // run's final text. Reading only that final text threw away a perfectly
+  // good deliverable, so assistant messages are kept as further candidates.
+  const assistantTexts = [];
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const parsed = JSON.parse(lines[i]);
+      if ((parsed.type === 'run_result' || parsed.type === 'agent_event') && (parsed.aggregateUsage || parsed.usage)) {
+        if (!usage) usage = parsed.aggregateUsage || parsed.usage;
+      }
+      if (parsed.event?.contentType === 'text' && parsed.event?.type === 'content_end' && typeof parsed.event.text === 'string' && parsed.event.text.trim()) {
+        assistantTexts.push(parsed.event.text);
+      }
+      if (deliverable === text) {
+        if (parsed.type === 'run_result' && parsed.text) {
+          deliverable = parsed.text;
+        } else if (parsed.event?.type === 'done' && parsed.event?.text) {
+          deliverable = parsed.event.text;
+        } else if (parsed.event?.contentType === 'tool' && parsed.event?.toolName === 'submit_and_exit' && parsed.event?.input?.summary) {
+          deliverable = parsed.event.input.summary;
+        }
+      }
+    } catch {}
+  }
+  // Order matters: the run's own final answer is still tried first, so nothing
+  // about the previously working Gemini path changes. The whole raw stream is
+  // deliberately NOT a candidate — scanning it for a JSON object finds the
+  // first NDJSON event line, which parses cleanly but is not a deliverable.
+  const candidates = [...new Set([deliverable, ...assistantTexts].filter(c => typeof c === 'string' && c.trim()))];
+  return { deliverable, candidates, usage: usage ? normalizeUsage(usage, 'cline') : null, editedFiles };
+}
+
+// Stamps a failed Cline attempt with the real provider/model it failed on, the
+// tokens that attempt still consumed, and the retry classification the failover
+// layer uses. A provider failure must always come back as a proper, attributed
+// failure — never as an unlabelled "Cline" error.
+export function annotateClineError(err, route, usage, detail = '') {
+  if (!err) return err;
+  const combined = `${detail || ''} ${err.message || ''}`;
+  err.provider = route?.provider;
+  err.providerLabel = route?.label;
+  err.model = route?.model;
+  if (usage && usage.accuracy && usage.accuracy !== 'Unavailable') {
+    err.usage = { ...usage, provider: route?.provider, providerLabel: route?.label, model: route?.model };
+  }
+  err.isQuota = err.isQuota || /\b(quota|usage[- ]limit|rate[- ]limit|too many requests|429|resource[- ]exhausted|overloaded|capacity)\b/i.test(combined);
+  err.isModelUnavailable = err.isModelUnavailable || /model[- ]?(?:not[- ]?found|unavailable|not supported)/i.test(combined);
+  return err;
+}
+
 export async function invoke(worker, opts = {}) {
   const { root, dir, schema, prompt, timeout, paths, model, effort, projectRoot = null, onWorkerEvent, onUsage, strictJsonRetry = false, max_tokens, maxTokens, signal = null } = opts;
   fs.mkdirSync(dir, { recursive: true });
@@ -520,7 +602,16 @@ export async function invoke(worker, opts = {}) {
     json(path.join(dir, 'usage.json'), claudeUsage);
     onUsage?.(claudeUsage);
   } else if (worker.adapter === 'cline') {
-    onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'worker_start', title: 'Cline worker initialized', detail: 'Running via Cline CLI (auto-approve mode)' });
+    // AR always names the provider and the model explicitly. The route is
+    // re-validated here, immediately before spawning, so no caller — config,
+    // failover, or a future feature — can reach a live provider with a model
+    // that is not on the approved list. Credentials stay in Cline's own
+    // per-provider store; AR only passes the provider id.
+    const route = resolveClineRoute(
+      opts.providerId || opts.provider || worker.provider || 'gemini',
+      model
+    );
+    onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'worker_start', title: `${route.label} worker initialized`, detail: `Running ${route.model} via ${route.label} (Cline runtime, auto-approve mode)`, metadata: { provider: route.provider, providerLabel: route.label, model: route.model } });
     const extra = schema.properties?.verdict ? 'Verdict evaluates the deliverable, not whether you completed the review. ' : '';
     const fullPrompt = prompt + `\nReturn ONLY a JSON object matching this schema, with no other text before or after it. ${extra}\n` + JSON.stringify(schema);
     // Three things were tried and ruled out live during earlier testing before
@@ -565,10 +656,14 @@ export async function invoke(worker, opts = {}) {
     // --cwd: explicitly bind Cline's working directory to the same directory
     // the other adapters use (common.cwd), rather than whatever directory
     // the parent process happens to be in.
+    //
+    // -P/-m are both always passed: the provider's saved default model in
+    // Cline's own config is never relied on (NVIDIA's saved default is the
+    // disabled gpt-oss-20b, so relying on it would silently run a banned
+    // model).
     const clineArgs = ['--yolo', '--json', '--cwd', common.cwd];
-    if (model && model !== 'cline-default') clineArgs.push('-m', model);
-    const provider = opts.provider || worker.provider || 'gemini';
-    clineArgs.push('-P', provider);
+    clineArgs.push('-m', route.model);
+    clineArgs.push('-P', route.clineProvider);
     if (opts.dataDir || worker.dataDir) clineArgs.push('--data-dir', opts.dataDir || worker.dataDir);
     if (effort) {
       const thinkingMap = { low: 'low', medium: 'medium', high: 'high', max: 'high' };
@@ -596,89 +691,66 @@ export async function invoke(worker, opts = {}) {
 
     let sawStart = false;
     let lastClineError = '';
+    let raw = '';
     try {
-      const raw = await runProcess(exeForSpawn, argsForSpawn, {
-        ...common,
-        windowsVerbatimArguments: isCmdShim,
-        onLine: (line) => {
-          try {
-            const obj = JSON.parse(line);
-            if (!sawStart) {
-              sawStart = true;
-              onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'progress', title: 'Cline processing task instructions...' });
-            }
-            if (obj.type === 'tool_use' || obj.tool) {
-              onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'command', title: `Cline: ${obj.tool || obj.name || 'tool call'}`, detail: obj.input ? JSON.stringify(obj.input).slice(0, 200) : undefined });
-            } else if (obj.type === 'file_edit' || obj.path) {
-              onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'file_edit', title: `Editing ${obj.path || 'file'}`, file: obj.path });
-            } else if (obj.type === 'error' || obj.is_error) {
-              lastClineError = obj.message || obj.error || JSON.stringify(obj);
-              onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'error', title: 'Cline worker notice', detail: lastClineError, status: 'failed' });
-            }
-          } catch {
-            // Non-JSON line (plain text mode fallback, or a build/log line); surface
-            // it as coarse progress rather than silently dropping it.
-            if (line.length > 5 && !line.startsWith('{')) {
-              if (/error|quota|rate[- ]limit|429|resource[- ]exhausted/i.test(line)) {
-                lastClineError = line.slice(0, 200);
-              }
-              onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'progress', title: `Cline: ${line.slice(0, 80)}` });
-            }
-          }
-        }
-      });
-      onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'progress', title: 'Cline task finished; parsing deliverable', status: 'success' });
-      let deliverableCandidate = raw;
-      let clineRawUsage = null;
-      const editedFiles = new Map();
-      const lines = raw.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      for (let i = 0; i < lines.length; i++) {
-        try {
-          const parsed = JSON.parse(lines[i]);
-          const inp = parsed.input || parsed.event?.input;
-          const tName = parsed.toolName || parsed.event?.toolName || parsed.tool;
-          if ((tName === 'editor' || tName === 'write_to_file') && inp?.path) {
-            const rel = path.relative(common.cwd, inp.path).replaceAll('\\', '/');
-            if (typeof inp.new_text === 'string') {
-              editedFiles.set(rel, inp.new_text);
-            } else if (typeof inp.content === 'string') {
-              editedFiles.set(rel, inp.content);
-            } else if (fs.existsSync(inp.path)) {
-              editedFiles.set(rel, fs.readFileSync(inp.path, 'utf8'));
-            }
-          }
-        } catch {}
-      }
-      for (let i = lines.length - 1; i >= 0; i--) {
-        try {
-          const parsed = JSON.parse(lines[i]);
-          if ((parsed.type === 'run_result' || parsed.type === 'agent_event') && (parsed.aggregateUsage || parsed.usage)) {
-            if (!clineRawUsage) {
-              clineRawUsage = parsed.aggregateUsage || parsed.usage;
-            }
-          }
-          if (parsed.type === 'run_result' && parsed.text) {
-            deliverableCandidate = parsed.text;
-            break;
-          }
-          if (parsed.event?.type === 'done' && parsed.event?.text) {
-            deliverableCandidate = parsed.event.text;
-            break;
-          }
-          if (parsed.event?.contentType === 'tool' && parsed.event?.toolName === 'submit_and_exit' && parsed.event?.input?.summary) {
-            deliverableCandidate = parsed.event.input.summary;
-            break;
-          }
-        } catch {}
-      }
       try {
-        result = extractJson(deliverableCandidate);
-      } catch (jsonErr) {
+        raw = await runProcess(exeForSpawn, argsForSpawn, {
+          ...common,
+          windowsVerbatimArguments: isCmdShim,
+          onLine: (line) => {
+            try {
+              const obj = JSON.parse(line);
+              if (!sawStart) {
+                sawStart = true;
+                onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'progress', title: `${route.label} processing task instructions...`, metadata: { provider: route.provider, model: route.model } });
+              }
+              if (obj.type === 'tool_use' || obj.tool) {
+                onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'command', title: `${route.shortLabel}: ${obj.tool || obj.name || 'tool call'}`, detail: obj.input ? JSON.stringify(obj.input).slice(0, 200) : undefined });
+              } else if (obj.type === 'file_edit' || obj.path) {
+                onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'file_edit', title: `Editing ${obj.path || 'file'}`, file: obj.path });
+              } else if (obj.type === 'error' || obj.is_error) {
+                lastClineError = obj.message || obj.error || JSON.stringify(obj);
+                onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'error', title: `${route.shortLabel} worker notice`, detail: lastClineError, status: 'failed', metadata: { provider: route.provider, model: route.model } });
+              }
+            } catch {
+              // Non-JSON line (plain text mode fallback, or a build/log line); surface
+              // it as coarse progress rather than silently dropping it.
+              if (line.length > 5 && !line.startsWith('{')) {
+                if (/error|quota|rate[- ]limit|429|resource[- ]exhausted/i.test(line)) {
+                  lastClineError = line.slice(0, 200);
+                }
+                onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'progress', title: `${route.shortLabel}: ${line.slice(0, 80)}` });
+              }
+            }
+          }
+        });
+      } catch (runErr) {
+        // A failed run still consumed provider tokens in most cases. Attach
+        // whatever the provider actually reported so failure telemetry keeps
+        // the same exact accounting a success would have had, instead of
+        // silently losing it.
+        annotateClineError(runErr, route, parseClineStream(runErr.stdout || '', common.cwd).usage, lastClineError);
+        throw runErr;
+      }
+      onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'progress', title: `${route.label} finished; parsing deliverable`, status: 'success', metadata: { provider: route.provider, model: route.model } });
+      const { deliverable: deliverableCandidate, candidates: deliverableCandidates, usage: clineRawUsage, editedFiles } = parseClineStream(raw, common.cwd);
+      let parseError = null;
+      for (const candidate of deliverableCandidates) {
+        try {
+          result = extractJson(candidate);
+          parseError = null;
+          break;
+        } catch (e) {
+          if (!parseError) parseError = e;
+        }
+      }
+      if (!result) {
+        const jsonErr = parseError || Error('No deliverable was returned');
         if (editedFiles.size > 0 && schema.properties?.files) {
           result = {
             summary: typeof deliverableCandidate === 'string' && deliverableCandidate.trim().length > 0
               ? deliverableCandidate.trim()
-              : 'Files edited by Cline',
+              : `Files edited via ${route.label} (${route.model})`,
             files: Array.from(editedFiles.entries()).map(([filePath, content]) => {
               const full = path.isAbsolute(filePath) ? filePath : path.join(common.cwd, filePath);
               const fileContent = fs.existsSync(full) ? fs.readFileSync(full, 'utf8') : content;
@@ -690,14 +762,17 @@ export async function invoke(worker, opts = {}) {
           };
         } else {
           const errorDetail = lastClineError || jsonErr.message;
-          const err = Error(`Cline deliverable parsing error: ${errorDetail}`);
-          err.isQuota = /\b(quota|usage[- ]limit|rate[- ]limit|too many requests|429|resource[- ]exhausted|overloaded|capacity)\b/i.test(errorDetail);
-          err.isModelUnavailable = /model[- ]?(?:not[- ]?found|unavailable|not supported)/i.test(errorDetail);
+          const err = Error(`${route.label} (${route.model}) deliverable parsing error: ${errorDetail}`);
+          annotateClineError(err, route, normalizeUsage(clineRawUsage, 'cline'), errorDetail);
           throw err;
         }
       }
       json(path.join(dir, 'response.json'), result);
-      const clineUsage = normalizeUsage(clineRawUsage, 'cline');
+      // Provider-reported token accounting is preserved exactly as reported;
+      // the provider/model that produced it is recorded alongside it so task
+      // history distinguishes Gemini / NVIDIA NIM / OpenRouter rather than
+      // attributing everything to "Cline".
+      const clineUsage = { ...normalizeUsage(clineRawUsage, 'cline'), provider: route.provider, providerLabel: route.label, model: route.model };
       json(path.join(dir, 'usage.json'), clineUsage);
       onUsage?.(clineUsage);
     } finally {
