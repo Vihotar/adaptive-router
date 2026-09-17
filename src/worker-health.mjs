@@ -83,7 +83,10 @@ export function getWorkerHealthState(root, workerId) {
   const all = loadAll(root);
   const entry = all[workerId];
   if (!entry || !Array.isArray(entry.recent) || entry.recent.length === 0) {
-    return { state: 'healthy', failureCount: 0, lastOutcome: null, lastAt: null };
+    // sampleSize 0 is the difference between "nothing has gone wrong" and
+    // "nothing has been tried yet". Callers that display health need it so
+    // they can say the latter honestly instead of implying a clean record.
+    return { state: 'healthy', failureCount: 0, sampleSize: 0, lastOutcome: null, lastAt: null };
   }
   const failureCount = entry.recent.filter(r => r.outcome === 'failure' || r.outcome === 'timeout').length;
   const mostRecentFailure = [...entry.recent].reverse().find(r => r.outcome === 'failure' || r.outcome === 'timeout');
@@ -100,7 +103,7 @@ export function getWorkerHealthState(root, workerId) {
   } else if (failureCount >= DEGRADED_THRESHOLD) {
     state = 'degraded';
   }
-  return { state, failureCount, lastOutcome: entry.lastOutcome, lastAt: entry.lastAt, cooldownUntil };
+  return { state, failureCount, sampleSize: entry.recent.length, lastOutcome: entry.lastOutcome, lastAt: entry.lastAt, cooldownUntil };
 }
 
 /**

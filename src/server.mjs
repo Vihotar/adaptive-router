@@ -20,6 +20,7 @@ import { classifySensitivity } from './sensitivity.mjs';
 import { formatTaskFailure } from './failure.mjs';
 import { getAllWorkerHealth } from './worker-health.mjs';
 import { getAttentionSummary, listAttention, setAttentionState, resolveAttentionForTask } from './cto-attention.mjs';
+import { taskDisplayTitle } from './web/task-title.mjs';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -316,9 +317,13 @@ export async function getWorkerStatuses(root, requestedProject = null) {
   const withHealth = (w) => {
     const h = workerHealth[w.id];
     if (h && h.state !== 'healthy') {
-      return { ...w, health: h.state, healthDetail: `${h.failureCount} recent failure(s), last: ${h.lastAt || 'unknown'}` };
+      return { ...w, health: h.state, healthSampleSize: h.sampleSize || 0, healthDetail: `${h.failureCount} recent failure(s), last: ${h.lastAt || 'unknown'}` };
     }
-    return { ...w, health: 'healthy' };
+    // healthSampleSize is how many of AR's own recent calls to this worker
+    // are on record. Zero means AR has not called it yet — the Overview
+    // platform cards report that as "No recent calls recorded" rather than
+    // implying a clean track record it has not actually earned.
+    return { ...w, health: 'healthy', healthSampleSize: h?.sampleSize || 0 };
   };
 
   return {
@@ -392,6 +397,11 @@ export function listRecentTasks(root, projectFilter = null) {
       tasks.push({
         id: t.id,
         instruction: t.instruction,
+        // Short display label alongside — never instead of — the full raw
+        // instruction. Tasks created before the title field existed have no
+        // t.title, so taskDisplayTitle() derives one from their instruction
+        // on read; nothing on disk is rewritten.
+        title: taskDisplayTitle(t),
         status: t.status,
         created: t.created,
         completionTime: t.completionTime || null,
@@ -689,6 +699,7 @@ export function getTaskDetails(root, id) {
 
   return {
     ...task,
+    title: taskDisplayTitle(task),
     failure: failure || null,
     workerEvents,
     project,
@@ -1051,6 +1062,7 @@ export function createDashboardServer(root, options = {}) {
               id: activeTask.id,
               status: activeTask.status,
               instruction: (activeTask.instruction || '').slice(0, 200),
+              title: taskDisplayTitle(activeTask),
               builderWorker,
               reviewerWorker,
               isWorkerRunning,
@@ -1293,6 +1305,10 @@ export function createDashboardServer(root, options = {}) {
         }
 
         // Run task asynchronously
+        // Optional short name from the "Short task name" field in the
+        // Launch New Task dialog. Blank/absent is the normal case and
+        // simply means the title is derived from the instruction.
+        const submittedTitle = typeof body.title === 'string' ? body.title.trim() : '';
         const allowClaude = Boolean(body.allowClaude);
         const unavailableBuilders = Array.isArray(body.unavailableBuilders) ? body.unavailableBuilders : [];
         const project = body.project || getActiveProject(root).id;
@@ -1323,6 +1339,7 @@ export function createDashboardServer(root, options = {}) {
             await codeTask(root, instruction, {
               project,
               allowClaude,
+              title: submittedTitle,
               unavailableBuilders,
               signal: abortController.signal,
               confirmClaudeUse: async (promptMsg) => {

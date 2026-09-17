@@ -18,6 +18,7 @@ import { getModelTier, getModelInfo, evaluateReviewerQualification, formatQualif
 import { getActiveProject, getProject } from './projects.mjs';
 import { classifySensitivity, containsLikelySecret } from './sensitivity.mjs';
 import { recordStaffCompletion } from './staff-log.mjs';
+import { deriveTaskTitle, normalizeTaskTitle } from './web/task-title.mjs';
 import { notifyFromTaskStatus, notifyCtoAttention } from './cto-attention.mjs';
 import { formatTaskFailure } from './failure.mjs';
 import { createEmptyTokenUsage, accumulateInvocation, formatTokenUsageLog, normalizeUsage } from './token-tracker.mjs';
@@ -126,7 +127,7 @@ function state(dir, task, status, details = {}) {
   // progress) is silently ignored there.
   try { notifyFromTaskStatus(path.dirname(path.dirname(path.dirname(dir))), task, status, details); } catch { /* best-effort */ }
 }
-export async function codeTask(root, instruction, { resume, injectFault = false, call, ready, test = null, paths = executables(root), log = console.log, unavailableBuilders = [], claudeReserve, allowClaude = false, confirmClaudeUse = null, onActivity = null, onWorkerEvent = null, preferredWorker = null, feedback: correctionFeedback = null, project = null, signal = null, override_sensitive = false } = {}) {
+export async function codeTask(root, instruction, { resume, injectFault = false, call, ready, test = null, paths = executables(root), log = console.log, unavailableBuilders = [], claudeReserve, allowClaude = false, confirmClaudeUse = null, onActivity = null, onWorkerEvent = null, preferredWorker = null, feedback: correctionFeedback = null, project = null, signal = null, override_sensitive = false, title = null } = {}) {
   if (!instruction?.trim() && !resume) throw Error('Provide a task instruction');
   // Lock scope: which project this task belongs to, so tasks on DIFFERENT
   // projects can run concurrently while same-project tasks still fully
@@ -219,6 +220,13 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
         projectRoot: registered.rootPath,
         kind: taskKind,
         instruction,
+        // Short, human-readable label for list/table/dropdown views. The
+        // canonical prompt stays in `instruction` above and is never
+        // rewritten — `title` is purely additive display metadata, and is
+        // deliberately NOT part of contextHashFor()'s binding (see
+        // router.mjs), so adding it cannot invalidate any existing task's
+        // context integrity check.
+        title: normalizeTaskTitle(title) || deriveTaskTitle(instruction),
         acceptanceCriteria,
         revision: 0,
         contributors: [],

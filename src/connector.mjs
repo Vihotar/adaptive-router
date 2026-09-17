@@ -14,6 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { taskDisplayTitle } from './web/task-title.mjs';
 
 // ── Secret field detector ─────────────────────────────────────────────────────
 const SECRET_PATTERN = /token|password|secret|apikey|api_key|bearer|jwt|credential|auth_?token/i;
@@ -234,6 +235,7 @@ export function listRecentTasks(root, n = 10) {
     const firstLine = instr.split(/\r?\n/).find(l => l.trim()) || instr;
     return {
       id: t.id,
+      title: taskDisplayTitle(t),
       summary: firstLine.replace(/^#+\s*/, '').slice(0, 120),
       status: t.status,
       created: t.created,

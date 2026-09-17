@@ -247,6 +247,12 @@ body {
   margin-bottom: 1.25rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--bg-subtle);
+  /* Post-Release Fix C: card headers carry a title plus controls (the Task
+     Progress selector and its auto-follow switch, for example). Without
+     wrapping, those controls pushed the card wider than the viewport at
+     narrower desktop widths instead of dropping to a second line. */
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .proto-card-title {
@@ -408,6 +414,50 @@ input:checked + .slider:before {
 .fill-amber { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
 .fill-muted { background: #94a3b8; }
 
+/* Platform card signal rows (Post-Release Fix C).
+   Replaces the old fake usage bar: two rows of information AR can actually
+   observe — the platform's live connection state and its own recorded
+   reliability for recent calls to that platform. */
+.platform-signal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.platform-signal-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+}
+
+.platform-signal-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.platform-signal-value {
+  color: var(--text-main);
+  font-weight: 700;
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.platform-signal-value.signal-ok { color: #047857; }
+.platform-signal-value.signal-warn { color: #b45309; }
+.platform-signal-value.signal-bad { color: #b91c1c; }
+.platform-signal-value.signal-muted { color: var(--text-muted); font-weight: 600; }
+
+.platform-limits-footnote {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-top: -0.5rem;
+}
+
 /* Current Task Strip */
 .task-info-strip {
   display: grid;
@@ -424,6 +474,9 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  /* Long values (a worker name plus its model id) must wrap inside their
+     grid track rather than stretch the strip past the viewport. */
+  min-width: 0;
 }
 
 .task-info-label {
@@ -438,6 +491,7 @@ input:checked + .slider:before {
   font-size: 0.92rem;
   font-weight: 700;
   color: var(--text-main);
+  overflow-wrap: anywhere;
 }
 
 /* AI Team Pair: Builder & Reviewer Grid */
@@ -1053,11 +1107,50 @@ input:checked + .slider:before {
   border-color: var(--primary);
 }
 
+/* Post-Release Fix C: the Tasks table used to be laid out by content, and
+   the Task Name cell held the entire raw instruction — so a single
+   multi-paragraph engineering brief stretched the table far past the
+   viewport and pushed Builder / Reviewer / Duration / Progress / Status off
+   screen behind a horizontal scrollbar. Fixed layout with explicit column
+   widths keeps all seven columns on screen at normal desktop width; the
+   name cell now holds a short title (see task-title.mjs) and wraps rather
+   than widening the table. Padding is unchanged from the original so rows
+   stay comfortable rather than compressed. */
 .tasks-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  table-layout: fixed;
 }
+
+.tasks-table th:nth-child(1), .tasks-table td:nth-child(1) { width: 28%; }
+.tasks-table th:nth-child(2), .tasks-table td:nth-child(2) { width: 11%; }
+.tasks-table th:nth-child(3), .tasks-table td:nth-child(3) { width: 14%; }
+.tasks-table th:nth-child(4), .tasks-table td:nth-child(4) { width: 14%; }
+.tasks-table th:nth-child(5), .tasks-table td:nth-child(5) { width: 9%; }
+.tasks-table th:nth-child(6), .tasks-table td:nth-child(6) { width: 11%; }
+.tasks-table th:nth-child(7), .tasks-table td:nth-child(7) { width: 13%; }
+
+/* A status pill is a single label — never let the fixed column width break
+   "Cancelled" across two lines. */
+.tasks-table td .badge { white-space: nowrap; }
+
+/* Started: allow the relative time and the clock time to wrap onto two
+   lines inside their own column instead of spilling over the next one.
+   (The inline white-space: nowrap this overrides is set per-cell in
+   app.js's row template.) */
+.tasks-table td:nth-child(2) { white-space: normal; }
+
+/* Progress: let the mini bar flex to whatever the column leaves, so the
+   percentage next to it always stays on one line rather than breaking into
+   "10 / 0 / %" at narrower desktop widths. */
+.tasks-table td:nth-child(6) .usage-progress {
+  width: auto !important;
+  flex: 1 1 auto;
+  min-width: 32px;
+}
+
+.tasks-table td:nth-child(6) span { white-space: nowrap; }
 
 .tasks-table th {
   padding: 0.85rem 1rem;
@@ -1074,6 +1167,25 @@ input:checked + .slider:before {
   font-size: 0.9rem;
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+/* The task id under the title is one unbreakable token; let it ellipsize
+   inside its fixed-width cell instead of forcing the column wider. */
+.task-name-title {
+  font-weight: 700;
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+
+.task-name-id {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .task-row {
@@ -1439,6 +1551,7 @@ input:checked + .slider:before {
   font-size: 0.85rem;
   color: var(--text-muted);
   margin-bottom: 0.3rem;
+  overflow-wrap: anywhere;
 }
 
 .cto-inbox-item-reason {
@@ -2007,6 +2120,16 @@ input:checked + .slider:before {
   color: var(--text-muted);
   max-width: 130px;
   line-height: 1.25;
+  /* Post-Release Fix C: the pod now shows the task's short title rather
+     than a hard 46-character slice of the raw instruction. Clamp to two
+     lines so a longer title can never grow the pod and disturb the radial
+     office layout (Post-Release Fix B). */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -2201,6 +2324,7 @@ input:checked + .slider:before {
   font-size: 0.82rem;
   color: var(--text-main);
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .office-project-worker-row {

@@ -138,7 +138,7 @@
               <div class="proto-card-title">
                 <span>Platform Limits & Availability</span>
               </div>
-              <span class="proto-card-subtitle">Real-time availability and provider status across authorized AI platforms</span>
+              <span class="proto-card-subtitle">Live connection state and measured reliability across authorized AI platforms</span>
             </div>
 
             <div class="platform-limits-grid">
@@ -157,13 +157,23 @@
                     <span class="slider"></span>
                   </label>
                 </div>
-                <div class="usage-bar-wrap">
-                  <div class="usage-numbers">
-                    <span class="usage-used">Usage: <strong>Usage data unavailable</strong></span>
-                    <span class="usage-remaining">Quota: <strong>Honest status</strong></span>
+                <!-- Post-Release Fix C: this used to be a "Usage:" line reading
+                     "Usage data unavailable" above a permanently 0%-wide progress
+                     bar. AR has no provider quota telemetry of any kind (see
+                     getWorkerStatuses in server.mjs: CLI presence + sign-in are
+                     all it can actually observe), so the bar could only ever be
+                     empty and the card only ever looked broken. Replaced with the
+                     two signals AR genuinely measures: the platform's live
+                     connection state and its own recorded recent-call reliability
+                     from worker-health.json. No invented percentages. -->
+                <div class="platform-signal-list">
+                  <div class="platform-signal-row">
+                    <span class="platform-signal-label">Connection</span>
+                    <span class="platform-signal-value" id="conn-limit-cline">Checking…</span>
                   </div>
-                  <div class="usage-progress">
-                    <div class="usage-fill fill-blue" style="width: 0%;"></div>
+                  <div class="platform-signal-row">
+                    <span class="platform-signal-label">Recent reliability</span>
+                    <span class="platform-signal-value" id="health-limit-cline">—</span>
                   </div>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
@@ -187,13 +197,23 @@
                     <span class="slider"></span>
                   </label>
                 </div>
-                <div class="usage-bar-wrap">
-                  <div class="usage-numbers">
-                    <span class="usage-used">Usage: <strong>Usage data unavailable</strong></span>
-                    <span class="usage-remaining">Reserve: <strong>Active</strong></span>
+                <!-- Post-Release Fix C: this used to be a "Usage:" line reading
+                     "Usage data unavailable" above a permanently 0%-wide progress
+                     bar. AR has no provider quota telemetry of any kind (see
+                     getWorkerStatuses in server.mjs: CLI presence + sign-in are
+                     all it can actually observe), so the bar could only ever be
+                     empty and the card only ever looked broken. Replaced with the
+                     two signals AR genuinely measures: the platform's live
+                     connection state and its own recorded recent-call reliability
+                     from worker-health.json. No invented percentages. -->
+                <div class="platform-signal-list">
+                  <div class="platform-signal-row">
+                    <span class="platform-signal-label">Connection</span>
+                    <span class="platform-signal-value" id="conn-limit-claude">Checking…</span>
                   </div>
-                  <div class="usage-progress">
-                    <div class="usage-fill fill-purple" style="width: 0%;"></div>
+                  <div class="platform-signal-row">
+                    <span class="platform-signal-label">Recent reliability</span>
+                    <span class="platform-signal-value" id="health-limit-claude">—</span>
                   </div>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
@@ -217,13 +237,23 @@
                     <span class="slider"></span>
                   </label>
                 </div>
-                <div class="usage-bar-wrap">
-                  <div class="usage-numbers">
-                    <span class="usage-used">Usage: <strong>Usage data unavailable</strong></span>
-                    <span class="usage-remaining">Standby: <strong>Ready</strong></span>
+                <!-- Post-Release Fix C: this used to be a "Usage:" line reading
+                     "Usage data unavailable" above a permanently 0%-wide progress
+                     bar. AR has no provider quota telemetry of any kind (see
+                     getWorkerStatuses in server.mjs: CLI presence + sign-in are
+                     all it can actually observe), so the bar could only ever be
+                     empty and the card only ever looked broken. Replaced with the
+                     two signals AR genuinely measures: the platform's live
+                     connection state and its own recorded recent-call reliability
+                     from worker-health.json. No invented percentages. -->
+                <div class="platform-signal-list">
+                  <div class="platform-signal-row">
+                    <span class="platform-signal-label">Connection</span>
+                    <span class="platform-signal-value" id="conn-limit-codex">Checking…</span>
                   </div>
-                  <div class="usage-progress">
-                    <div class="usage-fill fill-muted" style="width: 0%;"></div>
+                  <div class="platform-signal-row">
+                    <span class="platform-signal-label">Recent reliability</span>
+                    <span class="platform-signal-value" id="health-limit-codex">—</span>
                   </div>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
@@ -247,13 +277,23 @@
                     <span class="slider"></span>
                   </label>
                 </div>
-                <div class="usage-bar-wrap">
-                  <div class="usage-numbers">
-                    <span class="usage-used">Usage: <strong>Usage data unavailable</strong></span>
-                    <span class="usage-remaining">Audit Pool: <strong>14 Models</strong></span>
+                <!-- Post-Release Fix C: this used to be a "Usage:" line reading
+                     "Usage data unavailable" above a permanently 0%-wide progress
+                     bar. AR has no provider quota telemetry of any kind (see
+                     getWorkerStatuses in server.mjs: CLI presence + sign-in are
+                     all it can actually observe), so the bar could only ever be
+                     empty and the card only ever looked broken. Replaced with the
+                     two signals AR genuinely measures: the platform's live
+                     connection state and its own recorded recent-call reliability
+                     from worker-health.json. No invented percentages. -->
+                <div class="platform-signal-list">
+                  <div class="platform-signal-row">
+                    <span class="platform-signal-label">Connection</span>
+                    <span class="platform-signal-value" id="conn-limit-antigravity">Checking…</span>
                   </div>
-                  <div class="usage-progress">
-                    <div class="usage-fill fill-green" style="width: 0%;"></div>
+                  <div class="platform-signal-row">
+                    <span class="platform-signal-label">Recent reliability</span>
+                    <span class="platform-signal-value" id="health-limit-antigravity">—</span>
                   </div>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
@@ -262,6 +302,7 @@
                 </div>
               </div>
             </div>
+            <p class="platform-limits-footnote">Quota consumption is not reported by any connected provider CLI, so AR does not display a usage figure rather than estimate one. Reliability reflects AR's own recent calls to each platform.</p>
           </section>
 
           <!-- No Active Task — shown instead of the Current Task card
@@ -751,7 +792,7 @@
                 <p class="proto-card-subtitle">Plain-language chronological execution history formatted for executive review</p>
               </div>
               <div style="display: flex; align-items: center; gap: 1rem;">
-                <select id="progress-task-select" style="padding: 0.5rem 0.85rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.88rem; max-width: 380px;">
+                <select id="progress-task-select" style="padding: 0.5rem 0.85rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.88rem; max-width: 100%; width: 420px;">
                   <!-- Options populated dynamically -->
                 </select>
                 <div class="autofollow-toggle-wrap">
@@ -1151,6 +1192,7 @@
         <button type="button" class="proto-modal-close" id="new-task-modal-close">&times;</button>
         <h3 style="margin-bottom: 0.5rem;">Launch New Task</h3>
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Submit an instruction to Adaptive Router for autonomous multi-model execution.</p>
+        <input id="new-task-title" type="text" maxlength="64" style="width: 100%; padding: 0.6rem 0.75rem; margin-bottom: 0.6rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 0.9rem;" placeholder="Short task name (optional) — e.g. Add date helpers to utils.js">
         <textarea id="new-task-instruction" rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 0.9rem;" placeholder="e.g. Create a utils.js file with formatDate and parseQueryString helper functions..."></textarea>
         <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: space-between;">
           <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted); cursor: pointer;">
@@ -1169,6 +1211,16 @@
 
   </div>
 
+  <!-- Shared task-title module. Loaded as an ES module (deferred by spec,
+       so it runs after app.js is parsed but before DOMContentLoaded fires,
+       which is when app.js's init() and every render function run) and
+       exposed on window for the classic-script dashboard. This is the exact
+       same file src/server.mjs imports, so the short label the server puts
+       on a task and the one the client derives can never drift. -->
+  <script type="module">
+    import * as taskTitle from './task-title.mjs';
+    window.ARTaskTitle = taskTitle;
+  </script>
   <script src="app.js"></script>
 </body>
 </html>

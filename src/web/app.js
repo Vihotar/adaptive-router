@@ -73,6 +73,38 @@
       .replace(/'/g, '&#039;');
   }
 
+  // Short display label for a task. The server already puts a `title` on
+  // every task payload (explicit title if one was submitted, otherwise one
+  // derived from the instruction — which is how tasks recorded before the
+  // title field existed still get a sensible short name). window.ARTaskTitle
+  // is the SAME module the server derives with, loaded over HTTP by the
+  // module bootstrap in index.html; the last branch is only a degradation
+  // path if that module fails to load.
+  //
+  // This never replaces the raw instruction anywhere — task detail, the
+  // decision dialogs, the approval report and the Overview "View full
+  // instruction" toggle all still read task.instruction verbatim.
+  function taskTitleOf(task) {
+    if (!task) return '';
+    const explicit = typeof task.title === 'string' ? task.title.trim() : '';
+    if (explicit) return explicit;
+    const api = window.ARTaskTitle;
+    if (api && typeof api.taskDisplayTitle === 'function') {
+      const derived = api.taskDisplayTitle(task);
+      if (derived) return derived;
+    }
+    const firstLine = String(task.instruction || '').split(/\r?\n/).find(l => l.trim()) || '';
+    const trimmed = firstLine.trim();
+    if (!trimmed) return task.id || '';
+    return trimmed.length > 64 ? `${trimmed.slice(0, 64).trim()}…` : trimmed;
+  }
+
+  // Same, for a bare instruction string (CTO Inbox items store a short
+  // instruction snapshot rather than a task object).
+  function titleFromInstruction(instruction) {
+    return taskTitleOf({ instruction });
+  }
+
   function formatTime(isoStr) {
     if (!isoStr) return '—';
     try {
@@ -289,7 +321,7 @@
           <span class="cto-inbox-item-title">${escapeHtml(item.title || item.eventType)}</span>
           <span class="cto-inbox-item-state-badge">${escapeHtml(item.state)}</span>
         </div>
-        ${item.instruction ? `<div class="cto-inbox-item-instruction">${escapeHtml(item.instruction)}</div>` : ''}
+        ${item.instruction ? `<div class="cto-inbox-item-instruction" title="${escapeHtml(item.instruction)}">${escapeHtml(titleFromInstruction(item.instruction))}</div>` : ''}
         ${item.reason ? `<div class="cto-inbox-item-reason">${escapeHtml(item.reason)}</div>` : ''}
         <div class="cto-inbox-item-action">Action: ${escapeHtml(item.action || 'Review Result')}</div>
         <div class="cto-inbox-item-footer">
@@ -484,8 +516,8 @@
       const topPct = ((y / 1000) * 100).toFixed(2);
       const facingDeg = seat.angleDeg - 90;
       const interactiveAttrs = isLive ? 'role="button" tabindex="0"' : 'aria-disabled="true"';
-      const taskLine = (busy && current?.task?.instruction)
-        ? `<div class="office-pod-task">${escapeHtml(current.task.instruction.slice(0, 46))}${current.task.instruction.length > 46 ? '…' : ''}</div>`
+      const taskLine = (busy && current?.task)
+        ? `<div class="office-pod-task" title="${escapeHtml(current.task.instruction || '')}">${escapeHtml(taskTitleOf(current.task))}</div>`
         : '';
 
       return `
@@ -678,7 +710,7 @@
               <span class="office-project-name">${escapeHtml(p.projectName)}</span>
               <span class="badge ${badge.cls}">${escapeHtml(badge.label)}</span>
             </div>
-            <div class="office-project-instruction">${escapeHtml(t.instruction || '')}</div>
+            <div class="office-project-instruction" title="${escapeHtml(t.instruction || '')}">${escapeHtml(taskTitleOf(t))}</div>
             <div class="office-project-worker-row">
               <span class="office-project-worker-label">Active:</span>
               <span class="office-project-worker-name">${escapeHtml(formatWorkerName(t.activeWorker))}</span>
@@ -694,7 +726,7 @@
             <div class="office-project-header">
               <span class="office-project-name">${escapeHtml(p.projectName)}</span>
             </div>
-            <div class="office-project-attention-row"><strong>Task:</strong> ${escapeHtml((t.instruction || '').slice(0, 120))}</div>
+            <div class="office-project-attention-row" title="${escapeHtml(t.instruction || '')}"><strong>Task:</strong> ${escapeHtml(taskTitleOf(t))}</div>
             <div class="office-project-attention-row"><strong>Status:</strong> ${escapeHtml((t.status || '').replace(/_/g, ' '))}</div>
             <div class="office-project-attention-row"><strong>Action:</strong> Review in CTO Inbox</div>
             <button type="button" class="btn btn-secondary office-project-goto-inbox">View CTO Inbox</button>
@@ -710,7 +742,7 @@
             <span class="office-project-name">${escapeHtml(p.projectName)}</span>
             <span class="badge ${badge.cls}">${escapeHtml(badge.label)}</span>
           </div>
-          <div class="office-project-instruction">${escapeHtml((t.instruction || '').slice(0, 120))}</div>
+          <div class="office-project-instruction" title="${escapeHtml(t.instruction || '')}">${escapeHtml(taskTitleOf(t))}</div>
         </div>
       `;
     }).join('');
@@ -778,7 +810,7 @@
         </div>
         <div class="team-stat-row">
           <span class="team-stat-k">Task</span>
-          <span class="team-stat-v">${escapeHtml(current.task.instruction || '')}</span>
+          <span class="team-stat-v" title="${escapeHtml(current.task.instruction || '')}">${escapeHtml(taskTitleOf(current.task))}</span>
         </div>
         <div class="team-stat-row">
           <span class="team-stat-k">Task Status</span>
@@ -1031,9 +1063,52 @@
     }
   }
 
-  // View 1: Overview — Platform Limits & Usage
+  // View 1: Overview — Platform Limits & Availability
   function renderPlatformLimits() {
     const findW = (id) => State.workers.find(w => w.id === id);
+
+    // Post-Release Fix C: the two rows that replaced the fake usage bar.
+    // Both read only values the backend genuinely measures — never an
+    // invented quota percentage.
+    //
+    //  * Connection — getWorkerStatuses()'s own status/note for the
+    //    platform: whether its CLI is present and signed in, whether the
+    //    CTO has switched it off, and whether Claude is in Reserve Mode.
+    //  * Recent reliability — worker-health.json's rolling record of AR's
+    //    own recent build/review calls to that platform. "No recent calls
+    //    recorded" is the honest answer before any have been made, not a
+    //    zero.
+    const setSignal = (elId, text, cls) => {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.textContent = text;
+      el.className = `platform-signal-value ${cls || ''}`.trim();
+    };
+
+    const renderConnectionSignal = (workerId, worker) => {
+      const elId = `conn-limit-${workerId}`;
+      if (!worker) return setSignal(elId, 'Not configured', 'signal-muted');
+      if (worker.userEnabled === false) return setSignal(elId, 'Switched off by CTO', 'signal-muted');
+      if (worker.status === 'Available') return setSignal(elId, 'Connected', 'signal-ok');
+      if (worker.status === 'Reserved') return setSignal(elId, 'Connected — held in reserve', 'signal-warn');
+      return setSignal(elId, 'Not connected', 'signal-bad');
+    };
+
+    const renderHealthSignal = (workerId, worker) => {
+      const elId = `health-limit-${workerId}`;
+      if (!worker) return setSignal(elId, '—', 'signal-muted');
+      if (worker.health === 'cooldown') {
+        return setSignal(elId, worker.healthDetail || 'In cooldown after repeated failures', 'signal-bad');
+      }
+      if (worker.health === 'degraded') {
+        return setSignal(elId, worker.healthDetail || 'Recent failures — deprioritized', 'signal-warn');
+      }
+      const sample = Number(worker.healthSampleSize || 0);
+      if (worker.health === 'healthy' && sample > 0) {
+        return setSignal(elId, `No failures in last ${sample} call${sample === 1 ? '' : 's'}`, 'signal-ok');
+      }
+      return setSignal(elId, 'No recent calls recorded', 'signal-muted');
+    };
 
     // Cline
     const wCline = findW('cline');
@@ -1047,6 +1122,8 @@
       bCline.className = `badge ${active ? 'green' : (wCline?.userEnabled === false ? 'gray' : 'amber')}`;
     }
     if (nCline && wCline?.note) nCline.textContent = wCline.note;
+    renderConnectionSignal('cline', wCline);
+    renderHealthSignal('cline', wCline);
 
     // Claude Code
     const wClaude = findW('claude-code');
@@ -1070,6 +1147,8 @@
       }
     }
     if (nClaude && wClaude?.note) nClaude.textContent = wClaude.note;
+    renderConnectionSignal('claude', wClaude);
+    renderHealthSignal('claude', wClaude);
 
     // Codex
     const wCodex = findW('codex');
@@ -1083,6 +1162,8 @@
       bCodex.className = `badge ${active ? 'green' : (wCodex?.userEnabled === false ? 'gray' : 'red')}`;
     }
     if (nCodex && wCodex?.note) nCodex.textContent = wCodex.note;
+    renderConnectionSignal('codex', wCodex);
+    renderHealthSignal('codex', wCodex);
 
     // Antigravity
     const wAntigravity = findW('antigravity');
@@ -1096,6 +1177,8 @@
       bAntigravity.className = `badge ${active ? 'green' : (wAntigravity?.userEnabled === false ? 'gray' : 'red')}`;
     }
     if (nAntigravity && wAntigravity?.note) nAntigravity.textContent = wAntigravity.note;
+    renderConnectionSignal('antigravity', wAntigravity);
+    renderHealthSignal('antigravity', wAntigravity);
   }
 
   function initPlatformLimitToggles() {
@@ -1162,21 +1245,21 @@
     if (activeCard) activeCard.style.display = '';
     if (emptyCard) emptyCard.style.display = 'none';
 
-    // Title & Status Badge — truncate a long instruction to a short
-    // summary with a "View full instruction" expand toggle, instead of
-    // dumping the whole raw instruction text into the header.
+    // Title & Status Badge — show the task's short display title, with a
+    // "View full instruction" expand toggle underneath, instead of dumping
+    // the whole raw instruction text into the header. Post-Release Fix C
+    // moved the shortening itself into the shared task-title module so the
+    // header, the Tasks table and the Task Progress selector all show the
+    // same label; the toggle below still reveals the complete, unmodified
+    // instruction.
     const fullInstruction = t.instruction || t.id;
-    const TITLE_SUMMARY_LIMIT = 100;
     const titleEl = document.getElementById('current-task-title');
     const titleToggle = document.getElementById('current-task-title-toggle');
     const titleFull = document.getElementById('current-task-title-full');
-    const isLongInstruction = fullInstruction.length > TITLE_SUMMARY_LIMIT;
+    const displayTitle = taskTitleOf(t);
+    const isLongInstruction = fullInstruction.trim() !== displayTitle;
     if (titleEl) {
-      const firstLine = fullInstruction.split(/\r?\n/)[0];
-      const summary = firstLine.length > TITLE_SUMMARY_LIMIT
-        ? `${firstLine.slice(0, TITLE_SUMMARY_LIMIT).trim()}…`
-        : (isLongInstruction ? `${firstLine}…` : firstLine);
-      titleEl.textContent = summary;
+      titleEl.textContent = displayTitle;
       titleEl.title = fullInstruction;
     }
     if (titleToggle) {
@@ -2153,8 +2236,8 @@
       return `
         <tr class="task-row ${isSelected ? 'selected' : ''}" data-task-id="${escapeHtml(t.id)}" style="cursor: pointer; ${isSelected ? 'background: #eff6ff;' : ''}">
           <td>
-            <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(t.instruction || t.summary || t.id)}</div>
-            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">${escapeHtml(t.id)}</div>
+            <div class="task-name-title" title="${escapeHtml(t.instruction || '')}">${escapeHtml(taskTitleOf(t))}</div>
+            <div class="task-name-id" title="${escapeHtml(t.id)}">${escapeHtml(t.id)}</div>
           </td>
           <td style="white-space: nowrap; font-size: 0.85rem;">${escapeHtml(startedStr)}</td>
           <td>
@@ -2236,8 +2319,12 @@
     if (btnSubmit && modalNewTask) {
       btnSubmit.addEventListener('click', async () => {
         const textEl = document.getElementById('new-task-instruction');
+        const titleInput = document.getElementById('new-task-title');
         const claudeCheck = document.getElementById('new-task-allow-claude');
         const instruction = (textEl?.value || '').trim();
+        // Optional. Blank means the server derives a short title from the
+        // instruction instead.
+        const taskTitle = (titleInput?.value || '').trim();
         if (!instruction) {
           alert('Please enter a task instruction');
           return;
@@ -2251,6 +2338,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               instruction,
+              title: taskTitle,
               project: State.activeProjectId,
               allowClaude: Boolean(claudeCheck?.checked)
             })
@@ -2259,6 +2347,7 @@
           if (res.ok) {
             modalNewTask.classList.remove('active');
             if (textEl) textEl.value = '';
+            if (titleInput) titleInput.value = '';
             showToast('New task launched successfully!', 'success');
             if (data.taskId) State.currentTaskId = data.taskId;
             await fetchTasks();
@@ -2361,7 +2450,7 @@
     sel.innerHTML = State.tasks.map(t => {
       const selected = t.id === State.currentTaskId;
       const bInfo = formatStatusBadge(t.status);
-      const title = (t.instruction || t.id).slice(0, 45);
+      const title = taskTitleOf(t);
       return `<option value="${escapeHtml(t.id)}" ${selected ? 'selected' : ''}>${escapeHtml(title)} (${escapeHtml(bInfo.label)})</option>`;
     }).join('');
   }
