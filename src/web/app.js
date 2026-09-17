@@ -2,6 +2,28 @@
 (function() {
   'use strict';
 
+  // Source-of-truth fix (Post-Release Fix A): the frontend's own mirror of
+  // storage.mjs's ACTIVE_TASK_STATUSES / server.mjs's re-export of the same
+  // set. Kept as its own literal (rather than fetched) the same way
+  // connector.mjs does on the backend, since the client has no import path
+  // into src/. If the backend set ever changes, update this to match — the
+  // whole point of this bug fix is that "is this task really active" must
+  // be answered the same way everywhere (Overview, Office View, the API),
+  // so this list must stay identical to storage.mjs's.
+  const ACTIVE_TASK_STATUSES = new Set([
+    'running',
+    'building',
+    'testing',
+    'reviewing',
+    'waiting_for_worker',
+    'needs_cto_attention',
+    'needs_human_input',
+    'awaiting_plan_approval',
+    'waiting_for_reviewer',
+    'awaiting_approval',
+    'paused_by_user'
+  ]);
+
   // State Management
   const State = {
     activeView: 'overview',
@@ -186,8 +208,31 @@
         State.activeProjectId = data.activeProject.id;
       }
 
-      if (data.activeRunningTask && !State.currentTaskId) {
-        State.currentTaskId = data.activeRunningTask;
+      // Source-of-truth fix (Post-Release Fix A): data.activeRunningTask is
+      // the SAME real "is a task genuinely active" answer Office View is
+      // built on (server-side, backed by ACTIVE_TASK_STATUSES via
+      // getActiveTask()/getActiveRunningTask() — never inferred or
+      // assumed). Overview must be driven by that same answer instead of
+      // guessing from whichever task happens to be newest, which is what
+      // let a cancelled/completed/failed task keep showing as "Current
+      // Task" indefinitely: fetchTasks() used to pick State.tasks[0] once
+      // and never re-evaluate it once that task's status went terminal.
+      //
+      // So this is now authoritative in both directions: when the backend
+      // reports a real active task, follow it (even overriding a stale
+      // selection — e.g. the previously-active task just finished and a
+      // new one started); when it reports none, clear the selection so the
+      // Overview card empties out to "No active task" rather than
+      // continuing to display whatever was last selected.
+      if (data.activeRunningTask) {
+        if (State.currentTaskId !== data.activeRunningTask) {
+          State.currentTaskId = data.activeRunningTask;
+          State.currentTask = null; // force a fresh fetchTaskDetails render
+        }
+      } else if (State.currentTaskId) {
+        State.currentTaskId = null;
+        State.currentTask = null;
+        renderOverviewTask();
       }
 
       renderHeader();
@@ -548,8 +593,25 @@
       const navCountTasks = document.getElementById('nav-count-tasks');
       if (navCountTasks) navCountTasks.textContent = State.tasks.length;
 
-      // Select newest/active task if none selected
-      if (!State.currentTaskId && State.tasks.length > 0) {
+      // Source-of-truth fix (Post-Release Fix A): this used to select
+      // State.tasks[0] (the newest task, whatever its status) as the
+      // Overview "current task" any time nothing was already selected —
+      // with nothing ever clearing that selection afterward, a task that
+      // later reached a terminal status (cancelled/completed/failed/
+      // rejected) just stayed pinned as "Current Task" forever, which is
+      // exactly the bug reported: Overview kept showing a cancelled task
+      // as active while Office View correctly showed idle.
+      //
+      // fetchStatus() (its data.activeRunningTask, backed by the same
+      // ACTIVE_TASK_STATUSES check Office View uses) is now the
+      // authoritative source for "is anything really active" and owns
+      // clearing State.currentTaskId when nothing is. This fallback is
+      // only a same-tick convenience for the very first load, before
+      // fetchStatus() has necessarily run yet — and it must apply the same
+      // active/terminal check, not just grab the newest task unconditionally,
+      // so a page load that lands directly on a terminal task never shows
+      // it as current even momentarily.
+      if (!State.currentTaskId && State.tasks.length > 0 && ACTIVE_TASK_STATUSES.has(State.tasks[0].status)) {
         State.currentTaskId = State.tasks[0].id;
       }
 
@@ -559,9 +621,13 @@
       // Render table if visible
       renderTasksTable();
 
-      // Fetch details of current task
+      // Fetch details of current task; otherwise make sure the Overview
+      // card reflects "no active task" rather than stale prior content.
       if (State.currentTaskId) {
         await fetchTaskDetails(State.currentTaskId);
+      } else {
+        State.currentTask = null;
+        renderOverviewTask();
       }
     } catch (err) {
       console.warn('Error fetching /api/tasks:', err);
@@ -648,6 +714,21 @@
       renderOverviewTask();
     } else if (payload.type === 'status') {
       State.currentTask.status = payload.status;
+      // Source-of-truth fix (Post-Release Fix A): don't wait for the next
+      // fetchStatus() poll (up to 3s away) to notice a task just went
+      // terminal — the live SSE push is the fastest signal available, and
+      // the user's verification steps require Overview to change
+      // "immediately". Clear the current-task selection the instant a
+      // terminal status arrives over the stream, same rule fetchStatus()
+      // applies: not in ACTIVE_TASK_STATUSES means it is no longer current.
+      if (!ACTIVE_TASK_STATUSES.has(payload.status)) {
+        if (State.eventSource) {
+          State.eventSource.close();
+          State.eventSource = null;
+        }
+        State.currentTaskId = null;
+        State.currentTask = null;
+      }
       renderOverviewTask();
       renderDecisionContainer();
     }
@@ -842,7 +923,23 @@
   // View 1: Overview — Current Task & Team Rationale
   function renderOverviewTask() {
     const t = State.currentTask;
-    if (!t) return;
+    const activeCard = document.getElementById('current-task-card');
+    const emptyCard = document.getElementById('no-active-task-card');
+    // Source-of-truth fix (Post-Release Fix A): when there is no current
+    // task (State.currentTask is null — fetchStatus()/fetchTasks() only
+    // set it from a genuinely active task now, never from whatever task
+    // happens to be newest), show the "No active task" card and hide the
+    // Current Task card entirely, rather than leaving whatever was last
+    // rendered on screen. This is what makes Overview match Office View's
+    // "Idle / No active task" instead of continuing to show a task that
+    // has already reached a terminal status.
+    if (!t) {
+      if (activeCard) activeCard.style.display = 'none';
+      if (emptyCard) emptyCard.style.display = '';
+      return;
+    }
+    if (activeCard) activeCard.style.display = '';
+    if (emptyCard) emptyCard.style.display = 'none';
 
     // Title & Status Badge — truncate a long instruction to a short
     // summary with a "View full instruction" expand toggle, instead of
@@ -895,6 +992,13 @@
       typeVal.textContent = `${kindStr} • ${diffStr}`;
     }
 
+    // Source-of-truth fix (Post-Release Fix A): the catch-all `else` below
+    // used to say "Autonomous Pipeline Active" for ANY status this chain
+    // didn't already name — including cancelled/cancelled_by_user, which is
+    // exactly how a stopped task kept reading as actively running. Terminal
+    // statuses not otherwise covered now get their own explicit text
+    // instead of falling into that catch-all, and the catch-all itself only
+    // fires for a status that is still genuinely active.
     const nextStepVal = document.getElementById('task-next-step-value');
     if (nextStepVal) {
       if (t.status === 'awaiting_approval') nextStepVal.textContent = 'CTO Approval Required (Stage B)';
@@ -904,30 +1008,49 @@
       else if (t.status === 'paused_by_user') nextStepVal.textContent = 'Task Paused by User';
       else if (t.status === 'approved' || t.status === 'completed') nextStepVal.textContent = 'Execution Complete (Delivered)';
       else if (t.status === 'rejected') nextStepVal.textContent = 'Draft Rejected';
-      else nextStepVal.textContent = 'Autonomous Pipeline Active';
+      else if (t.status === 'failed') nextStepVal.textContent = 'Task Failed';
+      else if (t.status === 'cancelled' || t.status === 'cancelled_by_user') nextStepVal.textContent = 'Task Stopped';
+      else if (ACTIVE_TASK_STATUSES.has(t.status)) nextStepVal.textContent = 'Autonomous Pipeline Active';
+      else nextStepVal.textContent = t.status || '—';
     }
 
+    // Source-of-truth fix (Post-Release Fix A): duration must freeze at
+    // completionTime for any terminal task and never keep measuring
+    // against Date.now() — that was the visible "timer keeps increasing"
+    // half of the bug. completionTime is now always stamped the moment a
+    // task becomes terminal (coding.mjs's state(), router.mjs's update(),
+    // and every direct task.json writer in server.mjs), so the fallback to
+    // Date.now() below now only ever applies to a task that is genuinely
+    // still active.
     const durationVal = document.getElementById('task-duration-value');
     if (durationVal) {
       if (t.created) {
         const start = new Date(t.created).getTime();
-        const end = t.completionTime ? new Date(t.completionTime).getTime() : Date.now();
+        const isTerminal = !ACTIVE_TASK_STATUSES.has(t.status);
+        const end = t.completionTime
+          ? new Date(t.completionTime).getTime()
+          : (isTerminal ? start : Date.now());
         const sec = Math.max(0, Math.floor((end - start) / 1000));
         const m = Math.floor(sec / 60);
         const s = sec % 60;
-        durationVal.textContent = `${m}m ${s < 10 ? '0' : ''}${s}s elapsed`;
+        durationVal.textContent = isTerminal
+          ? `${m}m ${s < 10 ? '0' : ''}${s}s`
+          : `${m}m ${s < 10 ? '0' : ''}${s}s elapsed`;
       } else {
         durationVal.textContent = '—';
       }
     }
 
-    // Progress bar
+    // Progress bar — add the missing cancelled/cancelled_by_user branch so
+    // a stopped task doesn't fall through to the 50% default (the exact
+    // stuck value the user reported).
     let pct = 50;
     if (t.status === 'completed' || t.status === 'approved') pct = 100;
     else if (t.status === 'awaiting_approval') pct = 85;
     else if (t.status === 'reviewing' || t.status === 'testing') pct = 70;
     else if (t.status === 'building' || t.status === 'running') pct = 45;
     else if (t.status === 'failed' || t.status === 'rejected') pct = 60;
+    else if (t.status === 'cancelled' || t.status === 'cancelled_by_user') pct = 0;
 
     const barEl = document.getElementById('task-progress-bar');
     const pctEl = document.getElementById('task-progress-pct');
@@ -1795,7 +1918,15 @@
       const isSelected = t.id === State.currentTaskId;
       const startedStr = formatRelativeTime(t.created);
       const durationStr = t.duration || '0m 00s';
-      const progressVal = t.progress || 50;
+      // Source-of-truth fix (Post-Release Fix A): `t.progress || 50` looked
+      // like a safe fallback but `||` treats a genuine 0 (server-side fix:
+      // listRecentTasks() now correctly reports 0% for a cancelled/
+      // cancelled_by_user task) as "missing" and silently replaced it with
+      // 50 — the exact stuck-at-50% value this bug report was about,
+      // surviving in the Tasks table even after the server-side and
+      // Overview-card fixes. Only fall back to 50 when progress is truly
+      // absent (undefined/null), never when it is a real 0.
+      const progressVal = (t.progress === undefined || t.progress === null) ? 50 : t.progress;
 
       // Exactly 7 columns: Task Name / ID | Started | Builder AI | Reviewer AI | Duration | Progress | Status
       return `

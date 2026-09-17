@@ -264,8 +264,23 @@
             </div>
           </section>
 
+          <!-- No Active Task — shown instead of the Current Task card
+               whenever nothing is genuinely active (same source of truth
+               as Office View: server-side ACTIVE_TASK_STATUSES). Hidden by
+               default; app.js toggles this and #current-task-card so a
+               terminal (cancelled/completed/failed/rejected) task is never
+               left displayed as if it were still current. -->
+          <section class="proto-card" id="no-active-task-card" style="display: none;">
+            <div class="proto-card-header">
+              <div style="flex: 1;">
+                <h2 class="proto-card-title">No active task</h2>
+                <p class="proto-card-subtitle">Nothing is currently running for this project. Submit a new task, or check the Tasks view for task history.</p>
+              </div>
+            </div>
+          </section>
+
           <!-- Current Task / Live Activity Section -->
-          <section class="proto-card current-task-card">
+          <section class="proto-card current-task-card" id="current-task-card">
             <div class="proto-card-header">
               <div style="flex: 1;">
                 <h2 class="proto-card-title">

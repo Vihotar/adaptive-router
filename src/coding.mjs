@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import { read, json, event, hash, locked, saveFiles, validateFiles, verifyFiles } from './storage.mjs';
+import { read, json, event, hash, locked, saveFiles, validateFiles, verifyFiles, isTerminalStatus } from './storage.mjs';
 import { buildSchema, reviewSchema, validate } from './contracts.mjs';
 import { executables } from './workers.mjs';
 import { withFailover } from './failover.mjs';
@@ -103,6 +103,20 @@ export function validateWebFiles(files) {
 }
 function state(dir, task, status, details = {}) {
   Object.assign(task, details, { status });
+  // Source-of-truth fix (Post-Release Fix A): every transition to a
+  // terminal status (completed/approved/rejected/failed/cancelled/
+  // cancelled_by_user) must freeze the task's duration from here on. The
+  // only reliable way to guarantee that is to stamp completionTime right
+  // here, at the one choke point every status transition in this module
+  // already passes through — rather than relying on each individual call
+  // site (success, failure, correction-limit-reached, etc.) to remember to
+  // pass it, which is exactly how this bug happened: only the single
+  // success path ever set it. Never overwrite an already-set
+  // completionTime (a call site that legitimately wants to set its own
+  // exact timestamp still can, by passing completionTime in details).
+  if (isTerminalStatus(status) && !task.completionTime) {
+    task.completionTime = new Date().toISOString();
+  }
   json(path.join(dir, 'task.json'), task);
   event(dir, status, details);
   // Persistent CTO Attention inbox: fire-and-forget, best-effort. dir is

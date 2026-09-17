@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync, spawn } from 'node:child_process';
-import { read, json, hash, event } from './storage.mjs';
+import { read, json, hash, event, ACTIVE_TASK_STATUSES, TERMINAL_TASK_STATUSES, isTerminalStatus } from './storage.mjs';
 import { executables } from './workers.mjs';
 import { codeTask } from './coding.mjs';
 import { decide, taskDir } from './router.mjs';
@@ -36,28 +36,16 @@ const MIME_TYPES = {
   '.md': 'text/plain; charset=utf-8'
 };
 
-export const ACTIVE_TASK_STATUSES = new Set([
-  'running',
-  'building',
-  'testing',
-  'reviewing',
-  'waiting_for_worker',
-  'needs_cto_attention',
-  'needs_human_input',
-  'awaiting_plan_approval',
-  'waiting_for_reviewer',
-  'awaiting_approval',
-  'paused_by_user'
-]);
-
-export const TERMINAL_TASK_STATUSES = new Set([
-  'completed',
-  'approved',
-  'cancelled',
-  'cancelled_by_user',
-  'rejected',
-  'failed'
-]);
+// ACTIVE_TASK_STATUSES / TERMINAL_TASK_STATUSES are now defined once in
+// storage.mjs (the one dependency-free module every other module already
+// imports from) and re-exported here unchanged, so every existing import
+// of these two names from server.mjs (dashboard code, tests) keeps working
+// exactly as before. See storage.mjs for the full rationale — this used to
+// be the only place these sets existed, which is why coding.mjs and
+// router.mjs had no access to "is this status terminal" and connector.mjs
+// had to keep its own separate hand-copied literal to avoid a circular
+// import back into this file.
+export { ACTIVE_TASK_STATUSES, TERMINAL_TASK_STATUSES };
 
 const activeStreams = new Map(); // taskId -> Set of res objects
 // Per-project active-task gate. Replaces the old single global
@@ -366,10 +354,27 @@ export function listRecentTasks(root, projectFilter = null) {
       const kind = t.kind || (project === 'adaptive-router' ? 'system' : 'web');
       if (projectFilter && project !== projectFilter) continue;
 
+      // Source-of-truth fix (Post-Release Fix A): duration for a terminal
+      // task must freeze at completionTime and never fall back to
+      // Date.now() — coding.mjs's state() and router.mjs's update() (and
+      // the few direct task.json writers in this file) now always stamp
+      // completionTime the moment a task becomes terminal, so this should
+      // be present. But some on-disk tasks may predate that fix (already
+      // terminal, never stamped) — for those, treat "terminal but no
+      // completionTime" the same as "just finished right now" rather than
+      // letting it silently keep counting up on every future poll: freeze
+      // it at task.updated (router.mjs) / last event time, falling back to
+      // 'created' itself (duration 0) only if nothing else is available.
+      // Only a genuinely still-active task ever measures against Date.now().
       let duration = null;
       if (t.created) {
         const start = new Date(t.created).getTime();
-        const end = t.completionTime ? new Date(t.completionTime).getTime() : Date.now();
+        const terminal = isTerminalStatus(t.status);
+        const end = t.completionTime
+          ? new Date(t.completionTime).getTime()
+          : terminal
+            ? new Date(t.updated || t.created).getTime()
+            : Date.now();
         const diffSec = Math.max(0, Math.floor((end - start) / 1000));
         const m = Math.floor(diffSec / 60);
         const s = diffSec % 60;
@@ -382,6 +387,7 @@ export function listRecentTasks(root, projectFilter = null) {
       else if (t.status === 'reviewing' || t.status === 'testing') progress = 70;
       else if (t.status === 'building' || t.status === 'running') progress = 45;
       else if (t.status === 'failed' || t.status === 'rejected') progress = 60;
+      else if (t.status === 'cancelled' || t.status === 'cancelled_by_user') progress = 0;
 
       tasks.push({
         id: t.id,
@@ -1364,6 +1370,11 @@ export function createDashboardServer(root, options = {}) {
                   technicalError: err.stack || err.message,
                   stage: 'background'
                 };
+                // Source-of-truth fix (Post-Release Fix A): this background
+                // catch-all also writes task.json directly, bypassing
+                // coding.mjs's state(). Stamp completionTime here too, same
+                // reasoning as the stop handler above.
+                if (!task.completionTime) task.completionTime = new Date().toISOString();
                 persistRouterActivity(root, finishedTaskId, '❌', 'Task Failed', err.message || 'Task execution failed.', 'error');
                 json(path.join(dir, 'task.json'), task);
                 event(dir, 'failed', task.failure);
@@ -1521,6 +1532,9 @@ export function createDashboardServer(root, options = {}) {
               oldTask.status = 'rejected';
               oldTask.reasonCode = 'CONTEXT_MISMATCH';
               oldTask.rejectionReason = 'Rejected due to CONTEXT_MISMATCH — Clean rerun initiated';
+              // Source-of-truth fix (Post-Release Fix A): another direct
+              // task.json write that bypasses router.mjs's update().
+              if (!oldTask.completionTime) oldTask.completionTime = new Date().toISOString();
               oldTask.approval = {
                 decision: 'rejected',
                 reason: 'Rejected due to CONTEXT_MISMATCH — Clean rerun initiated',
@@ -1609,7 +1623,28 @@ export function createDashboardServer(root, options = {}) {
         if (decision === 'stop_task') {
           t.status = 'cancelled_by_user';
           t.stoppedByUser = true;
+          // Source-of-truth fix (Post-Release Fix A): this direct-write
+          // cancel path bypasses coding.mjs's state()/router.mjs's update(),
+          // so it must stamp completionTime itself — otherwise duration
+          // math downstream (listRecentTasks here, and the dashboard) has
+          // no frozen end time and keeps computing against Date.now()
+          // forever. Never overwrite one already set.
+          if (!t.completionTime) t.completionTime = new Date().toISOString();
           json(taskPath, t);
+          // Also clear the in-memory active-task slot for this project, the
+          // same way the dedicated /stop endpoint does below — otherwise
+          // the scheduler's own bookkeeping (activeRunningTasks / /api/
+          // status's activeRunningTask) keeps pointing at a task that just
+          // became terminal until something else happens to overwrite the
+          // slot. getActiveTask() re-reads the task file fresh every call
+          // and already filters out terminal statuses, so this was not
+          // reachable as a user-visible "shows active when it isn't" bug —
+          // but leaving the slot stale is still inconsistent scheduler
+          // state, which the fix for this bug must not leave behind.
+          const stopTaskSlot = getActiveRunningTask(t.project);
+          if (stopTaskSlot === taskId || stopTaskSlot === 'running') {
+            setActiveRunningTask(t.project, null);
+          }
           try { resolveAttentionForTask(root, taskId); } catch { /* best-effort */ }
           return sendJson({ success: true, taskId, status: t.status });
         }
@@ -1788,6 +1823,16 @@ export function createDashboardServer(root, options = {}) {
         }
         t.status = 'cancelled_by_user';
         t.stoppedByUser = true;
+        // Source-of-truth fix (Post-Release Fix A): this is the real Stop
+        // button handler, and it writes task.json directly rather than
+        // through coding.mjs's state()/router.mjs's update(), so it must
+        // stamp completionTime itself. Without this, every duration
+        // calculation downstream (listRecentTasks below, and the Overview
+        // dashboard) has no frozen end time for a stopped task and keeps
+        // computing elapsed time against the current clock forever — this
+        // is the exact bug reported: a cancelled task's timer never
+        // stopped. Never overwrite one already set.
+        if (!t.completionTime) t.completionTime = new Date().toISOString();
         delete t.decisionRequired;
         try { resolveAttentionForTask(root, taskId); } catch { /* best-effort */ }
         const stopActivity = {
@@ -1825,6 +1870,9 @@ export function createDashboardServer(root, options = {}) {
           oldTask.status = 'rejected';
           oldTask.reasonCode = 'CONTEXT_MISMATCH';
           oldTask.rejectionReason = 'Rejected due to CONTEXT_MISMATCH — Clean rerun initiated';
+          // Source-of-truth fix (Post-Release Fix A): same direct-write gap
+          // as the other rerun-clean path above.
+          if (!oldTask.completionTime) oldTask.completionTime = new Date().toISOString();
           oldTask.approval = {
             decision: 'rejected',
             reason: 'Rejected due to CONTEXT_MISMATCH — Clean rerun initiated',

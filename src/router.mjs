@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { json, read, hash, event, saveFiles, validateFiles, verifyFiles, locked } from './storage.mjs';
+import { json, read, hash, event, saveFiles, validateFiles, verifyFiles, locked, isTerminalStatus } from './storage.mjs';
 import { planSchema, buildSchema, reviewSchema, validate } from './contracts.mjs';
 import { choose, executables, assertSubscriptionAuth, invoke } from './workers.mjs';
 import { matchSpecialist, loadSpecialistInstructions } from './specialists.mjs';
@@ -58,6 +58,16 @@ function applyApprovedFiles(root, task, manifest, baseline) {
 }
 function update(dir, task, status, detail = {}) {
   Object.assign(task, detail, { status, updated: new Date().toISOString() });
+  // Source-of-truth fix (Post-Release Fix A): mirrors coding.mjs's state().
+  // Every transition to a terminal status (approved/rejected/failed here)
+  // must freeze completionTime at the moment it happens, not leave it unset
+  // so downstream duration math falls back to "now" forever. Centralized
+  // here rather than at each call site (decide()'s approve/reject, and
+  // createTask()'s failure path) for the same reason: any new call site
+  // automatically gets this correct instead of having to remember it.
+  if (isTerminalStatus(status) && !task.completionTime) {
+    task.completionTime = new Date().toISOString();
+  }
   event(dir, status, detail);
   json(path.join(dir, 'task.json'), task);
   // Persistent CTO Attention inbox, same best-effort pattern as coding.mjs's

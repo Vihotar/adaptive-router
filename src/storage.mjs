@@ -3,6 +3,53 @@ import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { sanitizePayload } from './events.mjs';
 
+// ── Canonical task lifecycle status sets ────────────────────────────────
+// The single source of truth for "is this task's worker/pipeline still
+// active" vs "this task has reached a terminal outcome" — every module
+// that needs either answer imports these two sets rather than keeping its
+// own copy. This lives in storage.mjs (not server.mjs, where these sets
+// used to be defined) specifically because storage.mjs has no upward
+// dependency on anything else in src/: coding.mjs, router.mjs, server.mjs,
+// and connector.mjs all already import from storage.mjs, so this is the
+// one place both "leaf" modules (coding.mjs, router.mjs) and the modules
+// that sit above them (server.mjs) can share the exact same sets without
+// a circular import. Before this, coding.mjs and router.mjs had no access
+// to this concept at all (each set a task's status directly, with no
+// notion of "terminal"), and connector.mjs kept its own hand-maintained
+// literal copy of the active set purely to dodge the circular import that
+// importing from server.mjs would have caused.
+//
+// TERMINAL_TASK_STATUSES is exactly the complement of ACTIVE_TASK_STATUSES
+// over every status this codebase assigns to a task; test/task-controls-
+// sensitivity-override.test.mjs asserts that invariant.
+export const ACTIVE_TASK_STATUSES = new Set([
+  'running',
+  'building',
+  'testing',
+  'reviewing',
+  'waiting_for_worker',
+  'needs_cto_attention',
+  'needs_human_input',
+  'awaiting_plan_approval',
+  'waiting_for_reviewer',
+  'awaiting_approval',
+  'paused_by_user'
+]);
+
+export const TERMINAL_TASK_STATUSES = new Set([
+  'completed',
+  'approved',
+  'cancelled',
+  'cancelled_by_user',
+  'rejected',
+  'failed'
+]);
+
+// True once a task has reached any of the statuses above — the status will
+// never change again, so its completionTime/duration should be frozen and
+// it should never be shown as "current"/"active" anywhere in the UI.
+export const isTerminalStatus = status => TERMINAL_TASK_STATUSES.has(status);
+
 export function json(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const temp = `${file}.${randomUUID()}.tmp`;
