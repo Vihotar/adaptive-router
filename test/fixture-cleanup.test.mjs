@@ -2,7 +2,7 @@ import test, { describe } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, spawn } from 'node:child_process';
 import {
   createTestFixture,
   safeRemoveFixture,
@@ -173,25 +173,182 @@ describe('Adaptive Router — Test Fixture Cleanup Prevention Suite', () => {
   });
 
   test('7. Stale Fixture Pruning: Old abandoned fixtures are cleaned, active/recent fixtures preserved', () => {
-    // Create an "old" fixture by manually modifying its mtime
-    const staleDir = createTestFixture('stale-test-');
-    untrackFixture(staleDir); // Simulate an abandoned fixture from an old/crashed process
+    // Isolate pruning test inside an isolated fixture directory so concurrent test suites do not race
+    const isolationParent = createTestFixture('prune-isolation-');
+    const staleDir = path.join(isolationParent, 'stale-child');
+    fs.mkdirSync(staleDir, { recursive: true });
 
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
     fs.utimesSync(staleDir, twoHoursAgo, twoHoursAgo);
 
-    // Create a fresh active fixture
-    const activeDir = createTestFixture('active-test-');
+    // Create a fresh active fixture inside the isolated container
+    const activeDir = path.join(isolationParent, 'active-child');
+    fs.mkdirSync(activeDir, { recursive: true });
 
-    // Prune fixtures older than 30 minutes
+    // Prune fixtures older than 30 minutes inside isolationParent
     const maxAgeMs = 30 * 60 * 1000;
-    const prunedCount = pruneStaleFixtures(maxAgeMs);
+    const prunedCount = pruneStaleFixtures(maxAgeMs, isolationParent);
 
-    assert.ok(prunedCount >= 1, 'pruneStaleFixtures must prune at least the stale directory');
+    assert.equal(prunedCount, 1, 'pruneStaleFixtures must prune exactly 1 stale directory');
     assert.equal(fs.existsSync(staleDir), false, 'stale fixture must be pruned');
     assert.equal(fs.existsSync(activeDir), true, 'active/recent fixture must NOT be pruned');
 
-    // Clean up active fixture
-    safeRemoveFixture(activeDir);
+    // Clean up isolated test container
+    safeRemoveFixture(isolationParent);
+  });
+
+  test('8. Cross-process stale pruning safety: Process B MUST NOT delete Process A active fixture even if older than threshold', async () => {
+    // Process A: spawns, creates fixture, backdates mtime to 2 hours ago, and stays running
+    const procACode = `
+      import fs from 'node:fs';
+      import { createTestFixture } from './test/helpers/fixture-helper.mjs';
+
+      const dir = createTestFixture('proc-a-active-');
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      fs.utimesSync(dir, twoHoursAgo, twoHoursAgo);
+
+      // Output fixture path to stdout
+      process.stdout.write(dir + '\\n');
+
+      // Keep Process A alive
+      setInterval(() => {}, 1000);
+    `;
+
+    const procA = spawn(process.execPath, ['--input-type=module', '-e', procACode], {
+      cwd: repoRoot,
+      stdio: ['pipe', 'pipe', 'inherit']
+    });
+
+    const fixtureDir = await new Promise((resolve, reject) => {
+      procA.stdout.once('data', (data) => {
+        resolve(data.toString().trim());
+      });
+      procA.on('error', reject);
+    });
+
+    assert.ok(fs.existsSync(fixtureDir), 'Process A fixture must exist on disk');
+
+    try {
+      // Process B: starts independently in a fresh OS process, runs pruneStaleFixtures
+      const procBCode = `
+        import { pruneStaleFixtures } from './test/helpers/fixture-helper.mjs';
+        const count = pruneStaleFixtures(15 * 60 * 1000); // 15 minutes threshold
+        process.stdout.write(String(count));
+      `;
+
+      const procB = spawnSync(process.execPath, ['--input-type=module', '-e', procBCode], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: 5000
+      });
+
+      assert.equal(procB.status, 0, 'Process B must complete successfully');
+
+      // Expected result: Process B MUST PRESERVE Process A's active fixture!
+      assert.equal(
+        fs.existsSync(fixtureDir),
+        true,
+        'Process B MUST NOT delete Process A active fixture even though older than 15 minutes!'
+      );
+    } finally {
+      // Terminate Process A
+      procA.kill();
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
+    // Now that Process A is terminated, Process C runs stale pruning:
+    const procCCode = `
+      import { pruneStaleFixtures } from './test/helpers/fixture-helper.mjs';
+      const count = pruneStaleFixtures(15 * 60 * 1000);
+      process.stdout.write(String(count));
+    `;
+
+    const procC = spawnSync(process.execPath, ['--input-type=module', '-e', procCCode], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: 5000
+    });
+
+    assert.equal(procC.status, 0, 'Process C must complete successfully');
+    // Now the abandoned fixture MUST be pruned!
+    assert.equal(
+      fs.existsSync(fixtureDir),
+      false,
+      'Process C must prune Process A fixture once Process A has terminated!'
+    );
+  });
+
+  test('9. Signal handling sanity check: SIGINT, SIGTERM, normal exit, and failure exit all clean up and terminate', () => {
+    // 1. In-process SIGINT terminates and cleans fixture
+    const sigIntCode = `
+      import { createTestFixture } from './test/helpers/fixture-helper.mjs';
+      const dir = createTestFixture('test-sigint-');
+      process.stdout.write(dir);
+      process.emit('SIGINT');
+      process.stdout.write('FAILED_SHOULD_HAVE_EXITED');
+    `;
+    const sigIntRes = spawnSync(process.execPath, ['--input-type=module', '-e', sigIntCode], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: 5000
+    });
+    assert.ok(!sigIntRes.stdout.includes('FAILED_SHOULD_HAVE_EXITED'), 'SIGINT handler must terminate process');
+    const sigIntDir = sigIntRes.stdout.trim();
+    assert.equal(fs.existsSync(sigIntDir), false, 'SIGINT must clean up active fixture');
+
+    // 2. In-process SIGTERM terminates and cleans fixture
+    const sigTermCode = `
+      import { createTestFixture } from './test/helpers/fixture-helper.mjs';
+      const dir = createTestFixture('test-sigterm-');
+      process.stdout.write(dir);
+      process.emit('SIGTERM');
+      process.stdout.write('FAILED_SHOULD_HAVE_EXITED');
+    `;
+    const sigTermRes = spawnSync(process.execPath, ['--input-type=module', '-e', sigTermCode], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: 5000
+    });
+    assert.ok(!sigTermRes.stdout.includes('FAILED_SHOULD_HAVE_EXITED'), 'SIGTERM handler must terminate process');
+    const sigTermDir = sigTermRes.stdout.trim();
+    assert.equal(fs.existsSync(sigTermDir), false, 'SIGTERM must clean up active fixture');
+
+    // 3. Normal exit cleans fixture and exits 0
+    const normalCode = `
+      import { createTestFixture } from './test/helpers/fixture-helper.mjs';
+      const dir = createTestFixture('test-normal-');
+      process.stdout.write(dir);
+    `;
+    const normalRes = spawnSync(process.execPath, ['--input-type=module', '-e', normalCode], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: 5000
+    });
+    assert.equal(normalRes.status, 0, 'Normal script must exit with 0');
+    const normalDir = normalRes.stdout.trim();
+    assert.equal(fs.existsSync(normalDir), false, 'Normal exit must clean up active fixture');
+
+    // 4. Failure exit cleans fixture and exits 1
+    const failCode = `
+      import assert from 'node:assert/strict';
+      import { createTestFixture } from './test/helpers/fixture-helper.mjs';
+      const dir = createTestFixture('test-fail-exit-');
+      process.stdout.write(dir);
+      assert.equal(1, 2, 'Simulated failure');
+    `;
+    const failRes = spawnSync(process.execPath, ['--input-type=module', '-e', failCode], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: 5000
+    });
+    assert.equal(failRes.status, 1, 'Failing script must exit with 1');
+    const failDir = failRes.stdout.trim();
+    assert.equal(fs.existsSync(failDir), false, 'Failure exit must clean up active fixture');
   });
 });

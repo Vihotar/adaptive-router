@@ -95,6 +95,19 @@ export function safeRemoveFixture(targetPath) {
 }
 
 /**
+ * Checks if a process with the given PID is currently alive and running.
+ */
+export function isProcessAlive(pid) {
+  if (!pid || typeof pid !== 'number') return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return e.code === 'EPERM'; // Running under different permissions, but definitely alive
+  }
+}
+
+/**
  * Tracks a fixture directory for the current process.
  */
 export function trackFixture(targetPath) {
@@ -102,6 +115,13 @@ export function trackFixture(targetPath) {
   const resolved = path.resolve(targetPath);
   if (isSafeFixturePath(resolved)) {
     activeFixtures.add(resolved);
+    try {
+      const ownerFile = path.join(resolved, '.fixture-owner.json');
+      fs.writeFileSync(ownerFile, JSON.stringify({
+        pid: process.pid,
+        startedAt: Date.now()
+      }));
+    } catch (err) {}
   }
 }
 
@@ -110,7 +130,8 @@ export function trackFixture(targetPath) {
  */
 export function untrackFixture(targetPath) {
   if (!targetPath) return;
-  activeFixtures.delete(path.resolve(targetPath));
+  const resolved = path.resolve(targetPath);
+  activeFixtures.delete(resolved);
 }
 
 /**
@@ -204,21 +225,22 @@ export async function withTestFixture(prefix, fn) {
  * @param {number} maxAgeMs - Age threshold in milliseconds (default 15 minutes)
  * @returns {number} Count of pruned directories
  */
-export function pruneStaleFixtures(maxAgeMs = 15 * 60 * 1000) {
-  if (!fs.existsSync(testBaseDir)) return 0;
+export function pruneStaleFixtures(maxAgeMs = 15 * 60 * 1000, baseDir = testBaseDir) {
+  const targetDir = path.resolve(baseDir);
+  if (!fs.existsSync(targetDir)) return 0;
 
   let pruned = 0;
   const now = Date.now();
   let entries = [];
   try {
-    entries = fs.readdirSync(testBaseDir, { withFileTypes: true });
+    entries = fs.readdirSync(targetDir, { withFileTypes: true });
   } catch (err) {
     return 0;
   }
 
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
-    const fullPath = path.join(testBaseDir, entry.name);
+    const fullPath = path.join(targetDir, entry.name);
     const resolved = path.resolve(fullPath);
 
     // Never prune an active fixture belonging to the current process
@@ -226,6 +248,20 @@ export function pruneStaleFixtures(maxAgeMs = 15 * 60 * 1000) {
 
     // Must pass strict safety check
     if (!isSafeFixturePath(resolved)) continue;
+
+    // Cross-process active check: if an active owner file exists and that process is alive, PRESERVE it!
+    const ownerFile = path.join(resolved, '.fixture-owner.json');
+    if (fs.existsSync(ownerFile)) {
+      try {
+        const owner = JSON.parse(fs.readFileSync(ownerFile, 'utf8'));
+        if (owner && owner.pid && isProcessAlive(owner.pid)) {
+          // Process is currently alive and active! Legitimate long-running fixture, do not prune!
+          continue;
+        }
+      } catch (err) {
+        // Corrupt owner file, fall back to age check
+      }
+    }
 
     try {
       const stats = fs.statSync(resolved);
