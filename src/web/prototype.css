@@ -394,6 +394,33 @@ input:checked + .slider:before {
 .usage-used { color: var(--text-main); }
 .usage-remaining { color: var(--text-muted); }
 
+/* The two labels above the platform bar. Deliberately named for what they
+   mean rather than reusing .usage-used / .usage-remaining: this bar measures
+   AR's own token spend, and nothing here is a used/remaining split against a
+   provider allowance. The quota label sits visually separate so the two can
+   never be read as one statement. */
+.usage-share-label { color: var(--text-main); }
+
+.usage-quota-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* Stacked rather than sat side by side on one line: these are two separate
+   statements ("this is AR's own share" / "we do not know the provider's
+   quota"), and a justified two-column row invited reading them as a
+   used/remaining pair. Stacking also stops the longer label wrapping
+   mid-phrase on a narrow card. */
+.platform-limit-card .usage-numbers {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+
+.platform-limit-card .usage-share-label { white-space: nowrap; }
+.platform-limit-card .usage-quota-label { font-size: 0.76rem; }
+
 .usage-progress {
   width: 100%;
   height: 8px;
@@ -413,6 +440,11 @@ input:checked + .slider:before {
 .fill-green { background: linear-gradient(90deg, #34d399, #10b981); }
 .fill-amber { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
 .fill-muted { background: #94a3b8; }
+/* Cline's own bar color. Added when the platform bars started carrying real
+   measured data: Codex used to be rendered in fill-muted grey purely because
+   the prototype's demo value for it was 0%, which now reads as "disabled"
+   rather than "small share". Codex takes fill-blue and Cline takes this. */
+.fill-teal { background: linear-gradient(90deg, #2dd4bf, #0d9488); }
 
 /* Platform card signal rows (Post-Release Fix C).
    Replaces the old fake usage bar: two rows of information AR can actually
@@ -450,6 +482,12 @@ input:checked + .slider:before {
 .platform-signal-value.signal-warn { color: #b45309; }
 .platform-signal-value.signal-bad { color: #b91c1c; }
 .platform-signal-value.signal-muted { color: var(--text-muted); font-weight: 600; }
+
+.usage-basis {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
 
 .platform-limits-footnote {
   font-size: 0.78rem;
@@ -1358,6 +1396,174 @@ input:checked + .slider:before {
   color: var(--text-muted);
 }
 
+/* Task Detail Modal (Final UI Closure item 2) */
+.task-detail-modal-footer {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.task-detail-head {
+  margin-bottom: 1.25rem;
+  padding-right: 2rem;
+}
+
+.task-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.task-detail-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.task-detail-meta {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.task-detail-meta code {
+  font-family: var(--font-mono);
+  background: var(--bg-subtle);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.task-detail-section { margin-bottom: 1.35rem; }
+
+.task-detail-section h4 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.task-detail-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem 1rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+}
+
+.task-detail-fact { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+
+.task-detail-fact-k {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.task-detail-fact-v {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+
+.task-detail-instruction {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #334155;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.task-detail-pair-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.task-detail-role-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  min-width: 0;
+}
+
+.task-detail-role-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.task-detail-role-name {
+  font-size: 0.98rem;
+  font-weight: 700;
+  margin-top: 0.15rem;
+  overflow-wrap: anywhere;
+}
+
+.task-detail-role-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  overflow-wrap: anywhere;
+}
+
+.task-detail-file-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.task-detail-file-list li {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  background: var(--bg-subtle);
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+.task-detail-callout {
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.task-detail-callout h4 { margin-bottom: 0.3rem; color: inherit; }
+.task-detail-callout ul { margin: 0.4rem 0 0 1.1rem; }
+.task-detail-callout.pass { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+.task-detail-callout.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.task-detail-callout.fail { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+.task-detail-callout.info { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+
+.task-detail-empty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 /* Toast feedback notification */
 .proto-toast {
   position: fixed;
@@ -1987,7 +2193,7 @@ input:checked + .slider:before {
 }
 
 .office-seat-node.seat-non-live {
-  opacity: 0.62;
+  opacity: 0.78;
 }
 
 .office-pod {
@@ -2000,8 +2206,11 @@ input:checked + .slider:before {
 
 .office-pod-ring {
   position: absolute;
-  top: 4%;
-  width: 78%;
+  /* Sized to sit just outside the provider node now that the desk block
+     below it is gone — the ring is the state indicator, so it reads as a
+     halo around the logo rather than a separate object. */
+  top: -1%;
+  width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   border: 1.5px dashed color-mix(in srgb, var(--seat-accent, var(--border-strong)) 45%, transparent);
@@ -2021,16 +2230,19 @@ input:checked + .slider:before {
 
 .office-pod-avatar-wrap {
   position: relative;
-  width: 74%;
+  /* The provider node itself. Larger than the old avatar circle because it
+     no longer shares vertical space with a desk graphic, which gives a
+     supplied logo room to read clearly. */
+  width: 88%;
   aspect-ratio: 1 / 1;
   margin: 0 auto;
-  background: var(--bg-card);
-  border: 2px solid var(--border-color);
+  background: #ffffff;
+  border: 1.5px solid var(--border-color);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.10);
   transition: all 0.2s ease;
   z-index: 1;
 }
@@ -2040,34 +2252,95 @@ input:checked + .slider:before {
   background: color-mix(in srgb, var(--seat-accent, var(--primary)) 8%, var(--bg-card));
 }
 
-.office-seat-avatar-svg {
-  width: 70%;
-  height: 70%;
+/* Final UI Closure item 3: the desk/furniture block that used to sit under
+   each seat is gone along with the robot avatars — a provider node is a
+   logo and a state, not a drawing of a workstation. */
+
+/* An official provider asset the CTO supplied. Rendered as given:
+   object-fit: contain letterboxes it inside the node so the file's own
+   proportions are preserved and it is never stretched or cropped. No
+   filters or color overrides are applied to it. */
+.office-seat-logo {
+  width: 62%;
+  height: 62%;
+  object-fit: contain;
+  display: block;
 }
 
-.office-pod-desk {
-  width: 108%;
-  height: 22%;
-  margin-top: -8%;
-  background: linear-gradient(180deg, #ffffff 0%, #e7edf6 100%);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md) var(--radius-md) var(--radius-sm) var(--radius-sm);
-  box-shadow: var(--shadow-sm);
-  position: relative;
+/* Neutral fallback node used until an official asset exists for a seat:
+   a plain generic glyph plus the provider's initials, in the seat's accent
+   color. Deliberately generic — it is not an imitation of any trademark. */
+.office-seat-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4%;
+  width: 72%;
+  height: 72%;
+  color: var(--seat-accent, var(--text-muted));
 }
 
-.office-pod-desk::before {
-  /* A thin accent strip along the desk front — the seat's platform color,
-     a restrained nod to individual identity without needing a logo asset. */
-  content: '';
-  position: absolute;
-  left: 12%;
-  right: 12%;
-  top: 0;
-  height: 3px;
-  border-radius: var(--radius-full);
-  background: var(--seat-accent, var(--border-strong));
-  opacity: 0.7;
+.office-seat-fallback-glyph {
+  width: 42%;
+  height: 42%;
+  flex-shrink: 0;
+}
+
+.office-seat-initials {
+  font-family: var(--font-mono);
+  font-size: clamp(0.5rem, 1.5vw, 0.72rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  color: var(--seat-accent, var(--text-muted));
+}
+
+.office-seat-node.seat-non-live .office-seat-fallback,
+.office-seat-node.seat-non-live .office-seat-initials {
+  color: var(--text-muted);
+}
+
+/* Reviewing reads differently from building: a steady accent sweep rather
+   than the building pulse, so the two active states are distinguishable at
+   a glance. Both are driven by real task status — never decorative. */
+.office-seat-node.seat-reviewing .office-pod-ring {
+  border-style: solid;
+  opacity: 1;
+  animation: office-pod-ring-review 2.4s linear infinite;
+}
+
+@keyframes office-pod-ring-review {
+  0% { transform: rotate(0deg); opacity: 0.85; }
+  50% { opacity: 0.45; }
+  100% { transform: rotate(360deg); opacity: 0.85; }
+}
+
+.office-seat-node.seat-reviewing .office-pod-avatar-wrap {
+  border-color: var(--seat-accent, #93c5fd);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--seat-accent, var(--primary)) 14%, transparent), var(--shadow-md);
+}
+
+/* CTO attention on this seat's task — amber ring, distinct from both
+   working states. */
+.office-seat-node.seat-attention .office-pod-avatar-wrap {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18), var(--shadow-md);
+}
+
+.office-seat-node.seat-attention .office-pod-ring {
+  border-color: rgba(245, 158, 11, 0.6);
+  border-style: solid;
+  opacity: 1;
+}
+
+.office-seat-provider {
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  line-height: 1.1;
 }
 
 .office-desk-activity-dot {
@@ -2090,12 +2363,12 @@ input:checked + .slider:before {
   flex-direction: column;
   align-items: center;
   gap: 0.15rem;
-  margin-top: 0.1rem;
+  margin-top: 0.3rem;
 }
 
 .office-seat-name {
   font-weight: 800;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   color: var(--text-main);
   line-height: 1.15;
 }
@@ -2212,11 +2485,14 @@ input:checked + .slider:before {
     min-width: 0;
     gap: 0.15rem;
   }
-  .office-pod-desk {
-    display: none;
-  }
   .office-pod-task {
     display: none;
+  }
+  .office-seat-provider {
+    display: none;
+  }
+  .office-seat-initials {
+    font-size: 0.5rem;
   }
   .office-seat-name {
     font-size: 0.56rem;

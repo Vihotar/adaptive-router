@@ -314,7 +314,27 @@ export async function getWorkerStatuses(root, requestedProject = null) {
     if (active) visibleRunningTask = active.id;
   }
   const workerHealth = getAllWorkerHealth(root);
+  // Real per-platform token share for the Overview usage bars (see
+  // getPlatformUsageShare above — measured, never a guessed quota).
+  const usageShare = getPlatformUsageShare(root);
   const withHealth = (w) => {
+    const u = usageShare.byWorker[w.id];
+    // usage is always present so the card can render a bar; zeros mean "AR
+    // recorded no token usage for this platform in the window", which is a
+    // fact, not a placeholder.
+    const usage = {
+      tokens: u?.tokens || 0,
+      invocations: u?.invocations || 0,
+      sharePercent: u?.sharePercent || 0,
+      windowTotalTokens: usageShare.totalTokens,
+      windowTaskCount: usageShare.taskCount,
+      accuracy: usageShare.accuracy,
+      // AR has no way to see any provider's subscription allowance, so this
+      // is permanently false until a provider actually exposes one. The UI
+      // reads it to label the bar honestly.
+      quotaReported: false
+    };
+    w = { ...w, usage };
     const h = workerHealth[w.id];
     if (h && h.state !== 'healthy') {
       return { ...w, health: h.state, healthSampleSize: h.sampleSize || 0, healthDetail: `${h.failureCount} recent failure(s), last: ${h.lastAt || 'unknown'}` };
@@ -425,6 +445,137 @@ export function listRecentTasks(root, projectFilter = null) {
     } catch {}
   }
   return tasks;
+}
+
+// Real, AR-measured token usage per platform.
+//
+// Restores the prototype's percentage bars on the Overview platform cards
+// WITHOUT inventing a provider quota. AR cannot see any provider's
+// subscription allowance — no connected CLI reports one — so the bar
+// deliberately does not claim to. What it does show is genuine: every task
+// records exact (or explicitly estimated) token counts per invocation, each
+// attributed to the worker that made the call (see token-tracker.mjs). This
+// aggregates those across recent tasks and expresses each platform's slice
+// as a share of the total AR actually spent. Real numerator, real
+// denominator, and useful — "Codex is doing most of the work right now" —
+// without pretending to know a quota.
+//
+// Invocations that never reported usage contribute nothing, so a platform
+// with no recorded calls honestly reads as 0 rather than being guessed at.
+const USAGE_SHARE_TASK_LIMIT = 20;
+
+// token-tracker records the platform family ('claude', 'agy'); workers.json
+// and the dashboard key off worker ids ('claude-code', 'antigravity').
+const USAGE_PLATFORM_TO_WORKER = {
+  claude: 'claude-code',
+  anthropic: 'claude-code',
+  agy: 'antigravity',
+  google: 'antigravity',
+  openai: 'codex'
+};
+
+function normalizeUsageWorkerId(id) {
+  if (!id) return null;
+  const key = String(id).toLowerCase();
+  return USAGE_PLATFORM_TO_WORKER[key] || key;
+}
+
+// Official provider logo assets the CTO has supplied, keyed by Office View
+// seat id. Only files that genuinely exist are reported; nothing is
+// generated, fetched or altered here — AR just points the seat at the file.
+// Extension order is the display preference (vector first).
+const PROVIDER_LOGO_EXTENSIONS = ['.svg', '.png', '.webp'];
+const PROVIDER_LOGO_SEAT_IDS = ['claude-code', 'codex', 'antigravity', 'gemini', 'nvidia-nim', 'openrouter', 'grok'];
+
+export function listProviderLogoAssets(root) {
+  const dir = path.join(root, 'src', 'web', 'assets', 'logos');
+  const found = {};
+  if (!fs.existsSync(dir)) return found;
+  for (const seatId of PROVIDER_LOGO_SEAT_IDS) {
+    for (const ext of PROVIDER_LOGO_EXTENSIONS) {
+      const file = `${seatId}${ext}`;
+      try {
+        if (fs.existsSync(path.join(dir, file)) && fs.lstatSync(path.join(dir, file)).isFile()) {
+          // Relative to src/web/, which is exactly how the dashboard's own
+          // static handler serves it.
+          found[seatId] = `assets/logos/${file}`;
+          break;
+        }
+      } catch {}
+    }
+  }
+  return found;
+}
+
+export function getPlatformUsageShare(root, limit = USAGE_SHARE_TASK_LIMIT) {
+  const tasksDir = path.join(root, '.router', 'tasks');
+  const empty = { byWorker: {}, totalTokens: 0, taskCount: 0, accuracy: 'Unavailable', windowLimit: limit };
+  if (!fs.existsSync(tasksDir)) return empty;
+
+  const ids = fs.readdirSync(tasksDir)
+    .filter(id => /^\d{8}T\d{6}-[a-f0-9]{8}$/.test(id))
+    .sort()
+    .reverse()
+    .slice(0, limit);
+
+  const byWorker = {};
+  let totalTokens = 0;
+  let taskCount = 0;
+  let sawEstimated = false;
+  let sawExact = false;
+
+  const addTokens = (workerId, tokens, accuracy) => {
+    const id = normalizeUsageWorkerId(workerId);
+    if (!id || typeof tokens !== 'number' || !Number.isFinite(tokens) || tokens <= 0) return;
+    if (!byWorker[id]) byWorker[id] = { tokens: 0, invocations: 0 };
+    byWorker[id].tokens += tokens;
+    byWorker[id].invocations += 1;
+    totalTokens += tokens;
+    if (accuracy === 'Estimated') sawEstimated = true;
+    else if (accuracy === 'Exact') sawExact = true;
+  };
+
+  for (const id of ids) {
+    let t;
+    try { t = read(path.join(tasksDir, id, 'task.json')); } catch { continue; }
+    const usage = t?.tokenUsage;
+    if (!usage) continue;
+    let counted = false;
+    // Prefer the per-invocation list: it carries the worker that actually
+    // made each call, so a task whose builder failed over mid-run is
+    // attributed correctly rather than all landing on one platform.
+    if (Array.isArray(usage.invocations) && usage.invocations.length) {
+      for (const inv of usage.invocations) {
+        if (typeof inv?.totalTokens === 'number' && inv.totalTokens > 0) {
+          addTokens(inv.worker || inv.platform, inv.totalTokens, inv.accuracy);
+          counted = true;
+        }
+      }
+    } else {
+      for (const role of ['builder', 'reviewer']) {
+        const r = usage[role];
+        if (r && typeof r.totalTokens === 'number' && r.totalTokens > 0) {
+          addTokens(r.platform, r.totalTokens, r.accuracy);
+          counted = true;
+        }
+      }
+    }
+    if (counted) taskCount += 1;
+  }
+
+  for (const id of Object.keys(byWorker)) {
+    byWorker[id].sharePercent = totalTokens > 0
+      ? Math.round((byWorker[id].tokens / totalTokens) * 100)
+      : 0;
+  }
+
+  return {
+    byWorker,
+    totalTokens,
+    taskCount,
+    accuracy: sawEstimated ? (sawExact ? 'Partial' : 'Estimated') : (sawExact ? 'Exact' : 'Unavailable'),
+    windowLimit: limit
+  };
 }
 
 export function getActiveTask(root, projectId = null) {
@@ -1036,6 +1187,13 @@ export function createDashboardServer(root, options = {}) {
       // other endpoint uses, just aggregated across projects in one call
       // rather than requiring the dashboard to poll per-project.
       if (pathname === '/api/office-view' && method === 'GET') {
+        // Final UI Closure item 3: which official provider logo assets are
+        // actually present on disk. AR never downloads, draws or modifies a
+        // provider's mark — it only serves a file the CTO has placed in
+        // src/web/assets/logos/ (see the README there). A seat with no file
+        // renders a neutral fallback node instead, so the view is always
+        // complete and never shows an imitation logo.
+        const providerLogos = listProviderLogoAssets(root);
         const projects = listRegisteredProjects(root, { includeHidden: false });
         const RUNNING_WORKER_STATUSES = new Set(['building', 'testing', 'reviewing']);
         const projectActivity = [];
@@ -1079,6 +1237,7 @@ export function createDashboardServer(root, options = {}) {
         const workerStatus = await getWorkerStatuses(root);
         return sendJson({
           projects: projectActivity,
+          providerLogos,
           workers: workerStatus.workers.map(w => ({
             ...w,
             busy: busyWorkerIds.has(w.id)

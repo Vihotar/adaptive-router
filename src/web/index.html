@@ -166,6 +166,23 @@
                      two signals AR genuinely measures: the platform's live
                      connection state and its own recorded recent-call reliability
                      from worker-health.json. No invented percentages. -->
+                <!-- Final UI Closure item 1: the prototype's percentage bar is
+                     back, driven by real measured data instead of the demo values
+                     it originally carried. Width and percentage come from
+                     getPlatformUsageShare() in server.mjs — each platform's slice
+                     of the tokens AR actually recorded across recent tasks. It is
+                     explicitly NOT a subscription quota, and the row beside it
+                     says so, because no connected provider reports one. -->
+                <div class="usage-bar-wrap">
+                  <div class="usage-numbers">
+                    <span class="usage-share-label">Recent AR token share: <strong id="share-limit-cline">—</strong></span>
+                    <span class="usage-quota-label" id="quota-limit-cline">Provider quota not reported</span>
+                  </div>
+                  <div class="usage-progress">
+                    <div class="usage-fill fill-teal" id="bar-limit-cline" style="width: 0%;"></div>
+                  </div>
+                  <div class="usage-basis" id="basis-limit-cline">Measuring…</div>
+                </div>
                 <div class="platform-signal-list">
                   <div class="platform-signal-row">
                     <span class="platform-signal-label">Connection</span>
@@ -206,6 +223,23 @@
                      two signals AR genuinely measures: the platform's live
                      connection state and its own recorded recent-call reliability
                      from worker-health.json. No invented percentages. -->
+                <!-- Final UI Closure item 1: the prototype's percentage bar is
+                     back, driven by real measured data instead of the demo values
+                     it originally carried. Width and percentage come from
+                     getPlatformUsageShare() in server.mjs — each platform's slice
+                     of the tokens AR actually recorded across recent tasks. It is
+                     explicitly NOT a subscription quota, and the row beside it
+                     says so, because no connected provider reports one. -->
+                <div class="usage-bar-wrap">
+                  <div class="usage-numbers">
+                    <span class="usage-share-label">Recent AR token share: <strong id="share-limit-claude">—</strong></span>
+                    <span class="usage-quota-label" id="quota-limit-claude">Provider quota not reported</span>
+                  </div>
+                  <div class="usage-progress">
+                    <div class="usage-fill fill-purple" id="bar-limit-claude" style="width: 0%;"></div>
+                  </div>
+                  <div class="usage-basis" id="basis-limit-claude">Measuring…</div>
+                </div>
                 <div class="platform-signal-list">
                   <div class="platform-signal-row">
                     <span class="platform-signal-label">Connection</span>
@@ -246,6 +280,23 @@
                      two signals AR genuinely measures: the platform's live
                      connection state and its own recorded recent-call reliability
                      from worker-health.json. No invented percentages. -->
+                <!-- Final UI Closure item 1: the prototype's percentage bar is
+                     back, driven by real measured data instead of the demo values
+                     it originally carried. Width and percentage come from
+                     getPlatformUsageShare() in server.mjs — each platform's slice
+                     of the tokens AR actually recorded across recent tasks. It is
+                     explicitly NOT a subscription quota, and the row beside it
+                     says so, because no connected provider reports one. -->
+                <div class="usage-bar-wrap">
+                  <div class="usage-numbers">
+                    <span class="usage-share-label">Recent AR token share: <strong id="share-limit-codex">—</strong></span>
+                    <span class="usage-quota-label" id="quota-limit-codex">Provider quota not reported</span>
+                  </div>
+                  <div class="usage-progress">
+                    <div class="usage-fill fill-blue" id="bar-limit-codex" style="width: 0%;"></div>
+                  </div>
+                  <div class="usage-basis" id="basis-limit-codex">Measuring…</div>
+                </div>
                 <div class="platform-signal-list">
                   <div class="platform-signal-row">
                     <span class="platform-signal-label">Connection</span>
@@ -286,6 +337,23 @@
                      two signals AR genuinely measures: the platform's live
                      connection state and its own recorded recent-call reliability
                      from worker-health.json. No invented percentages. -->
+                <!-- Final UI Closure item 1: the prototype's percentage bar is
+                     back, driven by real measured data instead of the demo values
+                     it originally carried. Width and percentage come from
+                     getPlatformUsageShare() in server.mjs — each platform's slice
+                     of the tokens AR actually recorded across recent tasks. It is
+                     explicitly NOT a subscription quota, and the row beside it
+                     says so, because no connected provider reports one. -->
+                <div class="usage-bar-wrap">
+                  <div class="usage-numbers">
+                    <span class="usage-share-label">Recent AR token share: <strong id="share-limit-antigravity">—</strong></span>
+                    <span class="usage-quota-label" id="quota-limit-antigravity">Provider quota not reported</span>
+                  </div>
+                  <div class="usage-progress">
+                    <div class="usage-fill fill-green" id="bar-limit-antigravity" style="width: 0%;"></div>
+                  </div>
+                  <div class="usage-basis" id="basis-limit-antigravity">Measuring…</div>
+                </div>
                 <div class="platform-signal-list">
                   <div class="platform-signal-row">
                     <span class="platform-signal-label">Connection</span>
@@ -302,7 +370,7 @@
                 </div>
               </div>
             </div>
-            <p class="platform-limits-footnote">Quota consumption is not reported by any connected provider CLI, so AR does not display a usage figure rather than estimate one. Reliability reflects AR's own recent calls to each platform.</p>
+            <p class="platform-limits-footnote">The bars show each platform's measured share of the tokens AR actually spent across recent tasks — not a subscription quota. No connected provider reports its quota, so AR never estimates one. Reliability reflects AR's own recent calls to each platform.</p>
           </section>
 
           <!-- No Active Task — shown instead of the Current Task card
@@ -1160,15 +1228,24 @@
       </main>
     </div><!-- /proto-body-layout -->
 
-    <!-- Task Details Modal -->
+    <!-- Task Detail Modal (Final UI Closure item 2).
+         This shell already existed but nothing ever filled or opened it —
+         which is why clicking a task row had no detail popup. It is now
+         live: the Tasks page opens it in place rather than navigating away
+         to Overview. Everything inside is filled from the real
+         /api/tasks/:id payload by app.js — no invented fields, and any
+         field a task genuinely lacks (an old task with no reviewer, no
+         applied files, no token telemetry) is omitted rather than shown
+         blank. -->
     <div class="proto-modal-overlay" id="task-detail-modal">
-      <div class="proto-modal">
-        <button type="button" class="proto-modal-close" id="modal-close-btn">&times;</button>
-        <div id="modal-body-content">
-          <!-- Loaded dynamically on task click -->
+      <div class="proto-modal" role="dialog" aria-modal="true" aria-labelledby="task-detail-modal-title">
+        <button type="button" class="proto-modal-close" id="task-detail-modal-close" aria-label="Close task details">&times;</button>
+        <div id="task-detail-modal-body">
+          <!-- Rendered dynamically by app.js -->
         </div>
-        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
-          <button type="button" class="btn btn-secondary" id="btn-close-modal">Close Details</button>
+        <div class="task-detail-modal-footer">
+          <button type="button" class="btn btn-secondary" id="task-detail-open-overview">Open in Overview</button>
+          <button type="button" class="btn btn-secondary" id="task-detail-modal-close-btn">Close Details</button>
         </div>
       </div>
     </div>

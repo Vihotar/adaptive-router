@@ -38,6 +38,8 @@
     overviewLogsMode: 'split', // 'progress', 'logs', 'split'
     autoFollow: true,
     taskFilter: 'all',
+    detailModalTaskId: null,
+    providerLogos: {},
     techLogFilter: 'all',
     techLogSearch: '',
     taskSearch: '',
@@ -385,6 +387,10 @@
       const data = await res.json();
       State.officeProjects = Array.isArray(data.projects) ? data.projects : [];
       State.officeWorkers = Array.isArray(data.workers) ? data.workers : [];
+      // Official provider logo files the CTO has supplied, as reported by
+      // the server. Empty until files are placed in src/web/assets/logos/,
+      // in which case every seat uses its neutral fallback node.
+      State.providerLogos = (data.providerLogos && typeof data.providerLogos === 'object') ? data.providerLogos : {};
       renderOfficeFloor();
       renderOfficeProjects();
       renderOfficeFlowStats();
@@ -418,39 +424,48 @@
   // the `live` flag below. Angles are degrees clockwise from the top (12
   // o'clock = -90 in standard SVG/canvas angle convention), evenly spaced.
   const OFFICE_SEATS = [
-    { id: 'claude-code', label: 'Claude', backingWorkerId: 'claude-code', live: true, angleDeg: -90, accent: '#d97706' },
-    { id: 'codex', label: 'Codex', backingWorkerId: 'codex', live: true, angleDeg: -38.57, accent: '#16a34a' },
-    { id: 'antigravity', label: 'Antigravity', backingWorkerId: 'antigravity', live: true, angleDeg: 12.86, accent: '#4f46e5' },
-    { id: 'grok', label: 'Grok', backingWorkerId: null, live: false, angleDeg: 64.29, accent: '#475569' },
-    { id: 'nvidia-nim', label: 'NVIDIA NIM', backingWorkerId: null, live: false, angleDeg: 115.71, accent: '#16a34a' },
-    { id: 'openrouter', label: 'OpenRouter', backingWorkerId: null, live: false, angleDeg: 167.14, accent: '#9333ea' },
-    { id: 'gemini', label: 'Gemini', backingWorkerId: null, live: false, angleDeg: 218.57, accent: '#2563eb' }
+    { id: 'claude-code', label: 'Claude', provider: 'Anthropic', initials: 'CL', backingWorkerId: 'claude-code', live: true, angleDeg: -90, accent: '#d97706' },
+    { id: 'codex', label: 'Codex', provider: 'OpenAI', initials: 'CX', backingWorkerId: 'codex', live: true, angleDeg: -38.57, accent: '#16a34a' },
+    { id: 'antigravity', label: 'Antigravity', provider: 'Google', initials: 'AG', backingWorkerId: 'antigravity', live: true, angleDeg: 12.86, accent: '#4f46e5' },
+    { id: 'grok', label: 'Grok', provider: 'xAI', initials: 'GK', backingWorkerId: null, live: false, angleDeg: 64.29, accent: '#475569' },
+    { id: 'nvidia-nim', label: 'NVIDIA NIM', provider: 'NVIDIA', initials: 'NV', backingWorkerId: null, live: false, angleDeg: 115.71, accent: '#16a34a' },
+    { id: 'openrouter', label: 'OpenRouter', provider: 'OpenRouter', initials: 'OR', backingWorkerId: null, live: false, angleDeg: 167.14, accent: '#9333ea' },
+    { id: 'gemini', label: 'Gemini', provider: 'Google', initials: 'GM', backingWorkerId: null, live: false, angleDeg: 218.57, accent: '#2563eb' }
   ];
 
-  // A substantial inline-SVG robot avatar, oriented so it visually faces
-  // the center hub. `facingDeg` is the rotation applied to the avatar's
-  // default "facing up" pose to point it toward the hub — verified against
-  // both the top seat (-90 -> 180deg, facing straight down toward the hub
-  // below it) and an off-axis seat. Do not change this to angleDeg + 180 —
-  // that was tried and verified wrong (points seats away from center).
-  function renderRobotAvatarSvg(facingDeg, isLive, isBusy, accent) {
-    const eyeColor = !isLive ? '#94a3b8' : isBusy ? '#2563eb' : '#16a34a';
-    const bodyAccent = isLive ? accent : '#cbd5e1';
-    const glow = isBusy ? `filter: drop-shadow(0 0 6px ${accent}88);` : '';
+  // Final UI Closure item 3 — provider nodes replace the previous robot
+  // illustrations. Two render paths, and no third:
+  //
+  //  1. An OFFICIAL asset the CTO supplied in src/web/assets/logos/ (see the
+  //     README there). It is rendered exactly as supplied — letterboxed with
+  //     object-fit: contain so the original proportions are preserved, never
+  //     stretched, never recolored, never traced.
+  //  2. A neutral fallback node when no such file exists: the provider's
+  //     short initials plus a plain generic node glyph. AR does not draw an
+  //     imitation of anyone's trademark, so this is deliberately generic —
+  //     it identifies the seat without pretending to be a brand mark.
+  //
+  // Nothing here rotates: a logo must sit upright regardless of where the
+  // seat falls on the radial layout.
+  function renderProviderMark(seat, isLive, isBusy, logoSrc) {
+    const glow = isBusy ? `filter: drop-shadow(0 0 6px ${seat.accent}66);` : '';
+    if (logoSrc) {
+      return `
+        <img class="office-seat-logo" src="${escapeHtml(logoSrc)}" alt="" aria-hidden="true"
+             style="${glow}" loading="lazy" />
+      `;
+    }
     return `
-      <svg class="office-seat-avatar-svg" viewBox="0 0 64 64" style="transform: rotate(${facingDeg}deg); ${glow}" aria-hidden="true">
-        <line x1="32" y1="12" x2="32" y2="4" stroke="${bodyAccent}" stroke-width="2.5" stroke-linecap="round" />
-        <circle cx="32" cy="3.5" r="3.2" fill="${bodyAccent}" />
-        <rect x="9" y="21" width="4.5" height="13" rx="2.2" fill="#cbd5e1" />
-        <rect x="50.5" y="21" width="4.5" height="13" rx="2.2" fill="#cbd5e1" />
-        <rect x="13" y="12" width="38" height="32" rx="9" fill="#ffffff" stroke="${bodyAccent}" stroke-width="2" />
-        <rect x="17.5" y="19" width="29" height="17" rx="5.5" fill="#f1f5f9" stroke="${bodyAccent}" stroke-width="1.5" />
-        <circle cx="25.5" cy="27.5" r="3.4" fill="${eyeColor}" />
-        <circle cx="38.5" cy="27.5" r="3.4" fill="${eyeColor}" />
-        <rect x="27.5" y="44" width="9" height="4.5" rx="1.2" fill="#cbd5e1" />
-        <path d="M18 49 C18 49, 23 47.5, 32 47.5 C41 47.5, 46 49, 46 49 L48.5 61 C48.5 61, 39 63.5, 32 63.5 C25 63.5, 15.5 61, 15.5 61 Z" fill="#f8fafc" stroke="${bodyAccent}" stroke-width="2" />
-        <circle cx="32" cy="54" r="3" fill="${bodyAccent}" />
-      </svg>
+      <span class="office-seat-fallback" style="${glow}" aria-hidden="true">
+        <svg class="office-seat-fallback-glyph" viewBox="0 0 32 32" focusable="false">
+          <rect x="6.5" y="6.5" width="19" height="19" rx="5"
+                fill="none" stroke="currentColor" stroke-width="1.6" opacity="0.55" />
+          <circle cx="16" cy="16" r="3.6" fill="currentColor" opacity="0.85" />
+          <path d="M16 6.5 V2.5 M16 25.5 V29.5 M6.5 16 H2.5 M25.5 16 H29.5"
+                stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.5" />
+        </svg>
+        <span class="office-seat-initials">${escapeHtml(seat.initials)}</span>
+      </span>
     `;
   }
 
@@ -512,16 +527,28 @@
         }
       }
 
+      // Distinct visual states, all derived from real runtime data and
+      // never from decoration: reviewing gets its own ring animation rather
+      // than sharing the building pulse, and a task genuinely waiting on the
+      // CTO turns this seat's ring amber. Both fall straight out of the
+      // task status /api/office-view already reports.
+      const isReviewing = busy && current?.task?.status === 'reviewing';
+      const needsAttention = isLive && State.officeProjects.some(p =>
+        p.task && p.task.waitingOnCto &&
+        (p.task.builderWorker === backingWorker.id || p.task.reviewerWorker === backingWorker.id));
+
       const leftPct = ((x / 1000) * 100).toFixed(2);
       const topPct = ((y / 1000) * 100).toFixed(2);
-      const facingDeg = seat.angleDeg - 90;
+      // Only ever a file the CTO actually placed in src/web/assets/logos/;
+      // the server reports which of those exist (see listProviderLogoAssets).
+      const logoSrc = State.providerLogos[seat.id] || null;
       const interactiveAttrs = isLive ? 'role="button" tabindex="0"' : 'aria-disabled="true"';
       const taskLine = (busy && current?.task)
         ? `<div class="office-pod-task" title="${escapeHtml(current.task.instruction || '')}">${escapeHtml(taskTitleOf(current.task))}</div>`
         : '';
 
       return `
-        <div class="office-seat-node ${busy ? 'seat-busy' : ''} ${isLive ? 'seat-live' : 'seat-non-live'}"
+        <div class="office-seat-node ${busy ? 'seat-busy' : ''} ${isReviewing ? 'seat-reviewing' : ''} ${needsAttention ? 'seat-attention' : ''} ${isLive ? 'seat-live' : 'seat-non-live'}"
              id="office-seat-${escapeHtml(seat.id)}"
              data-worker-id="${escapeHtml(backingWorker?.id || seat.id)}"
              data-live="${isLive ? '1' : '0'}"
@@ -531,13 +558,13 @@
           <div class="office-pod">
             <div class="office-pod-ring"></div>
             <div class="office-pod-avatar-wrap">
-              ${renderRobotAvatarSvg(facingDeg, isLive, busy, seat.accent)}
+              ${renderProviderMark(seat, isLive, busy, logoSrc)}
               ${busy ? '<span class="office-desk-activity-dot"></span>' : ''}
             </div>
-            <div class="office-pod-desk"></div>
           </div>
           <div class="office-pod-plate">
             <span class="office-seat-name">${escapeHtml(name)}</span>
+            ${seat.provider && seat.provider !== name ? `<span class="office-seat-provider">${escapeHtml(seat.provider)}</span>` : ''}
             <span class="office-seat-state office-seat-state-${stateClass}">${escapeHtml(stateLabel)}</span>
           </div>
           ${taskLine}
@@ -1085,6 +1112,44 @@
       el.className = `platform-signal-value ${cls || ''}`.trim();
     };
 
+    // Final UI Closure item 1 — the restored percentage bar. Every number
+    // here is measured by AR itself (server.mjs getPlatformUsageShare):
+    // the platform's share of the tokens AR actually recorded across recent
+    // tasks. Nothing is scaled to, or implies, a provider subscription
+    // quota — `quotaReported` stays false until a provider genuinely
+    // exposes one, and the label beside the bar says so plainly.
+    const renderUsageBar = (workerId, worker) => {
+      const shareEl = document.getElementById(`share-limit-${workerId}`);
+      const barEl = document.getElementById(`bar-limit-${workerId}`);
+      const basisEl = document.getElementById(`basis-limit-${workerId}`);
+      const quotaEl = document.getElementById(`quota-limit-${workerId}`);
+      const u = worker?.usage;
+
+      if (quotaEl) {
+        quotaEl.textContent = u?.quotaReported ? 'Provider quota reported' : 'Provider quota not reported';
+      }
+      if (!u || !u.windowTotalTokens) {
+        // No usage recorded yet in the window. Show an empty bar with an
+        // honest basis line rather than a number AR cannot back up.
+        if (shareEl) shareEl.textContent = 'No data yet';
+        if (barEl) barEl.style.width = '0%';
+        if (basisEl) basisEl.textContent = 'AR has recorded no token usage yet across recent tasks.';
+        return;
+      }
+      const pct = Math.max(0, Math.min(100, Number(u.sharePercent) || 0));
+      if (shareEl) shareEl.textContent = `${pct}%`;
+      if (barEl) barEl.style.width = `${pct}%`;
+      if (basisEl) {
+        const tasks = Number(u.windowTaskCount) || 0;
+        const accuracy = u.accuracy && u.accuracy !== 'Unavailable' ? ` · ${u.accuracy}` : '';
+        // Phrased so the denominator is unmistakably AR's own spend over a
+        // task window, never an allowance this platform is consuming.
+        basisEl.textContent = u.tokens > 0
+          ? `${Number(u.tokens).toLocaleString()} of the ${Number(u.windowTotalTokens).toLocaleString()} tokens AR spent across its last ${tasks} task${tasks === 1 ? '' : 's'}${accuracy}`
+          : `AR recorded no tokens for this platform across its last ${tasks} task${tasks === 1 ? '' : 's'}`;
+      }
+    };
+
     const renderConnectionSignal = (workerId, worker) => {
       const elId = `conn-limit-${workerId}`;
       if (!worker) return setSignal(elId, 'Not configured', 'signal-muted');
@@ -1122,6 +1187,7 @@
       bCline.className = `badge ${active ? 'green' : (wCline?.userEnabled === false ? 'gray' : 'amber')}`;
     }
     if (nCline && wCline?.note) nCline.textContent = wCline.note;
+    renderUsageBar('cline', wCline);
     renderConnectionSignal('cline', wCline);
     renderHealthSignal('cline', wCline);
 
@@ -1147,6 +1213,7 @@
       }
     }
     if (nClaude && wClaude?.note) nClaude.textContent = wClaude.note;
+    renderUsageBar('claude', wClaude);
     renderConnectionSignal('claude', wClaude);
     renderHealthSignal('claude', wClaude);
 
@@ -1162,6 +1229,7 @@
       bCodex.className = `badge ${active ? 'green' : (wCodex?.userEnabled === false ? 'gray' : 'red')}`;
     }
     if (nCodex && wCodex?.note) nCodex.textContent = wCodex.note;
+    renderUsageBar('codex', wCodex);
     renderConnectionSignal('codex', wCodex);
     renderHealthSignal('codex', wCodex);
 
@@ -1177,6 +1245,7 @@
       bAntigravity.className = `badge ${active ? 'green' : (wAntigravity?.userEnabled === false ? 'gray' : 'red')}`;
     }
     if (nAntigravity && wAntigravity?.note) nAntigravity.textContent = wAntigravity.note;
+    renderUsageBar('antigravity', wAntigravity);
     renderConnectionSignal('antigravity', wAntigravity);
     renderHealthSignal('antigravity', wAntigravity);
   }
@@ -2264,17 +2333,296 @@
       `;
     }).join('');
 
-    // Row click event
+    // Row click event — Final UI Closure item 2: opens the task detail
+    // modal in place. It deliberately does NOT switch views any more; the
+    // modal's "Open in Overview" button still does that for anyone who
+    // wants the full workspace.
     tbody.querySelectorAll('.task-row').forEach(row => {
-      row.addEventListener('click', async () => {
+      row.addEventListener('click', () => {
         const id = row.getAttribute('data-task-id');
-        if (id) {
-          State.currentTaskId = id;
-          renderTasksTable();
-          await fetchTaskDetails(id);
-          switchView('overview');
-        }
+        if (!id) return;
+        State.currentTaskId = id;
+        renderTasksTable();
+        openTaskDetailModal(id);
       });
+    });
+  }
+
+
+  // ── Task Detail Modal (Final UI Closure item 2) ──────────────────────────
+  //
+  // Restores the prototype's "click a task row to inspect it" interaction,
+  // without leaving the Tasks page. Everything rendered here comes from the
+  // real /api/tasks/:id payload (server.mjs getTaskDetails) — the same
+  // source Overview already uses. Nothing is invented: every section below
+  // checks whether its data actually exists and is skipped entirely when it
+  // does not, so an old task with no reviewer, no applied files and no token
+  // telemetry renders a short, correct modal rather than a wall of blanks.
+  function fact(label, value) {
+    if (value === null || value === undefined || value === '') return '';
+    return `
+      <div class="task-detail-fact">
+        <span class="task-detail-fact-k">${escapeHtml(label)}</span>
+        <span class="task-detail-fact-v">${escapeHtml(String(value))}</span>
+      </div>`;
+  }
+
+  function formatAbsoluteTime(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleString();
+  }
+
+  function renderTaskDetailBody(t) {
+    const badge = formatStatusBadge(t.status);
+    const title = taskTitleOf(t);
+    const instruction = t.instruction || '';
+
+    // Builder / reviewer: task.json carries several generations of field
+    // names (builderWorker vs selectedBuilder vs routingLog). Read them in
+    // the same priority order the Tasks table does so an old task still
+    // resolves, and omit the card entirely when none of them is present.
+    const buildEntry = Array.isArray(t.routingLog) ? t.routingLog.find(r => r.role === 'build') : null;
+    const reviewEntry = Array.isArray(t.routingLog) ? t.routingLog.find(r => r.role === 'review') : null;
+    const builder = t.builderWorker || t.selectedBuilder || buildEntry?.worker || t.contributors?.[0] || null;
+    const reviewer = t.reviewerWorker || t.selectedReviewer || t.reviewer || reviewEntry?.worker || null;
+    const builderModel = t.builderModel || buildEntry?.model || null;
+    const reviewerModel = t.reviewerModel || reviewEntry?.model || null;
+    const builderTier = t.builderTierName || buildEntry?.tierName || null;
+    const reviewerTier = t.reviewerTierName || reviewEntry?.tierName || null;
+    const builderEffort = t.builderEffort || buildEntry?.effort || null;
+    const reviewerEffort = t.reviewerEffort || reviewEntry?.effort || null;
+    const specialist = t.specialistName || buildEntry?.specialistName || null;
+
+    // Files: appliedFiles is what was actually written to the project root;
+    // the manifest/changes list is what the builder produced. Prefer applied.
+    let files = [];
+    if (Array.isArray(t.appliedFiles) && t.appliedFiles.length) files = t.appliedFiles;
+    else if (Array.isArray(t.changes) && t.changes.length) files = t.changes.map(c => (typeof c === 'string' ? c : c?.path)).filter(Boolean);
+    else if (Array.isArray(t.manifest?.files) && t.manifest.files.length) files = t.manifest.files.map(f => (typeof f === 'string' ? f : f?.path)).filter(Boolean);
+
+    const tu = t.tokenUsage || null;
+    const hasTokens = tu && typeof tu.totalTokens === 'number' && tu.totalTokens > 0;
+
+    const created = formatAbsoluteTime(t.created);
+    const completed = formatAbsoluteTime(t.completionTime);
+    const duration = t.duration || null;
+    const progress = (t.progress === undefined || t.progress === null) ? null : `${t.progress}%`;
+
+    const factsHtml = [
+      fact('Status', badge.label),
+      fact('Project', t.projectName || t.project),
+      fact('Created', created),
+      fact('Completed', completed),
+      fact('Duration', duration),
+      fact('Progress', progress),
+      fact('Revision', t.revision),
+      hasTokens ? fact('Tokens used', `${Number(tu.totalTokens).toLocaleString()}${tu.totalAccuracy && tu.totalAccuracy !== 'Unavailable' ? ` (${tu.totalAccuracy})` : ''}`) : ''
+    ].join('');
+
+    const parts = [];
+
+    parts.push(`
+      <div class="task-detail-head">
+        <div class="task-detail-title-row">
+          <h2 class="task-detail-title" id="task-detail-modal-title">${escapeHtml(title)}</h2>
+          <span class="badge ${badge.cls}">${escapeHtml(badge.label)}</span>
+        </div>
+        <p class="task-detail-meta">Task ID: <code>${escapeHtml(t.id || '')}</code>${t.kind ? ` • ${escapeHtml(t.kind)}` : ''}</p>
+      </div>`);
+
+    if (factsHtml.trim()) {
+      parts.push(`<div class="task-detail-section"><div class="task-detail-facts">${factsHtml}</div></div>`);
+    }
+
+    if (t.summary) {
+      parts.push(`
+        <div class="task-detail-section">
+          <h4>Summary</h4>
+          <div class="task-detail-instruction">${escapeHtml(t.summary)}</div>
+        </div>`);
+    }
+
+    // The complete original instruction, never truncated — the short title
+    // above is only a label, this is the canonical prompt.
+    if (instruction) {
+      parts.push(`
+        <div class="task-detail-section">
+          <h4>Original instruction</h4>
+          <div class="task-detail-instruction">${escapeHtml(instruction)}</div>
+        </div>`);
+    }
+
+    if (builder || reviewer) {
+      const card = (label, name, model, tier, effort, extra) => {
+        if (!name) return '';
+        const sub = [model, tier, effort ? `effort: ${effort}` : null, extra].filter(Boolean).join(' • ');
+        return `
+          <div class="task-detail-role-card">
+            <span class="task-detail-role-label">${escapeHtml(label)}</span>
+            <div class="task-detail-role-name">${escapeHtml(formatWorkerName(name))}</div>
+            ${sub ? `<div class="task-detail-role-sub">${escapeHtml(sub)}</div>` : ''}
+          </div>`;
+      };
+      parts.push(`
+        <div class="task-detail-section">
+          <h4>Assigned workers</h4>
+          <div class="task-detail-pair-grid">
+            ${card('Builder', builder, builderModel, builderTier, builderEffort, specialist)}
+            ${card('Reviewer', reviewer, reviewerModel, reviewerTier, reviewerEffort, t.reviewerQualification?.badge)}
+          </div>
+        </div>`);
+    }
+
+    parts.push(`
+      <div class="task-detail-section">
+        <h4>Modified files</h4>
+        ${files.length
+          ? `<ul class="task-detail-file-list">${files.map(f => `<li>${escapeHtml(String(f))}</li>`).join('')}</ul>`
+          : '<p class="task-detail-empty">No file changes recorded for this task.</p>'}
+      </div>`);
+
+    // Validator result — real pass/fail plus the real check count.
+    if (t.tests && typeof t.tests.passed === 'boolean') {
+      const n = t.tests.checksCount ?? t.tests.checks?.length;
+      parts.push(`
+        <div class="task-detail-section">
+          <div class="task-detail-callout ${t.tests.passed ? 'pass' : 'fail'}">
+            <h4>Automated validation</h4>
+            ${t.tests.passed ? 'Passed' : 'Failed'}${n != null ? ` — ${n} check${n === 1 ? '' : 's'}` : ''}
+          </div>
+        </div>`);
+    }
+
+    // Independent reviewer finding.
+    if (t.review && (t.review.verdict || t.review.summary)) {
+      const passed = t.review.verdict === 'pass';
+      const issues = Array.isArray(t.review.issues) ? t.review.issues.filter(Boolean) : [];
+      parts.push(`
+        <div class="task-detail-section">
+          <div class="task-detail-callout ${passed ? 'pass' : 'warn'}">
+            <h4>Reviewer audit finding${t.review.verdict ? ` — ${escapeHtml(String(t.review.verdict).toUpperCase())}` : ''}</h4>
+            ${t.review.summary ? escapeHtml(t.review.summary) : ''}
+            ${issues.length ? `<ul>${issues.map(i => `<li>${escapeHtml(String(i))}</li>`).join('')}</ul>` : ''}
+          </div>
+        </div>`);
+    }
+
+    // Approval / rejection decision actually recorded on disk.
+    const approval = t.approvalData || t.approval;
+    if (approval && approval.decision) {
+      parts.push(`
+        <div class="task-detail-section">
+          <div class="task-detail-callout ${approval.decision === 'approved' ? 'pass' : 'warn'}">
+            <h4>CTO decision — ${escapeHtml(String(approval.decision).toUpperCase())}</h4>
+            ${approval.reason ? escapeHtml(approval.reason) : 'No reason recorded.'}
+          </div>
+        </div>`);
+    }
+
+    // Anything genuinely waiting on the CTO right now.
+    if (t.decisionRequired && (t.decisionRequired.question || t.decisionRequired.reason)) {
+      parts.push(`
+        <div class="task-detail-section">
+          <div class="task-detail-callout info">
+            <h4>Awaiting CTO decision</h4>
+            ${escapeHtml(t.decisionRequired.question || t.decisionRequired.reason || '')}
+          </div>
+        </div>`);
+    }
+
+    // Guardrail flag — real, set by coding.mjs when a task passed its tier
+    // token threshold.
+    if (t.guardrailHardFlagged && t.guardrailReason) {
+      parts.push(`
+        <div class="task-detail-section">
+          <div class="task-detail-callout warn">
+            <h4>Token / time guardrail flagged</h4>
+            ${escapeHtml(t.guardrailReason)}
+          </div>
+        </div>`);
+    }
+
+    // Failure / blocker information.
+    const failure = t.failure;
+    if (failure || t.error) {
+      const detail = failure?.reason || t.error || 'Task execution failed.';
+      const tech = failure?.technicalError && failure.technicalError !== detail ? failure.technicalError : null;
+      parts.push(`
+        <div class="task-detail-section">
+          <div class="task-detail-callout fail">
+            <h4>Failure${failure?.stage ? ` — ${escapeHtml(failure.stage)}` : ''}</h4>
+            ${escapeHtml(detail)}
+            ${tech ? `<ul><li>${escapeHtml(tech)}</li></ul>` : ''}
+          </div>
+        </div>`);
+    }
+
+    // Context-integrity verdict, when the backend reports a mismatch.
+    if (t.contextIntegrity && t.contextIntegrity.valid === false && t.contextIntegrity.reason) {
+      parts.push(`
+        <div class="task-detail-section">
+          <div class="task-detail-callout warn">
+            <h4>Context integrity — ${escapeHtml(t.contextIntegrity.reasonCode || 'UNVERIFIED')}</h4>
+            ${escapeHtml(t.contextIntegrity.reason)}
+          </div>
+        </div>`);
+    }
+
+    return parts.join('');
+  }
+
+  async function openTaskDetailModal(taskId) {
+    const modal = document.getElementById('task-detail-modal');
+    const body = document.getElementById('task-detail-modal-body');
+    if (!modal || !body || !taskId) return;
+
+    State.detailModalTaskId = taskId;
+    // Fall back to the list record immediately so the modal never opens
+    // blank, then enrich it with the full detail payload.
+    const listRecord = State.tasks.find(t => t.id === taskId) || { id: taskId };
+    body.innerHTML = renderTaskDetailBody(listRecord);
+    modal.classList.add('active');
+
+    try {
+      const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}`);
+      if (!res.ok) return;
+      const detail = await res.json();
+      // Guard against a slow response landing after the CTO has already
+      // closed the modal or opened a different task.
+      if (State.detailModalTaskId !== taskId || !modal.classList.contains('active')) return;
+      body.innerHTML = renderTaskDetailBody({ ...listRecord, ...detail });
+    } catch {
+      // Keep the list-record view; it is real data, just less of it.
+    }
+  }
+
+  function closeTaskDetailModal() {
+    const modal = document.getElementById('task-detail-modal');
+    if (modal) modal.classList.remove('active');
+    State.detailModalTaskId = null;
+  }
+
+  function initTaskDetailModal() {
+    const modal = document.getElementById('task-detail-modal');
+    if (!modal) return;
+    document.getElementById('task-detail-modal-close')?.addEventListener('click', closeTaskDetailModal);
+    document.getElementById('task-detail-modal-close-btn')?.addEventListener('click', closeTaskDetailModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeTaskDetailModal(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('active')) closeTaskDetailModal();
+    });
+    // Preserves the pre-modal behavior for anyone who wants it: select the
+    // task and jump to the full Overview workspace.
+    document.getElementById('task-detail-open-overview')?.addEventListener('click', async () => {
+      const id = State.detailModalTaskId;
+      closeTaskDetailModal();
+      if (!id) return;
+      State.currentTaskId = id;
+      renderTasksTable();
+      await fetchTaskDetails(id);
+      switchView('overview');
     });
   }
 
@@ -2636,18 +2984,14 @@
   }
 
   // Modal Dialog Controls
-  function initModals() {
-    const modalDetail = document.getElementById('task-detail-modal');
-    const btnCloseModal = document.getElementById('modal-close-btn');
-    const btnCloseModal2 = document.getElementById('btn-close-modal');
-
-    if (btnCloseModal && modalDetail) {
-      btnCloseModal.addEventListener('click', () => modalDetail.classList.remove('active'));
-    }
-    if (btnCloseModal2 && modalDetail) {
-      btnCloseModal2.addEventListener('click', () => modalDetail.classList.remove('active'));
-    }
-  }
+  //
+  // The task-detail close buttons that used to be wired here pointed at
+  // #modal-close-btn / #btn-close-modal — ids belonging to a modal shell
+  // that nothing ever filled or opened. That shell is now the live task
+  // detail modal (Final UI Closure item 2) and initTaskDetailModal() owns
+  // its controls, including overlay-click and Escape, so this no longer
+  // duplicates that wiring.
+  function initModals() {}
 
   // Lifecycle Initialization
   async function init() {
@@ -2663,6 +3007,7 @@
     initCtoInboxControls();
     initOfficeViewControls();
     initModals();
+    initTaskDetailModal();
 
     // Initial load
     await fetchStatus();
