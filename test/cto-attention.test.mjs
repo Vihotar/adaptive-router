@@ -13,36 +13,31 @@ import {
 } from '../src/cto-attention.mjs';
 import { codeTask } from '../src/coding.mjs';
 import { read, json } from '../src/storage.mjs';
+import { createTestFixture } from './helpers/fixture-helper.mjs';
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
-// Same fixture pattern as test/task-controls-sensitivity-override.test.mjs —
-// a real project root codeTask() can run against, so this test exercises
-// the ACTUAL call sites in coding.mjs/router.mjs (the root-path arithmetic
-// from dir -> root), not just the cto-attention.mjs module in isolation.
-// This is deliberately kept as its own suite/import here rather than only
-// unit-testing the module, because a prior version of this feature had a
+// An integration fixture that includes everything codeTask() needs to run
+// through the sensitivity gate end-to-end. We had an actual, customer-facing
 // bug precisely in that call-site plumbing that pure module-level tests
 // did not catch: the module worked perfectly on its own, but the wiring
 // that computed `root` from `dir` at the two call sites was off by one
 // path segment, so real codeTask() runs silently never created an inbox
 // item. Only an integration test through codeTask() itself can catch that
 // class of bug.
-function integrationFixture() {
-  const tmp = fs.mkdtempSync(path.resolve('.router/tests/cto-attention-integration-'));
-  fs.cpSync(path.join(rootDir, 'fixtures'), path.join(tmp, 'fixtures'), { recursive: true });
-  fs.cpSync(path.join(rootDir, 'src', 'web'), path.join(tmp, 'src', 'web'), { recursive: true });
-  if (fs.existsSync(path.join(rootDir, 'specialists.json'))) {
-    fs.copyFileSync(path.join(rootDir, 'specialists.json'), path.join(tmp, 'specialists.json'));
-  }
-  const config = read(path.join(rootDir, 'workers.json'));
-  json(path.join(tmp, 'workers.json'), config);
-  return tmp;
+function integrationFixture(t) {
+  return createTestFixture('cto-attention-integration-', {
+    seedFixtures: true,
+    seedWeb: true,
+    seedSpecialists: true,
+    workersConfig: read(path.join(rootDir, 'workers.json')),
+    t
+  });
 }
 
 test('CTO Attention / Inbox Suite', async (t) => {
-  function mkRoot(prefix) {
-    const dir = fs.mkdtempSync(path.resolve('.router/tests/cto-attention-' + prefix + '-'));
+  function mkRoot(prefix, subT = t) {
+    const dir = createTestFixture('cto-attention-' + prefix + '-', { t: subT });
     fs.mkdirSync(path.join(dir, '.router'), { recursive: true });
     return dir;
   }

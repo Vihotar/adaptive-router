@@ -7,6 +7,7 @@ import { codeTask } from '../src/coding.mjs';
 import { read, json, hash } from '../src/storage.mjs';
 import { buildSchema, reviewSchema } from '../src/contracts.mjs';
 import { selectModelAndEffort } from '../src/smart-router.mjs';
+import { createTestFixture } from './helpers/fixture-helper.mjs';
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
@@ -47,11 +48,12 @@ const workersConfig = {
   connectorToken: 'CONNECTOR_TOKEN_REGENERATED_ON_FIRST_RUN'
 };
 
-function createFixture() {
-  const tmp = fs.mkdtempSync(path.resolve('.router/tests/review-mismatch-'));
-  fs.cpSync(path.join(rootDir, 'fixtures'), path.join(tmp, 'fixtures'), { recursive: true });
-  json(path.join(tmp, 'workers.json'), workersConfig);
-  return tmp;
+function createFixture(t) {
+  return createTestFixture('review-mismatch-', {
+    seedFixtures: true,
+    workersConfig: workersConfig,
+    t
+  });
 }
 
 test('Review Mismatch Fix & Dedicated Progress vs Technical Logs Suite', async (t) => {

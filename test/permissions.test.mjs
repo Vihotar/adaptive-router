@@ -12,11 +12,12 @@ import {
   saveProjectPermission,
   openNativeApp
 } from '../src/permissions.mjs';
+import { createTestFixture } from './helpers/fixture-helper.mjs';
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
-function fixture() {
-  const tmp = fs.mkdtempSync(path.resolve('.router/tests/perm-'));
+function fixture(t) {
+  const tmp = createTestFixture('perm-', { t });
   fs.mkdirSync(path.join(tmp, '.router'), { recursive: true });
   return tmp;
 }

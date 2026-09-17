@@ -9,19 +9,18 @@ import { buildSchema } from '../src/contracts.mjs';
 import { loadTaskEvents } from '../src/events.mjs';
 import { formatTaskFailure } from '../src/failure.mjs';
 import { createDashboardServer } from '../src/server.mjs';
+import { createTestFixture } from './helpers/fixture-helper.mjs';
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
-function fixture() {
-  const tmp = fs.mkdtempSync(path.resolve('.router/tests/fail-rep-'));
-  fs.cpSync(path.join(rootDir, 'fixtures'), path.join(tmp, 'fixtures'), { recursive: true });
-  fs.cpSync(path.join(rootDir, 'src', 'web'), path.join(tmp, 'src', 'web'), { recursive: true });
-  if (fs.existsSync(path.join(rootDir, 'specialists.json'))) {
-    fs.copyFileSync(path.join(rootDir, 'specialists.json'), path.join(tmp, 'specialists.json'));
-  }
-  const config = read(path.join(rootDir, 'workers.json'));
-  json(path.join(tmp, 'workers.json'), config);
-  return tmp;
+function fixture(t) {
+  return createTestFixture('fail-rep-', {
+    seedFixtures: true,
+    seedWeb: true,
+    seedSpecialists: true,
+    workersConfig: read(path.join(rootDir, 'workers.json')),
+    t
+  });
 }
 
 function startTestServer(root) {

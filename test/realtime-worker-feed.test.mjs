@@ -11,9 +11,10 @@ import {
   ALLOWED_EVENT_TYPES
 } from '../src/events.mjs';
 import { createDashboardServer, broadcastTaskEvent } from '../src/server.mjs';
+import { createTestFixture } from './helpers/fixture-helper.mjs';
 
-test('Universal Worker Event Layer — Schema, Monotonic Sequences, and Event IDs', () => {
-  const root = fs.mkdtempSync(path.resolve('.router/tests/feed-'));
+test('Universal Worker Event Layer — Schema, Monotonic Sequences, and Event IDs', (t) => {
+  const root = createTestFixture('feed-', { t });
   const taskId = '20260911T120000-testfeed';
   const taskDir = path.join(root, '.router', 'tasks', taskId);
   fs.mkdirSync(taskDir, { recursive: true });
@@ -104,8 +105,8 @@ test('Universal Worker Event Layer — Whitelist Validation', () => {
   assert.equal(custom.platform, 'router');
 });
 
-test('Universal Worker Event Layer — Legacy Task Normalization', () => {
-  const root = fs.mkdtempSync(path.resolve('.router/tests/feed-'));
+test('Universal Worker Event Layer — Legacy Task Normalization', (t) => {
+  const root = createTestFixture('feed-', { t });
   const taskId = '20260910T074014-71564128';
   const taskDir = path.join(root, '.router', 'tasks', taskId);
   fs.mkdirSync(taskDir, { recursive: true });
@@ -141,8 +142,8 @@ test('Universal Worker Event Layer — Legacy Task Normalization', () => {
   assert.equal(normalized[3].sequence, 4);
 });
 
-test('Real-Time Worker Feed — SSE Live Broadcasting, Sequence Resumption, and Sub-Second Latency', async () => {
-  const root = fs.mkdtempSync(path.resolve('.router/tests/feed-stream-'));
+test('Real-Time Worker Feed — SSE Live Broadcasting, Sequence Resumption, and Sub-Second Latency', async (t) => {
+  const root = createTestFixture('feed-stream-', { t });
   const taskId = '20260911T120500-a1b2c3d4';
   const taskDir = path.join(root, '.router', 'tasks', taskId);
   fs.mkdirSync(taskDir, { recursive: true });

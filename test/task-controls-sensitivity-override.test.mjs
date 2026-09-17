@@ -9,21 +9,21 @@ import { classifySensitivity } from '../src/sensitivity.mjs';
 import { candidates } from '../src/failover.mjs';
 import { read, json, hash, saveFiles } from '../src/storage.mjs';
 import { buildSchema } from '../src/contracts.mjs';
+import { createTestFixture } from './helpers/fixture-helper.mjs';
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
-function fixture() {
-  const tmp = fs.mkdtempSync(path.resolve('.router/tests/task-ctrl-'));
-  fs.cpSync(path.join(rootDir, 'fixtures'), path.join(tmp, 'fixtures'), { recursive: true });
-  fs.cpSync(path.join(rootDir, 'src', 'web'), path.join(tmp, 'src', 'web'), { recursive: true });
-  if (fs.existsSync(path.join(rootDir, 'specialists.json'))) {
-    fs.copyFileSync(path.join(rootDir, 'specialists.json'), path.join(tmp, 'specialists.json'));
-  }
+function fixture(t) {
   const config = read(path.join(rootDir, 'workers.json'));
   const agWorker = config.workers.find(w => w.id === 'antigravity');
   if (agWorker) agWorker.enabled = true;
-  json(path.join(tmp, 'workers.json'), config);
-  return tmp;
+  return createTestFixture('task-ctrl-', {
+    seedFixtures: true,
+    seedWeb: true,
+    seedSpecialists: true,
+    workersConfig: config,
+    t
+  });
 }
 
 function startTestServer(root) {

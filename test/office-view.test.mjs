@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createDashboardServer } from '../src/server.mjs';
 import { read, json } from '../src/storage.mjs';
 import { createProject } from '../src/projects.mjs';
+import { createTestFixture } from './helpers/fixture-helper.mjs';
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
@@ -15,16 +16,14 @@ const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 // same as it's excluded from the production Tasks/Projects UI. So these
 // tests register real, visible projects instead of relying on it, which
 // also happens to be a closer match to how Office View is actually used.
-function fixture() {
-  const tmp = fs.mkdtempSync(path.resolve('.router/tests/office-view-'));
-  fs.cpSync(path.join(rootDir, 'fixtures'), path.join(tmp, 'fixtures'), { recursive: true });
-  fs.cpSync(path.join(rootDir, 'src', 'web'), path.join(tmp, 'src', 'web'), { recursive: true });
-  if (fs.existsSync(path.join(rootDir, 'specialists.json'))) {
-    fs.copyFileSync(path.join(rootDir, 'specialists.json'), path.join(tmp, 'specialists.json'));
-  }
-  const config = read(path.join(rootDir, 'workers.json'));
-  json(path.join(tmp, 'workers.json'), config);
-  return tmp;
+function fixture(t) {
+  return createTestFixture('office-view-', {
+    seedFixtures: true,
+    seedWeb: true,
+    seedSpecialists: true,
+    workersConfig: read(path.join(rootDir, 'workers.json')),
+    t
+  });
 }
 
 function startTestServer(root) {

@@ -9,6 +9,7 @@ import { buildSchema, reviewSchema } from '../src/contracts.mjs';
 import { candidates } from '../src/failover.mjs';
 import { evaluateReviewerQualification } from '../src/capability-tiers.mjs';
 import { selectModelAndEffort } from '../src/smart-router.mjs';
+import { createTestFixture as createHelperFixture } from './helpers/fixture-helper.mjs';
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
@@ -61,11 +62,12 @@ const formFiles = files.map(f => f.path === 'index.html' ? {
 
 const buildResult = { summary: 'Working contact form implementation', files: formFiles };
 
-function createTestFixture(customConfig = baseWorkersConfig) {
-  const tmp = fs.mkdtempSync(path.resolve('.router/tests/preselect-'));
-  fs.cpSync(path.join(rootDir, 'fixtures'), path.join(tmp, 'fixtures'), { recursive: true });
-  json(path.join(tmp, 'workers.json'), customConfig);
-  return tmp;
+function createTestFixture(customConfig = baseWorkersConfig, t) {
+  return createHelperFixture('preselect-', {
+    seedFixtures: true,
+    workersConfig: customConfig,
+    t
+  });
 }
 
 test('Builder + Reviewer Pre-Selection Suite', async (t) => {

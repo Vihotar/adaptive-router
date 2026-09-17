@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createDashboardServer, getActiveTask } from '../src/server.mjs';
 import { read, json } from '../src/storage.mjs';
 import { createProject } from '../src/projects.mjs';
+import { createTestFixture } from './helpers/fixture-helper.mjs';
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
@@ -16,16 +17,14 @@ const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 // gate over HTTP, not just the underlying module functions in isolation —
 // the same style of gap that caused an earlier root-path bug in a related
 // feature (cto-attention.mjs) to slip past pure unit tests.
-function fixture() {
-  const tmp = fs.mkdtempSync(path.resolve('.router/tests/cross-project-concurrency-'));
-  fs.cpSync(path.join(rootDir, 'fixtures'), path.join(tmp, 'fixtures'), { recursive: true });
-  fs.cpSync(path.join(rootDir, 'src', 'web'), path.join(tmp, 'src', 'web'), { recursive: true });
-  if (fs.existsSync(path.join(rootDir, 'specialists.json'))) {
-    fs.copyFileSync(path.join(rootDir, 'specialists.json'), path.join(tmp, 'specialists.json'));
-  }
-  const config = read(path.join(rootDir, 'workers.json'));
-  json(path.join(tmp, 'workers.json'), config);
-  return tmp;
+function fixture(t) {
+  return createTestFixture('cross-project-concurrency-', {
+    seedFixtures: true,
+    seedWeb: true,
+    seedSpecialists: true,
+    workersConfig: read(path.join(rootDir, 'workers.json')),
+    t
+  });
 }
 
 function startTestServer(root) {
@@ -65,8 +64,8 @@ function simulateActiveTask(root, projectId, projectRoot) {
 }
 
 describe('Cross-Project Concurrency (activeRunningTasks per-project gate)', () => {
-  test('A task active on Project A does not block starting a task on Project B', async () => {
-    const root = fixture();
+  test('A task active on Project A does not block starting a task on Project B', async (t) => {
+    const root = fixture(t);
     // test-site is the always-present fixture project (see projects.mjs).
     // Register a second, independent project pointing at a second fixture
     // folder so the two are genuinely different project ids/roots.
@@ -112,8 +111,8 @@ describe('Cross-Project Concurrency (activeRunningTasks per-project gate)', () =
     }
   });
 
-  test('Two projects can each independently 409 their own second concurrent start', async () => {
-    const root = fixture();
+  test('Two projects can each independently 409 their own second concurrent start', async (t) => {
+    const root = fixture(t);
     const secondRoot = path.join(root, 'fixtures', 'test-site-2');
     fs.cpSync(path.join(root, 'fixtures', 'test-site'), secondRoot, { recursive: true });
     const projectB = createProject(root, { name: 'Second Project', mode: 'existing', folderPath: secondRoot });

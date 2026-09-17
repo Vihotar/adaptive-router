@@ -6,19 +6,18 @@ import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { createDashboardServer } from '../src/server.mjs';
 import { read, json, hash, saveFiles } from '../src/storage.mjs';
+import { createTestFixture } from './helpers/fixture-helper.mjs';
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
-function fixture() {
-  const tmp = fs.mkdtempSync(path.resolve('.router/tests/dash-'));
-  fs.cpSync(path.join(rootDir, 'fixtures'), path.join(tmp, 'fixtures'), { recursive: true });
-  fs.cpSync(path.join(rootDir, 'src', 'web'), path.join(tmp, 'src', 'web'), { recursive: true });
-  if (fs.existsSync(path.join(rootDir, 'specialists.json'))) {
-    fs.copyFileSync(path.join(rootDir, 'specialists.json'), path.join(tmp, 'specialists.json'));
-  }
-  const config = read(path.join(rootDir, 'workers.json'));
-  json(path.join(tmp, 'workers.json'), config);
-  return tmp;
+function fixture(t) {
+  return createTestFixture('dash-', {
+    seedFixtures: true,
+    seedWeb: true,
+    seedSpecialists: true,
+    workersConfig: read(path.join(rootDir, 'workers.json')),
+    t
+  });
 }
 
 function startTestServer(root) {

@@ -8,7 +8,7 @@
     "start": "node router.mjs dashboard --port 3210 --open",
     "dashboard": "node router.mjs dashboard --port 3210 --open",
     "tunnel": "cloudflared tunnel --url http://localhost:3210",
-    "test": "node --test test/*.test.mjs",
+    "test": "node --import ./test/helpers/fixture-cleanup-hook.mjs --test test/*.test.mjs",
     "demo": "node router.mjs demo",
     "code-demo": "node router.mjs code-demo",
     "doctor": "node router.mjs doctor"

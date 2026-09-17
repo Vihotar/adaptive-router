@@ -7,9 +7,9 @@ import { createTask, decide, taskDir } from '../src/router.mjs';
 import { read, safePath, validateFiles, locked } from '../src/storage.mjs';
 import { choose, runProcess } from '../src/workers.mjs';
 import { reviewSchema, validate } from '../src/contracts.mjs';
+import { createTestFixture, testBaseDir } from './helpers/fixture-helper.mjs';
 
-const base = path.resolve('.router', 'tests');
-fs.mkdirSync(base, { recursive: true });
+const base = testBaseDir;
 const config = {
   workers: [
     { id: 'codex', enabled: true, roles: ['plan', 'build', 'review'], priority: 10, adapter: 'codex' },
@@ -25,9 +25,8 @@ const config = {
 const plan = { goal: 'Dummy quote', jobs: ['Write quote'], questions: [], approvalActions: [] };
 const draft = { summary: 'Dummy', files: [{ path: 'quote.json', content: '{"total":44}' }] };
 const pass = { verdict: 'pass', summary: 'Correct', issues: [] };
-function fixture(replies) {
-  const root = fs.mkdtempSync(path.join(base, 'case-'));
-  fs.writeFileSync(path.join(root, 'workers.json'), JSON.stringify(config));
+function fixture(replies, t) {
+  const root = createTestFixture('case-', { workersConfig: config, t });
   const calls = [];
   return { root, calls, options: { available: { codex: 'fake', antigravity: 'fake' }, preflight() {}, log() {}, invokeWorker: async (worker, request) => {
     calls.push({ worker: worker.id, prompt: request.prompt });
@@ -105,8 +104,8 @@ test('worker failure and timeout are bounded', async () => {
   await assert.rejects(runProcess(process.execPath, ['-e', 'process.exit(2)'], { cwd: base, input: '', timeout: 5000 }), /exit 2/);
   await assert.rejects(runProcess(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { cwd: base, input: '', timeout: 200 }), /timed out/);
 });
-test('reviewer hook denies action tools and unknown workspace scope', () => {
-  const workspace = fs.mkdtempSync(path.join(base, 'gate-'));
+test('reviewer hook denies action tools and unknown workspace scope', (t) => {
+  const workspace = createTestFixture('gate-', { t });
   const gateScript = path.resolve('src/reviewer-gate.mjs');
   const runGate = payload => {
     const result = spawnSync(process.execPath, [gateScript], { input: JSON.stringify(payload), encoding: 'utf8', windowsHide: true, timeout: 5000 });
