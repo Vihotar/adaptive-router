@@ -2041,7 +2041,7 @@
         </div>
       `;
       const btnOverride = document.getElementById('btn-action-override');
-      if (btnOverride) btnOverride.addEventListener('click', () => resumeTask(t.id, 'preserve_claude'));
+      if (btnOverride) btnOverride.addEventListener('click', () => resumeTask(t.id, 'override_sensitive'));
       const btnStopSens = document.getElementById('btn-action-stop-sens');
       if (btnStopSens) btnStopSens.addEventListener('click', () => stopTask(t.id));
 

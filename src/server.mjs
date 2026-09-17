@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync, spawn } from 'node:child_process';
-import { read, json, hash, event, ACTIVE_TASK_STATUSES, TERMINAL_TASK_STATUSES, isTerminalStatus } from './storage.mjs';
+import { read, json, hash, event, ACTIVE_TASK_STATUSES, TERMINAL_TASK_STATUSES, isTerminalStatus, releaseTaskLock, cleanupStaleLocks } from './storage.mjs';
 import { executables } from './workers.mjs';
 import { codeTask } from './coding.mjs';
 import { decide, taskDir } from './router.mjs';
@@ -892,6 +892,8 @@ export function getTaskDetails(root, id) {
 const ORPHANABLE_STATUSES = new Set(['building', 'testing', 'reviewing', 'created']);
 
 function recoverOrphanedTasks(root) {
+  // Prune any stale lockfiles left behind by previous dead or crashed processes
+  cleanupStaleLocks(root);
   const tasksDir = path.join(root, '.router', 'tasks');
   if (!fs.existsSync(tasksDir)) return;
   let entries;
@@ -923,6 +925,7 @@ function recoverOrphanedTasks(root) {
       try {
         event(dir, 'activity', item);
         json(taskPath, task);
+        releaseTaskLock(root, task.project);
         console.log(`Recovered orphaned task ${id} (was "${staleStatus}")`);
       } catch (err) {
         console.error(`Failed to recover orphaned task ${id}:`, err.message);
@@ -1732,6 +1735,8 @@ export function createDashboardServer(root, options = {}) {
             const preferredWorker = decision === 'retry_same_worker' ? (oldTask.failure?.worker || oldTask.builderWorker || undefined) : undefined;
             const unavailableBuilders = decision === 'retry_other_worker' ? [oldTask.failure?.worker || oldTask.builderWorker].filter(Boolean) : [];
 
+            const abortController = new AbortController();
+
             (async () => {
               let resolvedTaskId = 'running';
               try {
@@ -1741,6 +1746,7 @@ export function createDashboardServer(root, options = {}) {
                   allowClaude,
                   preferredWorker,
                   unavailableBuilders,
+                  signal: abortController.signal,
                   confirmClaudeUse: async (promptMsg) => {
                     const currentId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : 'current';
                     const permResult = await requestPermission(currentId, {
@@ -1763,6 +1769,7 @@ export function createDashboardServer(root, options = {}) {
                     if (resolvedTaskId === 'running' && event.taskId) {
                       resolvedTaskId = event.taskId;
                       setActiveRunningTask(cleanProject, resolvedTaskId);
+                      activeTaskAbortControllers.set(resolvedTaskId, abortController);
                     }
                     const targetId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : (event.taskId || 'current');
                     broadcastTaskEvent(targetId, { type: 'worker_event', event });
@@ -1777,6 +1784,7 @@ export function createDashboardServer(root, options = {}) {
                 console.error('Clean rerun background error:', err.message);
               } finally {
                 const finishedTaskId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : null;
+                if (finishedTaskId) activeTaskAbortControllers.delete(finishedTaskId);
                 setActiveRunningTask(cleanProject, null);
                 if (finishedTaskId) maybeScheduleAutoRetry(root, cleanProject, finishedTaskId);
               }
@@ -1785,7 +1793,10 @@ export function createDashboardServer(root, options = {}) {
             await new Promise(r => setTimeout(r, 200));
             const recent = listRecentTasks(root, cleanProject);
             const newest = recent.find(t => t.id !== taskId);
-            if (newest) setActiveRunningTask(cleanProject, newest.id);
+            if (newest) {
+              setActiveRunningTask(cleanProject, newest.id);
+              activeTaskAbortControllers.set(newest.id, abortController);
+            }
 
             return sendJson({ success: true, oldTaskId: taskId, taskId: newest?.id || null, status: 'started' });
           } catch (e) {
@@ -1799,6 +1810,10 @@ export function createDashboardServer(root, options = {}) {
         if (body.project && t.project !== body.project) return sendJson({ error: 'Task does not belong to the active project' }, 409);
 
         if (decision === 'stop_task') {
+          if (activeTaskAbortControllers.has(taskId)) {
+            try { activeTaskAbortControllers.get(taskId).abort(); } catch {}
+            activeTaskAbortControllers.delete(taskId);
+          }
           t.status = 'cancelled_by_user';
           t.stoppedByUser = true;
           // Source-of-truth fix (Post-Release Fix A): this direct-write
@@ -1823,6 +1838,7 @@ export function createDashboardServer(root, options = {}) {
           if (stopTaskSlot === taskId || stopTaskSlot === 'running') {
             setActiveRunningTask(t.project, null);
           }
+          releaseTaskLock(root, t.project);
           try { resolveAttentionForTask(root, taskId); } catch { /* best-effort */ }
           return sendJson({ success: true, taskId, status: t.status });
         }
@@ -1999,6 +2015,7 @@ export function createDashboardServer(root, options = {}) {
         if (currentSlot === taskId || currentSlot === 'running') {
           setActiveRunningTask(t.project, null);
         }
+        releaseTaskLock(root, t.project);
         t.status = 'cancelled_by_user';
         t.stoppedByUser = true;
         // Source-of-truth fix (Post-Release Fix A): this is the real Stop
@@ -2067,6 +2084,8 @@ export function createDashboardServer(root, options = {}) {
           const cleanProject = oldTask.project || (oldTask.kind === 'system' ? 'adaptive-router' : 'test-site');
           const allowClaude = Boolean(oldTask.allowClaudeForTask || oldTask.claudeQuotaAuthorized);
 
+          const abortController = new AbortController();
+
           (async () => {
             let resolvedTaskId = 'running';
             try {
@@ -2074,6 +2093,7 @@ export function createDashboardServer(root, options = {}) {
               await codeTask(root, cleanInstruction, {
                 project: cleanProject,
                 allowClaude,
+                signal: abortController.signal,
                 confirmClaudeUse: async (promptMsg) => {
                   const currentId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : 'current';
                   const permResult = await requestPermission(currentId, {
@@ -2096,6 +2116,7 @@ export function createDashboardServer(root, options = {}) {
                   if (resolvedTaskId === 'running' && event.taskId) {
                     resolvedTaskId = event.taskId;
                     setActiveRunningTask(cleanProject, resolvedTaskId);
+                    activeTaskAbortControllers.set(resolvedTaskId, abortController);
                   }
                   const targetId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : (event.taskId || 'current');
                   broadcastTaskEvent(targetId, { type: 'worker_event', event });
@@ -2110,6 +2131,7 @@ export function createDashboardServer(root, options = {}) {
               console.error('Clean rerun background error:', err.message);
             } finally {
               const finishedTaskId = resolvedTaskId && resolvedTaskId !== 'running' ? resolvedTaskId : null;
+              if (finishedTaskId) activeTaskAbortControllers.delete(finishedTaskId);
               setActiveRunningTask(cleanProject, null);
               if (finishedTaskId) maybeScheduleAutoRetry(root, cleanProject, finishedTaskId);
             }
@@ -2118,7 +2140,10 @@ export function createDashboardServer(root, options = {}) {
           await new Promise(r => setTimeout(r, 200));
           const recent = listRecentTasks(root, cleanProject);
           const newest = recent.find(t => t.id !== taskId);
-          if (newest) setActiveRunningTask(cleanProject, newest.id);
+          if (newest) {
+            setActiveRunningTask(cleanProject, newest.id);
+            activeTaskAbortControllers.set(newest.id, abortController);
+          }
 
           return sendJson({ success: true, oldTaskId: taskId, taskId: newest?.id || null, status: 'started' });
         } catch (e) {
@@ -2315,6 +2340,10 @@ export function createDashboardServer(root, options = {}) {
       if (entry?.timer) clearTimeout(entry.timer);
     }
     autoRetryState.clear();
+    for (const ctrl of activeTaskAbortControllers.values()) {
+      try { ctrl.abort(); } catch {}
+    }
+    activeTaskAbortControllers.clear();
     return origClose(cb);
   };
 

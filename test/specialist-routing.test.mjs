@@ -68,7 +68,7 @@ test('Pilot Test 1 — Frontend: automatically matches engineering-frontend-deve
   // Verify that specialist instructions were actually injected into the prompt
   const buildCall = promptCaptures.find(c => c.role === 'build');
   assert.ok(buildCall.prompt.includes('Frontend Developer'));
-  assert.ok(buildCall.prompt.includes('Core Web Vitals'));
+  assert.ok(buildCall.prompt.includes('performance optimization'));
 
   // APPROVAL.md records specialist selection
   const reportContent = fs.readFileSync(t.approvalReport, 'utf8');

@@ -251,12 +251,16 @@ export function pruneStaleFixtures(maxAgeMs = 15 * 60 * 1000, baseDir = testBase
 
     // Cross-process active check: if an active owner file exists and that process is alive, PRESERVE it!
     const ownerFile = path.join(resolved, '.fixture-owner.json');
+    let ownerDead = false;
     if (fs.existsSync(ownerFile)) {
       try {
         const owner = JSON.parse(fs.readFileSync(ownerFile, 'utf8'));
-        if (owner && owner.pid && isProcessAlive(owner.pid)) {
-          // Process is currently alive and active! Legitimate long-running fixture, do not prune!
-          continue;
+        if (owner && owner.pid) {
+          if (isProcessAlive(owner.pid)) {
+            // Process is currently alive and active! Legitimate long-running fixture, do not prune!
+            continue;
+          }
+          ownerDead = true;
         }
       } catch (err) {
         // Corrupt owner file, fall back to age check
@@ -266,7 +270,7 @@ export function pruneStaleFixtures(maxAgeMs = 15 * 60 * 1000, baseDir = testBase
     try {
       const stats = fs.statSync(resolved);
       const ageMs = now - stats.mtimeMs;
-      if (ageMs > maxAgeMs) {
+      if (ownerDead || ageMs > maxAgeMs) {
         fs.rmSync(resolved, {
           recursive: true,
           force: true,

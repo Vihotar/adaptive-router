@@ -129,7 +129,7 @@ export function verifyFiles(dir, files) {
 // means no such process; anything else (e.g. EPERM, seen for a pid reused by
 // a different user's process) is treated as "can't prove it's dead", which
 // deliberately errs toward NOT stealing a lock that might still be legitimate.
-function pidIsAlive(pid) {
+export function pidIsAlive(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
   try { process.kill(pid, 0); return true; }
   catch (e) { return e.code !== 'ESRCH'; }
@@ -142,10 +142,83 @@ function pidIsAlive(pid) {
 // as before scope existed. Deliberately narrow: this only changes which
 // lock FILE is used, not any of the stale-lock recovery or safety logic
 // below, which is unchanged and applies identically per-scope.
-function lockFileName(scope) {
+export function lockFileName(scope) {
   if (!scope) return 'router.lock';
   const safeScope = String(scope).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 100);
   return `router.lock.${safeScope}`;
+}
+
+function resolveRouterDir(root) {
+  if (!root) return '';
+  const base = path.basename(root);
+  if (base === '.router') return root;
+  return path.join(root, '.router');
+}
+
+/**
+ * Releases the active lock for a task/project when stopped.
+ * Unlinks the project-scoped lock file (if scope is given), and also unlinks
+ * the unscoped router.lock if present, freeing the router to accept the next task.
+ * Does not touch lock files for other projects (e.g. router.lock.<otherScope>).
+ * @param {string} root - Project root or .router directory
+ * @param {string|null} [scope] - Project id / scope
+ */
+export function releaseTaskLock(root, scope = null) {
+  const dir = resolveRouterDir(root);
+  if (!fs.existsSync(dir)) return;
+
+  if (scope) {
+    const scopedLock = path.join(dir, lockFileName(scope));
+    try {
+      if (fs.existsSync(scopedLock)) {
+        fs.unlinkSync(scopedLock);
+      }
+    } catch {}
+  }
+
+  const unscopedLock = path.join(dir, 'router.lock');
+  try {
+    if (fs.existsSync(unscopedLock)) {
+      fs.unlinkSync(unscopedLock);
+    }
+  } catch {}
+}
+
+/**
+ * Cleans up stale lock files on server startup or restart.
+ * Scans .router for router.lock and router.lock.* files and unlinks any whose
+ * recorded pid is no longer running or whose content is not valid JSON.
+ * Ensures no stale lock survives a crash or process restart.
+ * @param {string} root - Project root or .router directory
+ */
+export function cleanupStaleLocks(root) {
+  const dir = resolveRouterDir(root);
+  if (!fs.existsSync(dir)) return;
+
+  let entries = [];
+  try {
+    entries = fs.readdirSync(dir).filter(f => f === 'router.lock' || f.startsWith('router.lock.'));
+  } catch {
+    return;
+  }
+
+  for (const f of entries) {
+    const lockPath = path.join(dir, f);
+    try {
+      let isStale = false;
+      try {
+        const content = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+        if (!content.pid || !pidIsAlive(content.pid)) {
+          isStale = true;
+        }
+      } catch {
+        isStale = true;
+      }
+      if (isStale) {
+        try { fs.unlinkSync(lockPath); } catch {}
+      }
+    } catch {}
+  }
 }
 
 export async function locked(root, action, scope = null) {
@@ -177,3 +250,4 @@ export async function locked(root, action, scope = null) {
   try { return await action(); }
   finally { fs.closeSync(fd); fs.unlinkSync(lock); }
 }
+

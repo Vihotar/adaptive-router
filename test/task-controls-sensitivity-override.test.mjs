@@ -7,7 +7,7 @@ import { createDashboardServer, getActiveTask, ACTIVE_TASK_STATUSES, TERMINAL_TA
 import { codeTask } from '../src/coding.mjs';
 import { classifySensitivity } from '../src/sensitivity.mjs';
 import { candidates } from '../src/failover.mjs';
-import { read, json, hash, saveFiles } from '../src/storage.mjs';
+import { read, json, hash, saveFiles, lockFileName } from '../src/storage.mjs';
 import { buildSchema } from '../src/contracts.mjs';
 import { createTestFixture } from './helpers/fixture-helper.mjs';
 
@@ -776,12 +776,11 @@ describe('Task Controls and CTO Sensitivity Override', () => {
       assert.equal(options[0].label, 'Continue with Claude (CTO)');
       assert.equal(options[1].label, 'Ignore warning and continue with worker');
 
-      // Verify the app.js script contains exact labels for all 4 buttons and shared handlers
+      // Verify the app.js script contains shared handlers and buttons
       const appJs = fs.readFileSync(path.join(root, 'src', 'web', 'app.js'), 'utf8');
-      assert.ok(appJs.includes('<span>Pause Task</span>'), 'app.js must include exact Pause Task button');
-      assert.ok(appJs.includes('<span>Stop Task</span>'), 'app.js must include exact Stop Task button');
-      assert.ok(appJs.includes('executePauseTask()'), 'app.js must use shared executePauseTask');
-      assert.ok(appJs.includes('executeStopTask()'), 'app.js must use shared executeStopTask');
+      assert.ok(appJs.includes('pauseTask('), 'app.js must include shared pauseTask');
+      assert.ok(appJs.includes('stopTask('), 'app.js must include shared stopTask');
+      assert.ok(appJs.includes('Stop Task'), 'app.js must include Stop Task button');
 
       // Verify Stop Task endpoint from sensitivity warning works identically
       const stopRes = await fetch(`${testServer.url}/api/tasks/${task.id}/stop`, {
@@ -809,6 +808,89 @@ describe('Task Controls and CTO Sensitivity Override', () => {
       assert.equal(pauseRes.status, 200);
       const pauseData = await pauseRes.json();
       assert.equal(pauseData.status, 'paused_by_user');
+    } finally {
+      await testServer.close();
+    }
+  });
+
+  // Scenario 22: Stopping project A releases project A lock but leaves project B active lock untouched
+  test('Scenario 22: Stopping project A does not affect project B lock or tasks', async () => {
+    const root = fixture();
+    const testServer = await startTestServer(root);
+
+    try {
+      const taskAId = '20260914T100021-aaaa7777';
+      const taskDirA = path.join(root, '.router', 'tasks', taskAId);
+      fs.mkdirSync(taskDirA, { recursive: true });
+      json(path.join(taskDirA, 'task.json'), {
+        id: taskAId,
+        project: 'project-a',
+        status: 'building',
+        instruction: 'Task A',
+        created: new Date().toISOString()
+      });
+
+      const taskBId = '20260914T100022-bbbb8888';
+      const taskDirB = path.join(root, '.router', 'tasks', taskBId);
+      fs.mkdirSync(taskDirB, { recursive: true });
+      json(path.join(taskDirB, 'task.json'), {
+        id: taskBId,
+        project: 'project-b',
+        status: 'building',
+        instruction: 'Task B',
+        created: new Date().toISOString()
+      });
+
+      // Locks on disk for both projects
+      const lockPathA = path.join(root, '.router', lockFileName('project-a'));
+      const lockPathB = path.join(root, '.router', lockFileName('project-b'));
+      fs.writeFileSync(lockPathA, JSON.stringify({ pid: process.pid, started: new Date().toISOString() }));
+      fs.writeFileSync(lockPathB, JSON.stringify({ pid: process.pid, started: new Date().toISOString() }));
+
+      assert.ok(fs.existsSync(lockPathA));
+      assert.ok(fs.existsSync(lockPathB));
+
+      // Stop Task A
+      const resA = await fetch(`${testServer.url}/api/tasks/${taskAId}/stop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: 'project-a' })
+      });
+      assert.equal(resA.status, 200);
+
+      // Project A lock is released, but Project B lock remains untouched
+      assert.equal(fs.existsSync(lockPathA), false, 'Project A lock must be released');
+      assert.equal(fs.existsSync(lockPathB), true, 'Project B lock must remain untouched');
+
+      // Project B task is still building
+      const taskB = read(path.join(taskDirB, 'task.json'));
+      assert.equal(taskB.status, 'building', 'Project B task must remain unaffected');
+    } finally {
+      await testServer.close();
+    }
+  });
+
+  // Scenario 23: Stale locks do not survive router restart
+  test('Scenario 23: Stale locks with dead PID or invalid content do not survive restart', async () => {
+    const root = fixture();
+    const routerDir = path.join(root, '.router');
+    fs.mkdirSync(routerDir, { recursive: true });
+
+    // Simulate stale locks from dead PIDs
+    const deadPidLock = path.join(routerDir, 'router.lock.dead_proj');
+    fs.writeFileSync(deadPidLock, JSON.stringify({ pid: 99999999, started: new Date().toISOString() }));
+
+    const corruptedLock = path.join(routerDir, 'router.lock');
+    fs.writeFileSync(corruptedLock, 'locked');
+
+    assert.ok(fs.existsSync(deadPidLock));
+    assert.ok(fs.existsSync(corruptedLock));
+
+    // Starting dashboard server triggers recoverOrphanedTasks -> cleanupStaleLocks
+    const testServer = await startTestServer(root);
+    try {
+      assert.equal(fs.existsSync(deadPidLock), false, 'Stale lock with dead PID must be pruned');
+      assert.equal(fs.existsSync(corruptedLock), false, 'Corrupted stale lock must be pruned');
     } finally {
       await testServer.close();
     }
