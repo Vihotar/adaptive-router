@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adaptive Router — Executive Dashboard Prototype</title>
+  <link rel="stylesheet" href="prototype-legacy.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+  <div class="proto-shell">
+
+    <!-- Top Header -->
+    <header class="proto-header">
+      <div class="proto-header-top" style="border-bottom: none;">
+        <div class="proto-brand">
+          <div class="proto-brand-icon">⚡</div>
+          <div>
+            <h1 class="proto-brand-title">Adaptive Router</h1>
+            <p class="proto-brand-subtitle">Executive Management Dashboard</p>
+          </div>
+        </div>
+
+        <div class="proto-header-badges">
+          <div class="proto-badge-pill demo">
+            <span class="pulse-dot"></span>
+            <span>PROTOTYPE • INTERACTIVE MOCKUP</span>
+          </div>
+          <div class="proto-badge-pill project">
+            <span>Project: <strong>Adaptive Router System</strong></span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Body Layout: Left Sidebar + Main Content -->
+    <div class="proto-body-layout">
+      <!-- Permanent Left-Side Vertical Navigation -->
+      <aside class="proto-sidebar">
+        <nav class="proto-sidebar-nav" aria-label="Main Navigation">
+          <a class="proto-nav-item active" data-view="overview">
+            <span class="nav-icon">📊</span>
+            <span class="nav-label">Overview</span>
+          </a>
+          <a class="proto-nav-item" data-view="tasks">
+            <span class="nav-icon">📋</span>
+            <span class="nav-label">Tasks</span>
+            <span class="proto-nav-count">6</span>
+          </a>
+          <a class="proto-nav-item" data-view="team">
+            <span class="nav-icon">👥</span>
+            <span class="nav-label">AI Team</span>
+            <span class="proto-nav-count">4</span>
+          </a>
+          <a class="proto-nav-item" data-view="progress">
+            <span class="nav-icon">⏱️</span>
+            <span class="nav-label">Task Progress</span>
+          </a>
+          <a class="proto-nav-item" data-view="logs">
+            <span class="nav-icon">📄</span>
+            <span class="nav-label">Technical Logs</span>
+            <span class="proto-nav-count">10</span>
+          </a>
+          <a class="proto-nav-item" data-view="settings">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">Settings</span>
+          </a>
+        </nav>
+
+        <div class="proto-sidebar-footer">
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span class="pulse-dot" style="width: 6px; height: 6px;"></span>
+            <span>AR Engine: <strong>Autonomous</strong></span>
+          </div>
+          <span style="opacity: 0.8;">Stage B Active Governance</span>
+        </div>
+      </aside>
+
+    <!-- Main Views Container -->
+    <main class="proto-main">
+
+      <!-- ========================================================================= -->
+      <!-- VIEW 1: OVERVIEW                                                          -->
+      <!-- ========================================================================= -->
+      <div class="proto-view active" id="view-overview">
+
+        <!-- Top — Platform Limits & Usage -->
+        <section class="proto-card" style="margin-bottom: 1.5rem;">
+          <div class="proto-card-header">
+            <div class="proto-card-title">
+              <span>Platform Limits & Usage</span>
+              <span class="demo-tag">Demo Quota Values</span>
+            </div>
+            <span class="proto-card-subtitle">Real-time availability and usage limits across AI platforms</span>
+          </div>
+
+          <div class="platform-limits-grid">
+            <!-- Google AI Studio -->
+            <div class="platform-limit-card">
+              <div class="platform-limit-header">
+                <div class="platform-name-wrap">
+                  <span class="platform-icon">🌐</span>
+                  <div>
+                    <h4 class="platform-title">Google AI Studio</h4>
+                    <span class="platform-meta">Cline Worker Pool</span>
+                  </div>
+                </div>
+                <label class="switch" title="Toggle Google AI Studio availability">
+                  <input type="checkbox" id="toggle-google-limit" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="usage-bar-wrap">
+                <div class="usage-numbers">
+                  <span class="usage-used">Used: <strong>34%</strong></span>
+                  <span class="usage-remaining">Remaining: <strong>66%</strong></span>
+                </div>
+                <div class="usage-progress">
+                  <div class="usage-fill fill-blue" style="width: 34%;"></div>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                <span class="badge green" id="badge-google-status">ACTIVE</span>
+                <span style="color: var(--text-muted);">Rate: 1.2k tok/min (Estimated)</span>
+              </div>
+            </div>
+
+            <!-- Claude -->
+            <div class="platform-limit-card">
+              <div class="platform-limit-header">
+                <div class="platform-name-wrap">
+                  <span class="platform-icon">🧠</span>
+                  <div>
+                    <h4 class="platform-title">Claude (Anthropic)</h4>
+                    <span class="platform-meta">Senior Auditor & UI Polish</span>
+                  </div>
+                </div>
+                <label class="switch" title="Toggle Claude availability">
+                  <input type="checkbox" id="toggle-claude-limit" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="usage-bar-wrap">
+                <div class="usage-numbers">
+                  <span class="usage-used">Used: <strong>18%</strong></span>
+                  <span class="usage-remaining">Remaining: <strong>82%</strong></span>
+                </div>
+                <div class="usage-progress">
+                  <div class="usage-fill fill-purple" style="width: 18%;"></div>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                <span class="badge purple" id="badge-claude-status">RESERVE MODE</span>
+                <span style="color: var(--text-muted);">Tier 4 Scale (Estimated)</span>
+              </div>
+            </div>
+
+            <!-- OpenAI / ChatGPT -->
+            <div class="platform-limit-card">
+              <div class="platform-limit-header">
+                <div class="platform-name-wrap">
+                  <span class="platform-icon">⚡</span>
+                  <div>
+                    <h4 class="platform-title">OpenAI / ChatGPT</h4>
+                    <span class="platform-meta">Codex High-Assurance</span>
+                  </div>
+                </div>
+                <label class="switch" title="Toggle OpenAI availability">
+                  <input type="checkbox" id="toggle-openai-limit">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="usage-bar-wrap">
+                <div class="usage-numbers">
+                  <span class="usage-used">Used: <strong>0%</strong></span>
+                  <span class="usage-remaining">Remaining: <strong>100%</strong></span>
+                </div>
+                <div class="usage-progress">
+                  <div class="usage-fill fill-muted" style="width: 0%;"></div>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                <span class="badge gray" id="badge-openai-status">STANDBY</span>
+                <span style="color: var(--text-muted);">Architecture/Planning (Estimated)</span>
+              </div>
+            </div>
+
+            <!-- Antigravity -->
+            <div class="platform-limit-card">
+              <div class="platform-limit-header">
+                <div class="platform-name-wrap">
+                  <span class="platform-icon">✨</span>
+                  <div>
+                    <h4 class="platform-title">Antigravity</h4>
+                    <span class="platform-meta">Cross-Platform Auditor</span>
+                  </div>
+                </div>
+                <label class="switch" title="Toggle Antigravity availability">
+                  <input type="checkbox" id="toggle-antigravity-limit" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="usage-bar-wrap">
+                <div class="usage-numbers">
+                  <span class="usage-used">Used: <strong>42%</strong></span>
+                  <span class="usage-remaining">Remaining: <strong>58%</strong></span>
+                </div>
+                <div class="usage-progress">
+                  <div class="usage-fill fill-green" style="width: 42%;"></div>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                <span class="badge green" id="badge-antigravity-status">ACTIVE</span>
+                <span style="color: var(--text-muted);">Unrestricted Local (Estimated)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Current Task / Live Activity Section -->
+        <section class="proto-card current-task-card">
+          <div class="proto-card-header">
+            <div>
+              <h2 class="proto-card-title">
+                <span>Current Task: Create customer login page</span>
+                <span class="badge amber" id="current-task-status-badge">Waiting for Decision</span>
+              </h2>
+              <p class="proto-card-subtitle">Live Autonomous Pipeline Execution</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span class="demo-tag">Live Activity Simulation</span>
+            </div>
+          </div>
+
+          <!-- Task Info Strip -->
+          <div class="task-info-strip">
+            <div class="task-info-item">
+              <span class="task-info-label">Task ID</span>
+              <span class="task-info-value" style="font-family: var(--font-mono); font-size: 0.85rem;">task-20260914-login</span>
+            </div>
+            <div class="task-info-item">
+              <span class="task-info-label">Created Time</span>
+              <span class="task-info-value">12 min ago (16:52)</span>
+            </div>
+            <div class="task-info-item">
+              <span class="task-info-label">Task Type / Difficulty</span>
+              <span class="task-info-value">Web App • Routine</span>
+            </div>
+            <div class="task-info-item">
+              <span class="task-info-label">Next Step</span>
+              <span class="task-info-value" id="current-task-next-step" style="color: var(--primary);">CEO Approval Required</span>
+            </div>
+            <div class="task-info-item">
+              <span class="task-info-label">Estimated Total Time</span>
+              <span class="task-info-value">8 min (6m 45s elapsed)</span>
+            </div>
+            <div class="task-info-item">
+              <span class="task-info-label">Progress</span>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem;">
+                <div class="usage-progress" style="width: 100px; height: 7px;">
+                  <div class="usage-fill fill-amber" style="width: 85%;"></div>
+                </div>
+                <span style="font-weight: 700; font-size: 0.85rem;">85%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Builder AI & Reviewer AI Cards -->
+          <div class="ai-pair-grid">
+            <!-- Builder AI: Cline -->
+            <div class="ai-role-card builder">
+              <div class="ai-role-header">
+                <div class="ai-role-title-group">
+                  <div class="ai-avatar cline">C</div>
+                  <div>
+                    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #2563eb;">Builder AI</div>
+                    <h3 class="ai-name">Cline</h3>
+                    <span class="ai-platform">Platform: Google AI Studio</span>
+                  </div>
+                </div>
+                <span class="ai-badge working">Working now</span>
+              </div>
+
+              <div class="ai-details-list">
+                <div class="ai-detail-row">
+                  <span class="ai-detail-k">Model</span>
+                  <span class="ai-detail-v">Gemini 3.5 Flash Lite</span>
+                </div>
+                <div class="ai-detail-row">
+                  <span class="ai-detail-k">Reasoning Effort</span>
+                  <span class="ai-detail-v">Medium</span>
+                </div>
+                <div class="ai-detail-row">
+                  <span class="ai-detail-k">Current Status</span>
+                  <span class="ai-detail-v">Draft completed</span>
+                </div>
+                <div class="ai-detail-row">
+                  <span class="ai-detail-k">Estimated Time</span>
+                  <span class="ai-detail-v">4 min</span>
+                </div>
+              </div>
+
+              <!-- Token Usage Box -->
+              <div class="token-box">
+                <div class="token-box-header">
+                  <span class="token-box-title">Token Usage</span>
+                  <span class="demo-tag" style="font-size: 0.65rem; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">Demo token activity</span>
+                </div>
+                <div class="token-metrics">
+                  <div class="token-item">
+                    <span class="token-item-k">Input</span>
+                    <span class="token-item-v" id="tok-cline-in">14,820</span>
+                  </div>
+                  <div class="token-item">
+                    <span class="token-item-k">Output</span>
+                    <span class="token-item-v" id="tok-cline-out">2,340</span>
+                  </div>
+                  <div class="token-item">
+                    <span class="token-item-k">Total</span>
+                    <span class="token-item-v" id="tok-cline-tot">17,160</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reviewer AI: Antigravity -->
+            <div class="ai-role-card reviewer">
+              <div class="ai-role-header">
+                <div class="ai-role-title-group">
+                  <div class="ai-avatar antigravity">A</div>
+                  <div>
+                    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #059669;">Reviewer AI</div>
+                    <h3 class="ai-name">Antigravity</h3>
+                    <span class="ai-platform">Platform: Antigravity</span>
+                  </div>
+                </div>
+                <span class="ai-badge reviewing">Review completed</span>
+              </div>
+
+              <div class="ai-details-list">
+                <div class="ai-detail-row">
+                  <span class="ai-detail-k">Model</span>
+                  <span class="ai-detail-v">Gemini 3.8 Flash</span>
+                </div>
+                <div class="ai-detail-row">
+                  <span class="ai-detail-k">Reasoning Effort</span>
+                  <span class="ai-detail-v">Medium</span>
+                </div>
+                <div class="ai-detail-row">
+                  <span class="ai-detail-k">Audit Verdict</span>
+                  <span class="ai-detail-v" style="color: #059669; font-weight: 700;">PASS (Clean)</span>
+                </div>
+                <div class="ai-detail-row">
+                  <span class="ai-detail-k">Estimated Time</span>
+                  <span class="ai-detail-v">2 min</span>
+                </div>
+              </div>
+
+              <!-- Token Usage Box -->
+              <div class="token-box">
+                <div class="token-box-header">
+                  <span class="token-box-title">Token Usage</span>
+                  <span class="demo-tag" style="font-size: 0.65rem; background: #dcfce7; color: #15803d; border-color: #bbf7d0;">Demo token activity</span>
+                </div>
+                <div class="token-metrics">
+                  <div class="token-item">
+                    <span class="token-item-k">Input</span>
+                    <span class="token-item-v" id="tok-antigravity-in">8,410</span>
+                  </div>
+                  <div class="token-item">
+                    <span class="token-item-k">Output</span>
+                    <span class="token-item-v" id="tok-antigravity-out">1,120</span>
+                  </div>
+                  <div class="token-item">
+                    <span class="token-item-k">Total</span>
+                    <span class="token-item-v" id="tok-antigravity-tot">9,530</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Why AR Chose This Team -->
+          <div class="rationale-card">
+            <div class="rationale-header">
+              <span>💡 Why AR Chose This Team</span>
+            </div>
+            <ul class="rationale-list">
+              <li class="rationale-item"><span class="check-icon">✓</span> Task is routine and low risk.</li>
+              <li class="rationale-item"><span class="check-icon">✓</span> Cline was selected because it is suitable for this level of work.</li>
+              <li class="rationale-item"><span class="check-icon">✓</span> Antigravity was reserved before building started.</li>
+              <li class="rationale-item"><span class="check-icon">✓</span> Reviewer is independent from the builder.</li>
+            </ul>
+          </div>
+
+          <!-- Task Progress / Technical Logs Area -->
+          <div class="logs-section-header">
+            <div class="view-switcher-group">
+              <button type="button" class="view-switch-btn" id="btn-view-progress">Task Progress</button>
+              <button type="button" class="view-switch-btn" id="btn-view-logs">Technical Logs</button>
+              <button type="button" class="view-switch-btn active" id="btn-view-split">Split View</button>
+            </div>
+
+            <div class="autofollow-toggle-wrap">
+              <span>Auto-follow:</span>
+              <label class="switch" title="Auto-scroll log feeds as new events occur">
+                <input type="checkbox" id="toggle-autofollow" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Container for Progress & Tech Logs -->
+          <div class="logs-display-container" id="overview-logs-display">
+            <!-- Rendered dynamically by prototype.js -->
+          </div>
+
+          <!-- ========================================================================= -->
+          <!-- Decision / Warning / Permission Area (At the Bottom of Live Activity)     -->
+          <!-- ========================================================================= -->
+          <div class="decision-section-wrap">
+            <!-- Dialog Variation Switcher -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem;">
+              <span style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">
+                Test Prototype Dialogue Variations:
+              </span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Click buttons below to preview each dialogue type</span>
+            </div>
+
+            <div class="decision-variations-bar">
+              <button type="button" class="var-tab-btn active" data-var="decision">1. Your Decision Needed</button>
+              <button type="button" class="var-tab-btn" data-var="permission">2. Permission Required</button>
+              <button type="button" class="var-tab-btn" data-var="warning">3. Warning</button>
+              <button type="button" class="var-tab-btn" data-var="sensitivity">4. Sensitivity Warning</button>
+              <button type="button" class="var-tab-btn" data-var="reviewer">5. Reviewer Required</button>
+              <button type="button" class="var-tab-btn" data-var="unavailable">6. Platform Unavailable</button>
+              <button type="button" class="var-tab-btn" data-var="failure">7. Failure Action</button>
+            </div>
+
+            <!-- Single Active Dialog Card -->
+            <div id="decision-card-container">
+              <!-- Rendered dynamically by prototype.js -->
+            </div>
+          </div>
+
+        </section>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- VIEW 2: TASKS                                                             -->
+      <!-- ========================================================================= -->
+      <div class="proto-view" id="view-tasks">
+        <section class="proto-card">
+          <div class="proto-card-header">
+            <div>
+              <h2 class="proto-card-title">Task Management</h2>
+              <p class="proto-card-subtitle">Overview of current and historical tasks across all projects</p>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+              <input type="text" id="task-search-input" placeholder="Search tasks, models, or IDs..." style="padding: 0.5rem 0.85rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.85rem; width: 260px;">
+              <button type="button" class="btn btn-primary" onclick="showToast('New Task modal would open in production AR')">+ New Task</button>
+            </div>
+          </div>
+
+          <!-- Filter Tabs -->
+          <div class="tasks-filter-bar">
+            <div class="tasks-tabs-group">
+              <button type="button" class="task-filter-tab active" data-filter="all">All Tasks (6)</button>
+              <button type="button" class="task-filter-tab" data-filter="running">Running (1)</button>
+              <button type="button" class="task-filter-tab" data-filter="decision">Waiting for Decision (1)</button>
+              <button type="button" class="task-filter-tab" data-filter="completed">Completed (2)</button>
+              <button type="button" class="task-filter-tab" data-filter="failed">Failed (1)</button>
+              <button type="button" class="task-filter-tab" data-filter="cancelled">Cancelled (1)</button>
+            </div>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Click any task row to inspect full details</span>
+          </div>
+
+          <!-- Tasks Table -->
+          <div style="overflow-x: auto;">
+            <table class="tasks-table">
+              <thead>
+                <tr>
+                  <th>Task Name / ID</th>
+                  <th>Started</th>
+                  <th>Builder AI</th>
+                  <th>Reviewer AI</th>
+                  <th>Duration</th>
+                  <th>Progress</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tasks-table-body">
+                <!-- Rendered dynamically by prototype.js -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- VIEW 3: AI TEAM                                                           -->
+      <!-- ========================================================================= -->
+      <div class="proto-view" id="view-team">
+        <section class="proto-card">
+          <div class="proto-card-header">
+            <div>
+              <h2 class="proto-card-title">AI Team & Platform Fleet</h2>
+              <p class="proto-card-subtitle">Manage availability, current operational roles, and platform parameters</p>
+            </div>
+            <span class="demo-tag">Workforce Fleet (4 Authorized Systems)</span>
+          </div>
+
+          <div class="team-grid">
+            <!-- Cline -->
+            <div class="team-card">
+              <div class="team-card-header">
+                <div class="ai-role-title-group">
+                  <div class="ai-avatar cline">C</div>
+                  <div>
+                    <h3 class="ai-name">Cline</h3>
+                    <span class="ai-platform">Platform: Google AI Studio</span>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-team-cline" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="team-card-body">
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Platform Status</span>
+                  <span class="badge green" id="team-status-google">ACTIVE (ON)</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Current Role</span>
+                  <span class="team-stat-v" style="color: #2563eb;">Builder</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Active Model</span>
+                  <span class="team-stat-v">Gemini 3.5 Flash Lite</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Reasoning Effort</span>
+                  <span class="team-stat-v">Medium</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Primary Specialty</span>
+                  <span class="team-stat-v">Routine, fast, economical drafting</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Codex -->
+            <div class="team-card">
+              <div class="team-card-header">
+                <div class="ai-role-title-group">
+                  <div class="ai-avatar codex">X</div>
+                  <div>
+                    <h3 class="ai-name">Codex</h3>
+                    <span class="ai-platform">Platform: OpenAI / ChatGPT</span>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-team-codex">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="team-card-body">
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Platform Status</span>
+                  <span class="badge gray" id="team-status-openai">DISABLED (OFF)</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Current Role</span>
+                  <span class="team-stat-v" style="color: #64748b;">Idle / Standby</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Active Model</span>
+                  <span class="team-stat-v">GPT-5.6 Luna</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Reasoning Effort</span>
+                  <span class="team-stat-v">High</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Primary Specialty</span>
+                  <span class="team-stat-v">High-assurance schemas & architecture</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Claude -->
+            <div class="team-card">
+              <div class="team-card-header">
+                <div class="ai-role-title-group">
+                  <div class="ai-avatar claude">Cl</div>
+                  <div>
+                    <h3 class="ai-name">Claude (Claude Code)</h3>
+                    <span class="ai-platform">Platform: Anthropic</span>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-team-claude" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="team-card-body">
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Platform Status</span>
+                  <span class="badge purple" id="team-status-claude">RESERVE (ON)</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Current Role</span>
+                  <span class="team-stat-v" style="color: #7c3aed;">Idle / Senior Auditor</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Active Model</span>
+                  <span class="team-stat-v">Claude 3.5 Sonnet</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Reasoning Effort</span>
+                  <span class="team-stat-v">High</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Primary Specialty</span>
+                  <span class="team-stat-v">Design polish, UI/CSS & complex escalation</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Antigravity -->
+            <div class="team-card">
+              <div class="team-card-header">
+                <div class="ai-role-title-group">
+                  <div class="ai-avatar antigravity">A</div>
+                  <div>
+                    <h3 class="ai-name">Antigravity</h3>
+                    <span class="ai-platform">Platform: Antigravity</span>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-team-antigravity" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="team-card-body">
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Platform Status</span>
+                  <span class="badge green" id="team-status-antigravity">ACTIVE (ON)</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Current Role</span>
+                  <span class="team-stat-v" style="color: #059669;">Reviewer</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Active Model</span>
+                  <span class="team-stat-v">Gemini 3.8 Flash</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Reasoning Effort</span>
+                  <span class="team-stat-v">Medium</span>
+                </div>
+                <div class="team-stat-row">
+                  <span class="team-stat-k">Primary Specialty</span>
+                  <span class="team-stat-v">Independent verification & rapid prototyping</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- VIEW 4: TASK PROGRESS                                                     -->
+      <!-- ========================================================================= -->
+      <div class="proto-view" id="view-progress">
+        <section class="proto-card">
+          <div class="proto-card-header">
+            <div>
+              <h2 class="proto-card-title">Dedicated Task Progress Timeline</h2>
+              <p class="proto-card-subtitle">Plain-language chronological execution history formatted for executive review</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <select id="progress-task-select" style="padding: 0.5rem 0.85rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.88rem;">
+                <option value="task-1">Create customer login page (Current Active)</option>
+                <option value="task-2">Stripe webhook payment reconciliation (Running)</option>
+                <option value="task-3">User avatar upload and thumbnail resizing (Completed)</option>
+              </select>
+              <div class="autofollow-toggle-wrap">
+                <span>Auto-follow:</span>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-progress-autofollow" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dedicated Info Strip -->
+          <div class="task-info-strip">
+            <div class="task-info-item">
+              <span class="task-info-label">Builder</span>
+              <span class="task-info-value">Cline (Google AI Studio)</span>
+            </div>
+            <div class="task-info-item">
+              <span class="task-info-label">Reviewer</span>
+              <span class="task-info-value">Antigravity (Google DeepMind)</span>
+            </div>
+            <div class="task-info-item">
+              <span class="task-info-label">Current Step</span>
+              <span class="task-info-value" style="color: var(--primary);">Waiting for CEO Approval</span>
+            </div>
+            <div class="task-info-item">
+              <span class="task-info-label">Elapsed Time</span>
+              <span class="task-info-value">6m 45s</span>
+            </div>
+            <div class="task-info-item">
+              <span class="task-info-label">Estimated Remaining</span>
+              <span class="task-info-value">1 min</span>
+            </div>
+          </div>
+
+          <!-- Dedicated Timeline Container -->
+          <div style="padding: 1.5rem; background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md);" id="progress-dedicated-timeline">
+            <!-- Rendered dynamically by prototype.js -->
+          </div>
+        </section>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- VIEW 5: TECHNICAL LOGS                                                    -->
+      <!-- ========================================================================= -->
+      <div class="proto-view" id="view-logs">
+        <section class="proto-card">
+          <div class="proto-card-header">
+            <div>
+              <h2 class="proto-card-title">Technical Troubleshooting & Diagnostic Stream</h2>
+              <p class="proto-card-subtitle">Granular system events, API payloads, and validator telemetry</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <input type="text" id="tech-log-search-input" placeholder="Search technical events..." style="padding: 0.5rem 0.85rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.85rem; width: 240px;">
+              <div class="autofollow-toggle-wrap">
+                <span>Auto-follow:</span>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-tech-autofollow" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter Chips -->
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+            <button type="button" class="task-filter-tab tech-filter-chip active" data-tag="all">All Events</button>
+            <button type="button" class="task-filter-tab tech-filter-chip" data-tag="builder">Builder</button>
+            <button type="button" class="task-filter-tab tech-filter-chip" data-tag="reviewer">Reviewer</button>
+            <button type="button" class="task-filter-tab tech-filter-chip" data-tag="router">Routing</button>
+            <button type="button" class="task-filter-tab tech-filter-chip" data-tag="validation">Validation</button>
+            <button type="button" class="task-filter-tab tech-filter-chip" data-tag="error">Errors</button>
+          </div>
+
+          <!-- Full Feed Container -->
+          <div style="height: 520px; border-radius: var(--radius-md); overflow: hidden;">
+            <div class="tech-log-feed" id="tech-logs-full-feed">
+              <!-- Rendered dynamically by prototype.js -->
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- VIEW 6: SETTINGS                                                          -->
+      <!-- ========================================================================= -->
+      <div class="proto-view" id="view-settings">
+        <!-- AI Platforms Section -->
+        <div class="settings-section">
+          <h3><span>🤖</span> AI Platforms Availability</h3>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Cline (Google AI Studio)</span>
+              <span class="settings-desc">Routine worker pool using direct Google AI Studio Gemini API</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-set-cline" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Codex (OpenAI / ChatGPT)</span>
+              <span class="settings-desc">High-assurance architecture planner and builder</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-set-codex">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Claude Code (Anthropic)</span>
+              <span class="settings-desc">Senior auditor and design specialist (governed by Reserve Mode)</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-set-claude" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Antigravity (Google DeepMind)</span>
+              <span class="settings-desc">Fast prototyping builder and independent cross-platform auditor</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-set-antigravity" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Task Handling Section -->
+        <div class="settings-section">
+          <h3><span>⚙️</span> Task Handling & Routing</h3>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Builder + Reviewer Pre-Selection</span>
+              <span class="settings-desc">Guarantee that an independent qualified reviewer is reserved before drafting starts</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Automatic Code Validation</span>
+              <span class="settings-desc">Execute automated syntax, linting, and unit test checks on drafts prior to human review</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Strict Cross-Platform Reviewer Requirement</span>
+              <span class="settings-desc">Enforce that the reviewer must originate from an independent model family than builder</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="settings-section">
+          <h3><span>⏸️</span> Task Controls & Safety</h3>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Graceful Pause Behavior</span>
+              <span class="settings-desc">Allow in-flight worker to finish its active generation before pausing</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Immediate Stop Lock Release</span>
+              <span class="settings-desc">Instantly release router.lock and abort active worker processes when Stop is clicked</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Approvals Section -->
+        <div class="settings-section">
+          <h3><span>🛡️</span> Stage Governance & Approvals</h3>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Stage A — Plan Approval</span>
+              <span class="settings-desc">Require CEO/CTO sign-off on architectural plans before code generation begins</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Stage B — Deliverable Approval</span>
+              <span class="settings-desc">Always require explicit human approval before applying file changes to project root</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" checked disabled>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Sensitivity Section -->
+        <div class="settings-section">
+          <h3><span>🔒</span> Sensitivity & Keyword Governance</h3>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Sensitive Keyword Warnings</span>
+              <span class="settings-desc">Hold tasks for CTO attention when sensitive terms (credentials, keys, drops) are found</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">CEO Sensitivity Override</span>
+              <span class="settings-desc">Allow one-click authorization directly in the dashboard dialogue card</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Display Preferences Section -->
+        <div class="settings-section">
+          <h3><span>🖥️</span> Display Preferences</h3>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Auto-Follow Default</span>
+              <span class="settings-desc">Automatically follow and scroll newest log events when opening tasks</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label-wrap">
+              <span class="settings-label">Default Live View Mode</span>
+              <span class="settings-desc">Initial layout for the live task area on Overview</span>
+            </div>
+            <select style="padding: 0.4rem 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.88rem;">
+              <option value="split" selected>Split View (Progress + Tech Logs)</option>
+              <option value="progress">Task Progress Only</option>
+              <option value="logs">Technical Logs Only</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Advanced Settings Accordion -->
+        <div class="settings-section" style="border-style: dashed;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 style="margin-bottom: 0; border: none; padding: 0;"><span>🔧</span> Advanced Developer Settings</h3>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Local ports, socket bindings, and token rotators</p>
+            </div>
+            <button type="button" class="btn btn-secondary" id="btn-advanced-settings-toggle">Show Advanced Settings ▼</button>
+          </div>
+
+          <div id="advanced-settings-content" style="display: none; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--bg-subtle);">
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Local Server Port</span>
+                <span class="settings-desc">Port used by Adaptive Router dashboard server</span>
+              </div>
+              <input type="number" value="3210" readonly style="width: 80px; padding: 0.35rem 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; font-family: var(--font-mono);">
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">MCP External Connector Token</span>
+                <span class="settings-desc">Bearer token for ChatGPT / external MCP client integration</span>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="showToast('Token rotated: ar_sec_' + Math.random().toString(36).slice(2, 10), 'info')">Rotate Token</button>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label-wrap">
+                <span class="settings-label">Max Log Event Buffer</span>
+                <span class="settings-desc">Number of events retained per task in events.jsonl</span>
+              </div>
+              <input type="number" value="200" style="width: 80px; padding: 0.35rem 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; font-family: var(--font-mono);">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    </div><!-- /proto-body-layout -->
+
+    <!-- Task Details Modal -->
+    <div class="proto-modal-overlay" id="task-detail-modal">
+      <div class="proto-modal">
+        <button type="button" class="proto-modal-close" id="modal-close-btn">&times;</button>
+        <div id="modal-body-content">
+          <!-- Loaded dynamically on task click -->
+        </div>
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('task-detail-modal').classList.remove('active')">Close Details</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Element -->
+    <div class="proto-toast" id="proto-toast">Notification</div>
+
+  </div>
+
+  <script src="prototype.js"></script>
+</body>
+</html>
