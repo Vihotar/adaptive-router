@@ -248,6 +248,6 @@ export async function locked(root, action, scope = null) {
   }
   fs.writeFileSync(fd, JSON.stringify({ pid: process.pid, started: new Date().toISOString() }));
   try { return await action(); }
-  finally { fs.closeSync(fd); fs.unlinkSync(lock); }
+  finally { fs.closeSync(fd); try { fs.unlinkSync(lock); } catch {} }
 }
 

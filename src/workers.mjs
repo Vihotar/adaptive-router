@@ -238,7 +238,7 @@ export function runProcess(exe, args, { cwd, input, timeout, log, onLine, onStde
     child.stdout.on('data', b => {
       lastActivityAt = Date.now();
       stdout += b;
-      if (stdout.length > 3_000_000) stop('Worker output too large');
+      if (stdout.length > 15_000_000) stop('Worker output too large');
       if (onLine) {
         stdoutBuf += b.toString('utf8');
         const lines = stdoutBuf.split(/\r?\n/);
@@ -254,7 +254,7 @@ export function runProcess(exe, args, { cwd, input, timeout, log, onLine, onStde
     child.stderr.on('data', b => {
       lastActivityAt = Date.now();
       stderr += b;
-      if (stderr.length > 3_000_000) stop('Worker diagnostics too large');
+      if (stderr.length > 15_000_000) stop('Worker diagnostics too large');
       if (onStderrLine) {
         stderrBuf += b.toString('utf8');
         const lines = stderrBuf.split(/\r?\n/);
@@ -436,7 +436,27 @@ export async function invoke(worker, opts = {}) {
   // but remain tool-disabled/read-only and return structured file contents.
   // Reviewers stay in the gated isolated directory while reviewing the exact
   // same project snapshot and root binding supplied in the prompt.
-  const cwd = schema.properties?.verdict ? isolatedCwd : (registeredRoot || isolatedCwd);
+  // Exception: Cline is an interactive tool-using agent runtime (--yolo).
+  // Launching it directly in registeredRoot causes its file-editing tools
+  // to write directly to the user's project before Stage B approval, which
+  // violates AR's approval gate and trips applyApprovedFiles()'s baseline
+  // integrity check. Running Cline in isolatedCwd (seeded from registeredRoot)
+  // keeps the user's project pristine until human approval.
+  const isToolModifyingWorker = worker.adapter === 'cline';
+  const cwd = (schema.properties?.verdict || isToolModifyingWorker) ? isolatedCwd : (registeredRoot || isolatedCwd);
+  if (isToolModifyingWorker && registeredRoot && fs.existsSync(registeredRoot)) {
+    try {
+      fs.cpSync(registeredRoot, isolatedCwd, {
+        recursive: true,
+        filter: (src) => {
+          const rel = path.relative(registeredRoot, src);
+          if (!rel) return true;
+          const first = rel.split(path.sep)[0];
+          return !['.git', '.router', 'node_modules', 'dist', 'build', '.tools', '.next', '.cache', 'screenshots'].includes(first);
+        }
+      });
+    } catch {}
+  }
   json(path.join(dir, 'schema.json'), schema);
   fs.writeFileSync(path.join(dir, 'request.txt'), prompt);
   let lastHeartbeatEmit = 0;
@@ -766,6 +786,24 @@ export async function invoke(worker, opts = {}) {
           annotateClineError(err, route, normalizeUsage(clineRawUsage, 'cline'), errorDetail);
           throw err;
         }
+      }
+      if (Array.isArray(result?.files)) {
+        const seen = new Set();
+        const normalized = [];
+        for (const f of result.files) {
+          if (!f || typeof f.path !== 'string') continue;
+          let clean = f.path.replaceAll('\\', '/').trim();
+          if (clean.includes('/')) {
+            const parts = clean.split('/').filter(p => p && p !== '.');
+            const validParts = parts.filter(p => p !== '..' && p !== path.basename(common.cwd));
+            if (validParts.length > 0) clean = validParts.join('/');
+          }
+          if (!seen.has(clean.toLowerCase())) {
+            seen.add(clean.toLowerCase());
+            normalized.push({ ...f, path: clean });
+          }
+        }
+        if (normalized.length > 0) result.files = normalized;
       }
       json(path.join(dir, 'response.json'), result);
       // Provider-reported token accounting is preserved exactly as reported;

@@ -33,7 +33,7 @@
     },
     {
       "id": "cline",
-      "enabled": false,
+      "enabled": true,
       "roles": [
         "build"
       ],
