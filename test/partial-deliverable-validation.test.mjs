@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { codeTask, composeValidationWorkspace } from '../src/coding.mjs';
-import { read, json, hash, verifyFiles } from '../src/storage.mjs';
-import { buildSchema, reviewSchema } from '../src/contracts.mjs';
+import { read, json, hash, verifyFiles, safePath } from '../src/storage.mjs';
+import { buildSchema, reviewSchema, validate } from '../src/contracts.mjs';
 import { decide } from '../src/router.mjs';
 import { createProject } from '../src/projects.mjs';
 import { testProject } from '../src/project-test.mjs';
@@ -434,6 +434,233 @@ test('Partial-Deliverable Validation Against Complete Project State Suite', asyn
     assert.equal(approvalRes.status, 'approved');
     // Because styles.css and app.js matched baseline, applyApprovedFiles skipped them!
     assert.deepEqual(approvalRes.appliedFiles, ['index.html'], 'Only modified index.html is applied');
+  });
+
+  await t.test('8. Baseline-drift regression test: validation uses immutable task baseline, not live projectRoot drift', async () => {
+    const root = setupFixture(t);
+    const { registered, projectFolder } = setupMultiFileProject(root);
+
+    // Initial baseline on disk: app.js contains ORIGINAL
+    const originalAppJs = fs.readFileSync(path.join(projectFolder, 'app.js'), 'utf8');
+    assert.ok(originalAppJs.length > 0, 'Original app.js must exist');
+
+    let validationAppJsContent = null;
+    const modifiedHtml = '<!DOCTYPE html><html><body>Drift test update</body></html>\n';
+
+    const task = await codeTask(root, 'Update HTML', {
+      project: registered.id,
+      ready() {},
+      log() {},
+      call: async (worker, opts) => {
+        if (opts.schema === buildSchema) {
+          // Simulate external process/user mutating live projectFolder AFTER task was created
+          fs.writeFileSync(path.join(projectFolder, 'app.js'), '// EXTERNAL_MUTATION_AFTER_TASK_CREATION\n', 'utf8');
+
+          // Worker returns only index.html
+          return {
+            summary: 'Updated HTML only',
+            files: [{ path: 'index.html', content: modifiedHtml }]
+          };
+        }
+        return { verdict: 'pass', summary: 'Approved', issues: [] };
+      },
+      test: async (r, projectDir, reportPath, digest) => {
+        // Read app.js from the validation directory
+        const appJsPath = path.join(projectDir, 'app.js');
+        assert.ok(fs.existsSync(appJsPath), 'app.js must be present in validation workspace');
+        validationAppJsContent = fs.readFileSync(appJsPath, 'utf8');
+
+        const result = { passed: true, digest, checks: [{ name: 'check', passed: true }], time: new Date().toISOString() };
+        json(reportPath, result);
+        return result;
+      }
+    });
+
+    assert.equal(task.status, 'awaiting_approval');
+    // Crucial assertion: validation workspace MUST contain ORIGINAL baseline app.js, NOT external change!
+    assert.equal(validationAppJsContent, originalAppJs, 'Validation workspace must use immutable task-start baseline');
+    assert.notEqual(validationAppJsContent, '// EXTERNAL_MUTATION_AFTER_TASK_CREATION\n', 'Validation workspace must NOT consume external mutations');
+  });
+
+  await t.test('9. Deletion contract: AR V1 enforces non-null file content, while validation workspace defensively handles deletions', async () => {
+    // 1. Verify buildSchema strictly enforces path: string and content: string
+    assert.throws(() => {
+      validate({
+        summary: 'Deleted a file',
+        files: [{ path: 'app.js', deleted: true }]
+      }, buildSchema);
+    }, /missing content/, 'buildSchema must reject deliverables missing content string');
+
+    assert.throws(() => {
+      validate({
+        summary: 'Null content',
+        files: [{ path: 'app.js', content: null }]
+      }, buildSchema);
+    }, /expected string/, 'buildSchema must reject non-string content');
+
+    // 2. Verify composeValidationWorkspace defensively supports deleted flag when passed directly
+    const root = setupFixture(t);
+    const { registered, projectFolder } = setupMultiFileProject(root);
+    const taskDir = path.join(root, '.router', 'tasks', 'task-test-del');
+    fs.mkdirSync(taskDir, { recursive: true });
+    // Seed baseline
+    json(path.join(taskDir, 'baseline.json'), [
+      { path: 'index.html', content: '<h1>Keep</h1>' },
+      { path: 'styles.css', content: '/* Remove */' }
+    ]);
+    const task = { id: 'task-test-del', project: registered.id, projectRoot: projectFolder, revision: 1 };
+    const validationDir = composeValidationWorkspace(taskDir, task, [
+      { path: 'styles.css', content: null, deleted: true }
+    ]);
+    assert.ok(!fs.existsSync(path.join(validationDir, 'styles.css')), 'Deleted file must be removed from validation workspace');
+    assert.ok(fs.existsSync(path.join(validationDir, 'index.html')), 'Non-deleted file remains present');
+  });
+
+  await t.test('10. Path safety: reject traversal, absolute paths, and escaping variants', async () => {
+    const root = setupFixture(t);
+    const taskDir = path.join(root, '.router', 'tasks', 'task-test-sec');
+    fs.mkdirSync(taskDir, { recursive: true });
+    json(path.join(taskDir, 'baseline.json'), [{ path: 'index.html', content: '<h1>Sec</h1>' }]);
+    const task = { id: 'task-test-sec', project: 'test', projectRoot: root, revision: 1 };
+
+    // Parent directory traversal
+    assert.throws(() => {
+      composeValidationWorkspace(taskDir, task, [{ path: '../outside.txt', content: 'hacked' }]);
+    }, /Unsafe deliverable path/);
+
+    // Traversal variant
+    assert.throws(() => {
+      composeValidationWorkspace(taskDir, task, [{ path: 'foo/../../bar.txt', content: 'hacked' }]);
+    }, /Unsafe deliverable path/);
+
+    // Absolute path
+    assert.throws(() => {
+      composeValidationWorkspace(taskDir, task, [{ path: '/etc/passwd.txt', content: 'hacked' }]);
+    }, /Unsafe deliverable path/);
+
+    // Windows device name
+    assert.throws(() => {
+      composeValidationWorkspace(taskDir, task, [{ path: 'con.txt', content: 'hacked' }]);
+    }, /Unsafe deliverable path/);
+
+    // Unsupported extension
+    assert.throws(() => {
+      composeValidationWorkspace(taskDir, task, [{ path: 'script.sh', content: 'hacked' }]);
+    }, /Unsupported deliverable type/);
+  });
+
+  await t.test('11. Multi-project isolation: validation workspaces never leak companion files across projects', async () => {
+    const root = setupFixture(t);
+
+    // Setup Project A
+    const folderA = path.join(root, 'project-a');
+    fs.mkdirSync(folderA, { recursive: true });
+    fs.writeFileSync(path.join(folderA, 'index.html'), '<h1>Project A</h1>', 'utf8');
+    fs.writeFileSync(path.join(folderA, 'moduleA.js'), '// Project A unique module\n', 'utf8');
+    const projectA = createProject(root, { name: 'Project A', mode: 'existing', folderPath: folderA });
+
+    // Setup Project B
+    const folderB = path.join(root, 'project-b');
+    fs.mkdirSync(folderB, { recursive: true });
+    fs.writeFileSync(path.join(folderB, 'index.html'), '<h1>Project B</h1>', 'utf8');
+    fs.writeFileSync(path.join(folderB, 'moduleB.js'), '// Project B unique module\n', 'utf8');
+    const projectB = createProject(root, { name: 'Project B', mode: 'existing', folderPath: folderB });
+
+    let projectAValidationFiles = null;
+    let projectBValidationFiles = null;
+
+    // Run Task on Project A
+    const taskA = await codeTask(root, 'Update A', {
+      project: projectA.id,
+      ready() {},
+      log() {},
+      call: async (_w, opts) => {
+        if (opts.schema === buildSchema) {
+          return { summary: 'Update A', files: [{ path: 'index.html', content: '<h1>Updated Project A</h1>' }] };
+        }
+        return { verdict: 'pass', summary: 'OK', issues: [] };
+      },
+      test: async (_r, projectDir, reportPath, digest) => {
+        projectAValidationFiles = fs.readdirSync(projectDir);
+        const result = { passed: true, digest, checks: [{ name: 'check', passed: true }], time: new Date().toISOString() };
+        json(reportPath, result);
+        return result;
+      }
+    });
+
+    // Run Task on Project B
+    const taskB = await codeTask(root, 'Update B', {
+      project: projectB.id,
+      ready() {},
+      log() {},
+      call: async (_w, opts) => {
+        if (opts.schema === buildSchema) {
+          return { summary: 'Update B', files: [{ path: 'index.html', content: '<h1>Updated Project B</h1>' }] };
+        }
+        return { verdict: 'pass', summary: 'OK', issues: [] };
+      },
+      test: async (_r, projectDir, reportPath, digest) => {
+        projectBValidationFiles = fs.readdirSync(projectDir);
+        const result = { passed: true, digest, checks: [{ name: 'check', passed: true }], time: new Date().toISOString() };
+        json(reportPath, result);
+        return result;
+      }
+    });
+
+    assert.equal(taskA.status, 'awaiting_approval');
+    assert.equal(taskB.status, 'awaiting_approval');
+
+    // Verify isolation
+    assert.ok(projectAValidationFiles.includes('moduleA.js'), 'Project A validation must have moduleA.js');
+    assert.ok(!projectAValidationFiles.includes('moduleB.js'), 'Project A validation must NEVER leak moduleB.js');
+
+    assert.ok(projectBValidationFiles.includes('moduleB.js'), 'Project B validation must have moduleB.js');
+    assert.ok(!projectBValidationFiles.includes('moduleA.js'), 'Project B validation must NEVER leak moduleA.js');
+  });
+
+  await t.test('12. Stage B guard review: correctly differentiates new files, modified files, and unchanged baseline files', async () => {
+    const root = setupFixture(t);
+    const { registered, projectFolder, css } = setupMultiFileProject(root);
+
+    // 1. Task with new file + modified file + unchanged file
+    const newContent = 'export const newlyAdded = true;\n';
+    const modifiedHtml = '<!DOCTYPE html><html><body>Modified</body></html>\n';
+
+    const task = await codeTask(root, 'Stage B test', {
+      project: registered.id,
+      ready() {},
+      log() {},
+      call: async (_w, opts) => {
+        if (opts.schema === buildSchema) {
+          return {
+            summary: 'Mixed changes',
+            files: [
+              { path: 'index.html', content: modifiedHtml },
+              { path: 'styles.css', content: css }, // identical to baseline
+              { path: 'newfile.js', content: newContent } // new file
+            ]
+          };
+        }
+        return { verdict: 'pass', summary: 'OK', issues: [] };
+      },
+      test: async (_r, _p, reportPath, digest) => {
+        const result = { passed: true, digest, checks: [{ name: 'check', passed: true }], time: new Date().toISOString() };
+        json(reportPath, result);
+        return result;
+      }
+    });
+
+    assert.equal(task.status, 'awaiting_approval');
+    const approvalRes = await decide(root, task.id, 'approved');
+    assert.equal(approvalRes.status, 'approved');
+
+    // Applied must contain modified index.html and newfile.js, but NOT unchanged styles.css
+    assert.ok(approvalRes.appliedFiles.includes('index.html'), 'Modified file must be applied');
+    assert.ok(approvalRes.appliedFiles.includes('newfile.js'), 'New file must be applied');
+    assert.ok(!approvalRes.appliedFiles.includes('styles.css'), 'Unchanged file matching baseline must be skipped');
+
+    assert.equal(fs.readFileSync(path.join(projectFolder, 'newfile.js'), 'utf8'), newContent);
+    assert.equal(fs.readFileSync(path.join(projectFolder, 'index.html'), 'utf8'), modifiedHtml);
   });
 
 });

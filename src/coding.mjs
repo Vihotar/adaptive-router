@@ -86,70 +86,47 @@ export function composeValidationWorkspace(dir, task, files) {
   fs.mkdirSync(validationDir, { recursive: true });
 
   let baselineCopied = false;
-  const projectRoot = task.projectRoot ? path.resolve(task.projectRoot) : null;
 
-  if (projectRoot && fs.existsSync(projectRoot)) {
+  // 1. Primary Source of Truth: Immutable task-start baseline directory
+  const baselineFolder = path.join(dir, 'baseline');
+  if (fs.existsSync(baselineFolder)) {
     try {
       const walk = (folder) => {
         for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
-          if (entry.name.startsWith('.') || SNAPSHOT_EXCLUDED.has(entry.name) || entry.isSymbolicLink()) continue;
+          if (entry.isSymbolicLink()) continue;
           const absolute = path.join(folder, entry.name);
           if (entry.isDirectory()) {
             walk(absolute);
           } else if (entry.isFile()) {
-            const rel = path.relative(projectRoot, absolute).replaceAll('\\', '/');
-            if (SENSITIVE_FILE.test(rel)) continue;
+            const rel = path.relative(baselineFolder, absolute).replaceAll('\\', '/');
             try { safePath(rel); } catch { continue; }
-            const dest = path.join(validationDir, rel);
+            const dest = path.resolve(validationDir, rel);
+            if (!dest.startsWith(path.resolve(validationDir) + path.sep)) continue;
             fs.mkdirSync(path.dirname(dest), { recursive: true });
             fs.copyFileSync(absolute, dest);
             baselineCopied = true;
           }
         }
       };
-      walk(projectRoot);
-    } catch {
-      baselineCopied = false;
-    }
+      walk(baselineFolder);
+    } catch {}
   }
 
-  if (!baselineCopied) {
-    const baselineFolder = path.join(dir, 'baseline');
-    if (fs.existsSync(baselineFolder)) {
-      try {
-        const walk = (folder) => {
-          for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
-            if (entry.isSymbolicLink()) continue;
-            const absolute = path.join(folder, entry.name);
-            if (entry.isDirectory()) {
-              walk(absolute);
-            } else if (entry.isFile()) {
-              const rel = path.relative(baselineFolder, absolute).replaceAll('\\', '/');
-              try { safePath(rel); } catch { continue; }
-              const dest = path.join(validationDir, rel);
-              fs.mkdirSync(path.dirname(dest), { recursive: true });
-              fs.copyFileSync(absolute, dest);
-              baselineCopied = true;
-            }
-          }
-        };
-        walk(baselineFolder);
-      } catch {}
-    }
-  }
-
+  // 2. Secondary Source of Truth: Immutable task-start baseline.json
   if (!baselineCopied) {
     const baselineJsonFile = path.join(dir, 'baseline.json');
     if (fs.existsSync(baselineJsonFile)) {
       try {
         const baselineEntries = read(baselineJsonFile);
-        if (Array.isArray(baselineEntries)) {
+        if (Array.isArray(baselineEntries) && baselineEntries.length > 0) {
           for (const item of baselineEntries) {
             if (item && item.path && typeof item.content === 'string') {
               try { safePath(item.path); } catch { continue; }
-              const dest = path.join(validationDir, item.path);
+              const dest = path.resolve(validationDir, item.path);
+              if (!dest.startsWith(path.resolve(validationDir) + path.sep)) continue;
               fs.mkdirSync(path.dirname(dest), { recursive: true });
               fs.writeFileSync(dest, item.content);
+              baselineCopied = true;
             }
           }
         }
@@ -157,10 +134,41 @@ export function composeValidationWorkspace(dir, task, files) {
     }
   }
 
-  // Overlay builder deliverable files
+  // 3. Fallback: Live projectRoot only if no task-start baseline exists
+  if (!baselineCopied) {
+    const projectRoot = task.projectRoot ? path.resolve(task.projectRoot) : null;
+    if (projectRoot && fs.existsSync(projectRoot)) {
+      try {
+        const walk = (folder) => {
+          for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
+            if (entry.name.startsWith('.') || SNAPSHOT_EXCLUDED.has(entry.name) || entry.isSymbolicLink()) continue;
+            const absolute = path.join(folder, entry.name);
+            if (entry.isDirectory()) {
+              walk(absolute);
+            } else if (entry.isFile()) {
+              const rel = path.relative(projectRoot, absolute).replaceAll('\\', '/');
+              if (SENSITIVE_FILE.test(rel)) continue;
+              try { safePath(rel); } catch { continue; }
+              const dest = path.resolve(validationDir, rel);
+              if (!dest.startsWith(path.resolve(validationDir) + path.sep)) continue;
+              fs.mkdirSync(path.dirname(dest), { recursive: true });
+              fs.copyFileSync(absolute, dest);
+              baselineCopied = true;
+            }
+          }
+        };
+        walk(projectRoot);
+      } catch {}
+    }
+  }
+
+  // 4. Overlay builder deliverable files
   for (const file of files) {
     safePath(file.path);
-    const dest = path.join(validationDir, file.path);
+    const dest = path.resolve(validationDir, file.path);
+    if (!dest.startsWith(path.resolve(validationDir) + path.sep)) {
+      throw Error(`Unsafe deliverable path: ${file.path}`);
+    }
     if (file.deleted || file.content === null) {
       if (fs.existsSync(dest)) fs.unlinkSync(dest);
     } else {
