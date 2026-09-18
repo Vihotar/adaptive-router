@@ -16,6 +16,7 @@ import { sanitizeText, sanitizePayload, loadTaskEvents, recordWorkerEvent } from
 import { listProjects as listRegisteredProjects, getProject, getActiveProject, setActiveProject, createProject, deleteProject, defaultProjectsFolder } from './projects.mjs';
 import { getRecentStaffActivity } from './staff-log.mjs';
 import { discoverAntigravityModels, classifyTask } from './smart-router.mjs';
+import { getAntigravityPoolHealth } from './antigravity-quota.mjs';
 import { classifySensitivity } from './sensitivity.mjs';
 import { formatTaskFailure } from './failure.mjs';
 import { getAllWorkerHealth } from './worker-health.mjs';
@@ -285,11 +286,18 @@ export async function getWorkerStatuses(root, requestedProject = null) {
   // Antigravity status
   let antigravityStatus = 'Unavailable';
   let antigravityNote = 'Antigravity CLI not found or not signed in';
+  let antigravityPools = null;
   if (paths.antigravity) {
     const antigravityModels = discoverAntigravityModels(paths.antigravity);
+    antigravityPools = getAntigravityPoolHealth(paths.antigravity);
     if (antigravityModels.length) {
-      antigravityStatus = 'Available';
-      antigravityNote = `Connected in Google account mode (${antigravityModels.length} models)`;
+      if (!antigravityPools.overallAvailable) {
+        antigravityStatus = 'Exhausted';
+        antigravityNote = 'Both Gemini and Claude/GPT pools exhausted';
+      } else {
+        antigravityStatus = 'Available';
+        antigravityNote = `Connected in Google account mode (${antigravityModels.length} models)`;
+      }
     } else {
       antigravityNote = 'CLI installed, but sign-in/model availability could not be verified';
     }
@@ -352,7 +360,7 @@ export async function getWorkerStatuses(root, requestedProject = null) {
     workers: [
       withHealth({ id: 'codex', name: 'Codex', platform: 'OpenAI / ChatGPT Pro', status: codexStatus, note: codexNote, userEnabled: isUserEnabled('codex') }),
       withHealth({ id: 'claude-code', name: 'Claude Code', platform: 'Anthropic / Claude Pro', status: claudeStatus, note: claudeNote, isReserve, userEnabled: isUserEnabled('claude-code') }),
-      withHealth({ id: 'antigravity', name: 'Antigravity', platform: 'Google Deepmind', status: antigravityStatus, note: antigravityNote, userEnabled: isUserEnabled('antigravity') }),
+      withHealth({ id: 'antigravity', name: 'Antigravity', platform: 'Google Deepmind', status: antigravityStatus, note: antigravityNote, ...(antigravityPools ? { pools: antigravityPools } : {}), userEnabled: isUserEnabled('antigravity') }),
       withHealth({ id: 'cline', name: 'Cline', platform: 'Cline CLI (local)', status: clineStatus, note: clineNote, userEnabled: isUserEnabled('cline') })
     ],
     claudeReserve: isReserve,

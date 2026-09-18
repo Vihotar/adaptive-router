@@ -71,6 +71,8 @@ export function recordWorkerOutcome(root, workerId, outcome, reason = '') {
   saveAll(root, all);
 }
 
+import { getAntigravityPoolHealth } from './antigravity-quota.mjs';
+
 /**
  * Returns { state: 'healthy'|'degraded'|'cooldown', failureCount,
  * lastOutcome, lastAt, cooldownUntil } for a worker. Never throws; missing
@@ -78,32 +80,45 @@ export function recordWorkerOutcome(root, workerId, outcome, reason = '') {
  * health file must never itself block routing).
  * @param {string} root
  * @param {string} workerId
+ * @param {object} [options]
  */
-export function getWorkerHealthState(root, workerId) {
+export function getWorkerHealthState(root, workerId, options = {}) {
   const all = loadAll(root);
   const entry = all[workerId];
+  let res;
   if (!entry || !Array.isArray(entry.recent) || entry.recent.length === 0) {
     // sampleSize 0 is the difference between "nothing has gone wrong" and
     // "nothing has been tried yet". Callers that display health need it so
     // they can say the latter honestly instead of implying a clean record.
-    return { state: 'healthy', failureCount: 0, sampleSize: 0, lastOutcome: null, lastAt: null };
-  }
-  const failureCount = entry.recent.filter(r => r.outcome === 'failure' || r.outcome === 'timeout').length;
-  const mostRecentFailure = [...entry.recent].reverse().find(r => r.outcome === 'failure' || r.outcome === 'timeout');
-  let state = 'healthy';
-  let cooldownUntil = null;
-  if (failureCount >= COOLDOWN_THRESHOLD && mostRecentFailure) {
-    const sinceFailure = Date.now() - new Date(mostRecentFailure.at).getTime();
-    if (sinceFailure < COOLDOWN_MS) {
-      state = 'cooldown';
-      cooldownUntil = new Date(new Date(mostRecentFailure.at).getTime() + COOLDOWN_MS).toISOString();
+    res = { state: 'healthy', failureCount: 0, sampleSize: 0, lastOutcome: null, lastAt: null };
+  } else {
+    const failureCount = entry.recent.filter(r => r.outcome === 'failure' || r.outcome === 'timeout').length;
+    const mostRecentFailure = [...entry.recent].reverse().find(r => r.outcome === 'failure' || r.outcome === 'timeout');
+    let state = 'healthy';
+    let cooldownUntil = null;
+    if (failureCount >= COOLDOWN_THRESHOLD && mostRecentFailure) {
+      const sinceFailure = Date.now() - new Date(mostRecentFailure.at).getTime();
+      if (sinceFailure < COOLDOWN_MS) {
+        state = 'cooldown';
+        cooldownUntil = new Date(new Date(mostRecentFailure.at).getTime() + COOLDOWN_MS).toISOString();
+      } else if (failureCount >= DEGRADED_THRESHOLD) {
+        state = 'degraded';
+      }
     } else if (failureCount >= DEGRADED_THRESHOLD) {
       state = 'degraded';
     }
-  } else if (failureCount >= DEGRADED_THRESHOLD) {
-    state = 'degraded';
+    res = { state, failureCount, sampleSize: entry.recent.length, lastOutcome: entry.lastOutcome, lastAt: entry.lastAt, cooldownUntil };
   }
-  return { state, failureCount, sampleSize: entry.recent.length, lastOutcome: entry.lastOutcome, lastAt: entry.lastAt, cooldownUntil };
+
+  if (workerId === 'antigravity') {
+    const poolHealth = getAntigravityPoolHealth(options?.exePath);
+    res.pools = {
+      gemini: poolHealth.gemini,
+      claude_gpt: poolHealth.claude_gpt
+    };
+  }
+
+  return res;
 }
 
 /**
@@ -111,12 +126,16 @@ export function getWorkerHealthState(root, workerId) {
  * /api/status). Includes derived state for every worker present in the
  * health file.
  * @param {string} root
+ * @param {object} [options]
  */
-export function getAllWorkerHealth(root) {
+export function getAllWorkerHealth(root, options = {}) {
   const all = loadAll(root);
   const result = {};
   for (const workerId of Object.keys(all)) {
-    result[workerId] = getWorkerHealthState(root, workerId);
+    result[workerId] = getWorkerHealthState(root, workerId, options);
+  }
+  if (!result.antigravity) {
+    result.antigravity = getWorkerHealthState(root, 'antigravity', options);
   }
   return result;
 }

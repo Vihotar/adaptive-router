@@ -127,6 +127,12 @@ export function discoverAvailableModels(paths = {}) {
   };
 }
 
+import {
+  getAntigravityPoolHealth,
+  ANTIGRAVITY_POOLS,
+  getAntigravityModelPool
+} from './antigravity-quota.mjs';
+
 export const platformModelTiers = {
   codex: {
     tier1: { model: 'gpt-5.6-luna', effort: 'low', description: 'Fastest lightweight model with low reasoning effort for simple tasks' },
@@ -139,10 +145,10 @@ export const platformModelTiers = {
     tier3: { model: 'opus', effort: 'high', description: 'Deepest reasoning Claude model for high-risk or escalated revisions' }
   },
   antigravity: {
-    tier1: { model: 'gemini-3.8-flash-low', effort: 'low', description: 'Gemini 3.8 Flash low-effort pool for fast responsive execution' },
-    tier2: { model: 'gemini-3.8-flash-medium', effort: 'medium', description: 'Gemini 3.8 Flash medium-effort pool for thorough review and balanced building' },
-    tier3: { model: 'gemini-3.1-pro-high', effort: 'high', description: 'Gemini 3.1 Pro high-effort pool for complex reasoning and deep audits' },
-    tier4: { model: 'gemini-3.1-ultra', effort: 'high', description: 'Gemini 3.1 Ultra pool for frontier reasoning and senior Tier 4 audits' }
+    tier1: { model: 'gemini-3.8-flash-low', effort: 'low', fallback: ['gemini-3.7-flash-low', 'gemini-3.6-flash-low'], description: 'Gemini 3.8 Flash low-effort pool for fast responsive execution' },
+    tier2: { model: 'gemini-3.8-flash-medium', effort: 'medium', fallback: ['gemini-3.7-flash-medium', 'gemini-3.6-flash-medium'], description: 'Gemini 3.8 Flash medium-effort pool for thorough review and balanced building' },
+    tier3: { model: 'gemini-3.1-pro-high', effort: 'high', fallback: ['claude-sonnet-4-6'], description: 'Gemini 3.1 Pro high-effort pool for complex reasoning and deep audits' },
+    tier4: { model: 'claude-opus-4-6-thinking', effort: 'high', fallback: ['gemini-3.1-pro-high'], description: 'Claude Opus 4.6 Thinking pool for frontier reasoning and senior Tier 4 audits' }
   },
   // Cline is configured with a Google Gemini API key.
   // Dynamic model tiers with intra-worker failover:
@@ -197,11 +203,13 @@ export function selectModelAndEffort({
   builderModel = '',
   builderProvider = '',
   builderTier = null,
+  builderFamily = '',
   builderEffort = 'medium',
   taskRisk = 'medium',
   taskCategory = '',
   worker = null,
-  root = process.cwd()
+  root = process.cwd(),
+  antigravityPoolHealth = null
 }) {
   const adapter = platform === 'claude-code' ? 'claude' : platform;
   const tiers = platformModelTiers[adapter] || platformModelTiers.antigravity;
@@ -225,7 +233,7 @@ export function selectModelAndEffort({
     if (builderTier >= 4) {
       if (adapter === 'antigravity') {
         selectedTierKey = 'tier4';
-        tierReason = `senior reviewer floor enforced for Tier ${builderTier} builder (gemini-3.1-ultra)`;
+        tierReason = `senior reviewer floor enforced for Tier ${builderTier} builder (claude-opus-4-6-thinking)`;
       } else if (adapter === 'codex') {
         selectedTierKey = 'tier3'; // gpt-6-astra (Tier 4)
         tierReason = `senior reviewer floor enforced for Tier ${builderTier} builder`;
@@ -256,6 +264,47 @@ export function selectModelAndEffort({
   const baseTier = tiers[selectedTierKey] || tiers['tier3'] || tiers['tier2'];
   let model = baseTier.model;
   let effort = baseTier.effort;
+
+  // Antigravity Dual-Quota Pool Awareness
+  let agPoolHealth = null;
+  if (adapter === 'antigravity') {
+    agPoolHealth = antigravityPoolHealth || getAntigravityPoolHealth(worker?.exePath);
+    const gemHealth = agPoolHealth?.gemini;
+    const claudeHealth = agPoolHealth?.claude_gpt;
+
+    // Check if independence requires avoiding Claude pool (e.g. reviewing Claude builder)
+    const bInfo = builderModel ? getModelInfo(builderModel, root) : null;
+    const bFamily = builderFamily || bInfo?.family || '';
+    const avoidClaudeForIndependence = role === 'review' && bFamily === 'claude';
+
+    if (selectedTierKey === 'tier4') {
+      // Default Tier 4: claude-opus-4-6-thinking (CLAUDE_GPT pool)
+      // If Claude pool is exhausted or avoiding Claude builder, fallback to gemini-3.1-pro-high
+      if ((claudeHealth?.status === 'exhausted' || !claudeHealth?.available || avoidClaudeForIndependence) && gemHealth?.available) {
+        model = 'gemini-3.1-pro-high';
+        effort = 'high';
+        tierReason += avoidClaudeForIndependence
+          ? ' (avoided Claude pool for builder independence -> gemini-3.1-pro-high)'
+          : ' (Claude/GPT pool exhausted -> shifted to Gemini pool gemini-3.1-pro-high)';
+      }
+    } else if (selectedTierKey === 'tier3') {
+      // Default Tier 3: gemini-3.1-pro-high (GEMINI pool)
+      // If Gemini pool is low or exhausted, shift to claude-sonnet-4-6 if Claude pool is healthy
+      if ((gemHealth?.status === 'low' || gemHealth?.status === 'exhausted' || !gemHealth?.healthy) && claudeHealth?.healthy && !avoidClaudeForIndependence) {
+        model = 'claude-sonnet-4-6';
+        effort = 'high';
+        tierReason += ` (Gemini pool ${gemHealth?.status || 'low'} -> shifted to Claude pool claude-sonnet-4-6)`;
+      }
+    } else if (selectedTierKey === 'tier2' || selectedTierKey === 'tier1') {
+      // Default Tier 1/2: gemini-3.8-flash-* (GEMINI pool)
+      // If Gemini pool is exhausted, shift to gpt-oss-120b-medium (CLAUDE_GPT pool)
+      if ((gemHealth?.status === 'exhausted' || !gemHealth?.available) && claudeHealth?.available && !avoidClaudeForIndependence) {
+        model = 'gpt-oss-120b-medium';
+        effort = 'medium';
+        tierReason += ' (Gemini pool exhausted -> shifted to Claude/GPT pool gpt-oss-120b-medium)';
+      }
+    }
+  }
 
   // For review role: Enforce Reviewer Effort Parity (reviewer effort >= builder effort) & risk escalation
   if (role === 'review') {
@@ -307,6 +356,7 @@ export function selectModelAndEffort({
     if (/-high$|-thinking$/i.test(model)) effort = 'high';
     else if (/-medium$/i.test(model)) effort = 'medium';
     else if (/-low$|-lite$/i.test(model)) effort = 'low';
+    else if (model === 'claude-sonnet-4-6') effort = 'high';
   }
 
   // Validate that model is in available models if list provided
@@ -334,6 +384,7 @@ export function selectModelAndEffort({
 
   const prefix = cleanPlatformReason ? `${cleanPlatformReason}. ` : '';
   const reason = `${prefix}${difficulty.toUpperCase()} task (${tierReason}) -> ${model} [effort: ${effort}]`;
+  const isBothExhausted = adapter === 'antigravity' && agPoolHealth && (!agPoolHealth.gemini?.available && !agPoolHealth.claude_gpt?.available);
   return {
     model,
     effort,
@@ -343,7 +394,10 @@ export function selectModelAndEffort({
     tierName: normalizedTierName,
     provider: normTier.provider,
     family: normTier.family,
-    fallbackModels: baseTier.fallback ? [...baseTier.fallback] : []
+    fallbackModels: baseTier.fallback ? [...baseTier.fallback] : [],
+    exhausted: adapter === 'antigravity' ? !!isBothExhausted : false,
+    available: adapter === 'antigravity' ? !isBothExhausted : true,
+    pool: adapter === 'antigravity' ? getAntigravityModelPool(model) : null
   };
 }
 
@@ -418,6 +472,14 @@ export function rankCandidatesForRole(config, role, {
         return false;
       }
 
+      // Check Antigravity pool health: if both pools exhausted, exclude worker
+      if (w.id === 'antigravity' || w.adapter === 'antigravity') {
+        const agHealth = getAntigravityPoolHealth(w.exePath);
+        if (!agHealth.overallAvailable) {
+          return false;
+        }
+      }
+
       // Reviewer Seniority & Independence Floor
       if (role === 'review' && typeof builderTier === 'number') {
         const candidateSelection = selectModelAndEffort({
@@ -433,6 +495,9 @@ export function rankCandidatesForRole(config, role, {
           availableModels,
           root
         });
+        if (candidateSelection.available === false || candidateSelection.exhausted) {
+          return false;
+        }
         const qual = evaluateReviewerQualification({
           builderModel,
           builderTier,

@@ -7,6 +7,11 @@ import { validate } from './contracts.mjs';
 import { sanitizeText } from './events.mjs';
 import { normalizeUsage } from './token-tracker.mjs';
 import { resolveClineRoute } from './cline-providers.mjs';
+import {
+  markAntigravityPoolExhausted,
+  getAntigravityModelPool,
+  ANTIGRAVITY_POOLS
+} from './antigravity-quota.mjs';
 
 export function findClaudeExe(env = process.env) {
   const lookup = name => {
@@ -549,28 +554,46 @@ export async function invoke(worker, opts = {}) {
     const content = prompt + `\nReturn only a JSON object matching this schema. ${extra}Do not call finish or any other tool.\n` + JSON.stringify(schema);
     const agyArgs = ['--add-dir', isolatedCwd, '--agent', 'adaptive-reviewer', '--disable-slash-commands', '--input-format', 'stream-json', '--output-format', 'stream-json', '--print-timeout', `${Math.ceil(timeout / 1000)}s`];
     if (model) agyArgs.push('--model', model);
-    if (effort && !/-high$|-medium$|-low$|-thinking$/i.test(model || '')) agyArgs.push('--effort', effort);
+    const is3PModel = /^(claude|gpt)/i.test(model || '') || getAntigravityModelPool(model) === ANTIGRAVITY_POOLS.CLAUDE_GPT;
+    const hasEffortSuffix = /-high$|-medium$|-low$|-thinking$/i.test(model || '');
+    if (effort && !is3PModel && !hasEffortSuffix) agyArgs.push('--effort', effort);
 
     let didEmitDraft = false;
-    const raw = await runProcess(paths.antigravity, agyArgs, {
-      ...common,
-      input: JSON.stringify({ event: 'user', message: { content } }) + '\n',
-      onLine: (line) => {
-        try {
-          const obj = JSON.parse(line);
-          if (obj.event === 'init') {
-            onWorkerEvent?.({ platform: 'antigravity', worker: 'antigravity', model: obj.init?.model || model, effort, role: 'auditor', eventType: 'progress', title: `Antigravity loaded model: ${obj.init?.model || model}`, detail: `${obj.init?.tools?.length || 0} tools available` });
-          } else if (obj.event === 'step_update') {
-            if (obj.step_update?.step_type === 'agent_response' && !didEmitDraft) {
-              didEmitDraft = true;
-              onWorkerEvent?.({ platform: 'antigravity', worker: 'antigravity', model, effort, role: 'auditor', eventType: 'progress', title: 'Antigravity drafting independent audit review', detail: 'Evaluating acceptance criteria and test logs' });
+    let raw;
+    try {
+      raw = await runProcess(paths.antigravity, agyArgs, {
+        ...common,
+        input: JSON.stringify({ event: 'user', message: { content } }) + '\n',
+        onLine: (line) => {
+          try {
+            const obj = JSON.parse(line);
+            if (obj.event === 'init') {
+              onWorkerEvent?.({ platform: 'antigravity', worker: 'antigravity', model: obj.init?.model || model, effort, role: 'auditor', eventType: 'progress', title: `Antigravity loaded model: ${obj.init?.model || model}`, detail: `${obj.init?.tools?.length || 0} tools available` });
+            } else if (obj.event === 'step_update') {
+              if (obj.step_update?.step_type === 'agent_response' && !didEmitDraft) {
+                didEmitDraft = true;
+                onWorkerEvent?.({ platform: 'antigravity', worker: 'antigravity', model, effort, role: 'auditor', eventType: 'progress', title: 'Antigravity drafting independent audit review', detail: 'Evaluating acceptance criteria and test logs' });
+              }
+            } else if (obj.event === 'result') {
+              const isQuotaError = obj.result?.status !== 'SUCCESS' && /QUOTA_EXHAUSTED|RESOURCE_EXHAUSTED|429|exhausted your quota/i.test(
+                `${obj.result?.error || ''} ${obj.result?.response || ''}`
+              );
+              if (isQuotaError) {
+                const pool = getAntigravityModelPool(model);
+                if (pool) markAntigravityPoolExhausted(pool);
+              }
+              onWorkerEvent?.({ platform: 'antigravity', worker: 'antigravity', model, effort, role: 'auditor', eventType: 'progress', title: 'Antigravity audit evaluation complete', status: obj.result?.status === 'SUCCESS' ? 'success' : 'failure' });
             }
-          } else if (obj.event === 'result') {
-            onWorkerEvent?.({ platform: 'antigravity', worker: 'antigravity', model, effort, role: 'auditor', eventType: 'progress', title: 'Antigravity audit evaluation complete', status: 'success' });
-          }
-        } catch {}
+          } catch {}
+        }
+      });
+    } catch (err) {
+      if (/QUOTA_EXHAUSTED|RESOURCE_EXHAUSTED|429|exhausted your quota/i.test(err.message || '')) {
+        const pool = getAntigravityModelPool(model);
+        if (pool) markAntigravityPoolExhausted(pool);
       }
-    });
+      throw err;
+    }
     const events = raw.trim().split(/\r?\n/).map(s => JSON.parse(s));
     const init = events.find(e => e.event === 'init');
     const marker = path.join(isolatedCwd, 'reviewer-gate.jsonl');
@@ -579,7 +602,14 @@ export async function invoke(worker, opts = {}) {
     if (!gateEvents.some(e => e.type === 'active')) throw Error('Reviewer safety gate was not active');
     if (gateEvents.some(e => e.type === 'tool' && e.name !== 'finish')) throw Error('Reviewer attempted a blocked action; refusing the review.');
     const completed = events.filter(e => e.event === 'result');
-    if (completed.length !== 1 || completed[0].result.status !== 'SUCCESS') throw Error('Antigravity did not complete successfully; see worker log.');
+    if (completed.length !== 1 || completed[0].result.status !== 'SUCCESS') {
+      const errText = `${raw} ${completed[0]?.result?.error || ''} ${completed[0]?.result?.response || ''}`;
+      if (/QUOTA_EXHAUSTED|RESOURCE_EXHAUSTED|429|exhausted your quota/i.test(errText)) {
+        const pool = getAntigravityModelPool(model);
+        if (pool) markAntigravityPoolExhausted(pool);
+      }
+      throw Error('Antigravity did not complete successfully; see worker log.');
+    }
     result = extractJson(completed[0].result.response);
     json(path.join(dir, 'response.json'), result);
     const agyUsage = normalizeUsage(completed[0].result?.usage, 'antigravity');

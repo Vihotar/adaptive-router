@@ -445,3 +445,11 @@ export function formatQualificationBadge({ builderTier, reviewerTier, builderFam
   }
   return `⚠️ Sub-seniority warning: Tier ${reviewerTier} reviewing Tier ${builderTier} builder`;
 }
+
+/**
+ * Get quota pool classification for model (e.g. GEMINI vs CLAUDE_GPT).
+ */
+export function getModelPool(modelId, root = process.cwd()) {
+  const info = getModelInfo(modelId, root);
+  return info?.pool || null;
+}

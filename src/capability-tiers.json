@@ -52,6 +52,7 @@
     "gemini-3.8-flash-low": {
       "provider": "google",
       "family": "gemini",
+      "pool": "GEMINI",
       "defaultTier": 1,
       "domains": {
         "coding": 1,
@@ -61,6 +62,7 @@
     "gemini-3.8-flash-medium": {
       "provider": "google",
       "family": "gemini",
+      "pool": "GEMINI",
       "defaultTier": 2,
       "domains": {
         "coding": 2,
@@ -89,6 +91,7 @@
     "gemini-3.8-flash-high": {
       "provider": "google",
       "family": "gemini",
+      "pool": "GEMINI",
       "defaultTier": 3,
       "domains": {
         "coding": 3,
@@ -98,6 +101,7 @@
     "gemini-3.1-pro-high": {
       "provider": "google",
       "family": "gemini",
+      "pool": "GEMINI",
       "defaultTier": 3,
       "domains": {
         "coding": 3,
@@ -107,6 +111,7 @@
     "gemini-3.1-pro": {
       "provider": "google",
       "family": "gemini",
+      "pool": "GEMINI",
       "defaultTier": 3,
       "domains": {
         "coding": 3,
@@ -130,15 +135,6 @@
         "coding": 4,
         "review": 4,
         "security": 4
-      }
-    },
-    "gemini-3.1-ultra": {
-      "provider": "google",
-      "family": "gemini",
-      "defaultTier": 4,
-      "domains": {
-        "coding": 4,
-        "review": 4
       }
     },
     "gemini-3.5-flash-lite": {
@@ -257,6 +253,108 @@
       "domains": {
         "coding": 1,
         "review": 1
+      }
+    },
+    "gemini-3.7-flash-low": {
+      "provider": "google",
+      "family": "gemini",
+      "pool": "GEMINI",
+      "defaultTier": 1,
+      "domains": {
+        "coding": 1,
+        "review": 1
+      }
+    },
+    "gemini-3.7-flash-medium": {
+      "provider": "google",
+      "family": "gemini",
+      "pool": "GEMINI",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
+      }
+    },
+    "gemini-3.7-flash-high": {
+      "provider": "google",
+      "family": "gemini",
+      "pool": "GEMINI",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3
+      }
+    },
+    "gemini-3.6-flash-low": {
+      "provider": "google",
+      "family": "gemini",
+      "pool": "GEMINI",
+      "defaultTier": 1,
+      "domains": {
+        "coding": 1,
+        "review": 1
+      }
+    },
+    "gemini-3.6-flash-medium": {
+      "provider": "google",
+      "family": "gemini",
+      "pool": "GEMINI",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
+      }
+    },
+    "gemini-3.6-flash-high": {
+      "provider": "google",
+      "family": "gemini",
+      "pool": "GEMINI",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3
+      }
+    },
+    "gemini-3.1-pro-low": {
+      "provider": "google",
+      "family": "gemini",
+      "pool": "GEMINI",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
+      }
+    },
+    "claude-sonnet-4-6": {
+      "provider": "google-antigravity",
+      "family": "claude",
+      "pool": "CLAUDE_GPT",
+      "defaultTier": 3,
+      "domains": {
+        "coding": 3,
+        "review": 3,
+        "security": 3
+      }
+    },
+    "claude-opus-4-6-thinking": {
+      "provider": "google-antigravity",
+      "family": "claude",
+      "pool": "CLAUDE_GPT",
+      "defaultTier": 4,
+      "domains": {
+        "coding": 4,
+        "review": 4,
+        "security": 4
+      }
+    },
+    "gpt-oss-120b-medium": {
+      "provider": "google-antigravity",
+      "family": "gpt",
+      "pool": "CLAUDE_GPT",
+      "defaultTier": 2,
+      "domains": {
+        "coding": 2,
+        "review": 2
       }
     }
   }

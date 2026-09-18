@@ -292,7 +292,7 @@ test('Cline Gemini Routing Test Suite', async (t) => {
     assert.equal(platformModelTiers.antigravity.tier1.model, 'gemini-3.8-flash-low');
     assert.equal(platformModelTiers.antigravity.tier2.model, 'gemini-3.8-flash-medium');
     assert.equal(platformModelTiers.antigravity.tier3.model, 'gemini-3.1-pro-high');
-    assert.equal(platformModelTiers.antigravity.tier4.model, 'gemini-3.1-ultra');
+    assert.equal(platformModelTiers.antigravity.tier4.model, 'claude-opus-4-6-thinking');
 
     // Cline tiers
     assert.equal(platformModelTiers.cline.tier1.model, 'gemini-3.5-flash-lite');
