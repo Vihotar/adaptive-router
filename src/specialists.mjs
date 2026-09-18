@@ -62,6 +62,63 @@ export function filterSpecialists({ category, priority, platform, portable } = {
 export const SPECIALIST_CONCISE_THRESHOLD_BYTES = 8000;
 
 /**
+ * Evaluates whether a task warrants injecting the full specialist markdown document
+ * versus the concise profile (~380 bytes).
+ *
+ * Policy: CONCISE by default. FULL only when justified by task characteristics:
+ * - Explicit audit, review, investigation, or compliance request
+ * - Complex domain analysis or broad architectural refactor
+ * - Security / accessibility / compliance investigation
+ * - Task explicitly requiring specialist procedures or checklists
+ * - Escalated revision where full specialist guidance is demonstrably needed
+ *
+ * Invariant: Model capability tier alone must NEVER trigger full specialist instructions.
+ *
+ * @param {object} params
+ * @param {string} [params.instruction] - Task instruction text
+ * @param {object} [params.task] - Task object if available
+ * @param {string} [params.role] - 'build' or 'review'
+ * @param {object} [params.specialist] - Matched specialist object
+ * @param {number} [params.revision] - Current task revision
+ * @param {object} [params.feedback] - Reviewer feedback or test failures
+ * @returns {boolean}
+ */
+export function shouldUseFullSpecialist({
+  instruction = '',
+  task = null,
+  role = 'build',
+  specialist = null,
+  revision = 0,
+  feedback = null
+} = {}) {
+  const text = String(instruction || task?.instruction || '').toLowerCase();
+
+  // 1. Explicit audit, review, investigation, or compliance request
+  const isExplicitAuditOrInvestigation = /\b(audit|investigat(e|ion)|compliance|wcag\s*(check|conformance|audit)|penetration\s*test|threat\s*model|security\s*review|deep\s*review|checklist|procedure)\b/i.test(text);
+  if (isExplicitAuditOrInvestigation) return true;
+
+  // 2. Broad architectural refactor or complex domain analysis
+  const isComplexRefactorOrAnalysis = /\b(refactor\s*(entire|all|architecture|system|codebase)|architectural\s*review|system\s*redesign|migration\s*strategy|domain\s*model(ing)?)\b/i.test(text);
+  if (isComplexRefactorOrAnalysis) return true;
+
+  // 3. Security / credential / vulnerability investigation when actively in scope
+  const isSecuritySpecialist = specialist && /security|credential|auth|leak/i.test(specialist.id);
+  const mentionsSecurityContext = /\b(vulnerabilit|exploit|cve|injection|secret\s*leak|auth\s*bypass|threat|permission\s*escalation)\b/i.test(text);
+  if (isSecuritySpecialist && mentionsSecurityContext) return true;
+
+  // 4. Escalated revision where feedback demonstrably references specialist standards
+  const revCount = typeof revision === 'number' ? revision : (task?.revision || 0);
+  if (revCount >= 2 && feedback) {
+    const feedbackStr = JSON.stringify(feedback).toLowerCase();
+    if (/\b(wcag|aria|security|owasp|compliance|standard|criterion|protocol)\b/i.test(feedbackStr)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Safely loads the actual markdown instruction body of a specialist from its local file.
  * Preserves the file intact; performs read-only extraction.
  *

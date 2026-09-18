@@ -10,7 +10,7 @@ import { testWebsite } from './browser-test.mjs';
 import { testProject } from './project-test.mjs';
 import { taskDir } from './router.mjs';
 import { classifyTask, selectModelAndEffort, discoverAvailableModels } from './smart-router.mjs';
-import { matchSpecialist, loadSpecialistInstructions } from './specialists.mjs';
+import { matchSpecialist, loadSpecialistInstructions, shouldUseFullSpecialist } from './specialists.mjs';
 import { requestPermission } from './permissions.mjs';
 import { recordWorkerEvent } from './events.mjs';
 import { candidates } from './failover.mjs';
@@ -76,6 +76,116 @@ function snapshotProject(projectRoot, instruction = '') {
     bytes += contentBytes;
   }
   return files;
+}
+
+/**
+ * Selects targeted project files for builder context while pruning unrelated files (e.g. README.md).
+ * Ensures builder prompt is right-sized without starving the builder of essential context.
+ *
+ * @param {Array<{path: string, content: string}>} files - All files in snapshot
+ * @param {string} instruction - Task instruction
+ * @param {object} [options]
+ * @param {string} [options.adapter] - Builder worker/adapter
+ * @param {object} [options.feedback] - Review/test feedback if any
+ * @returns {{ targetedFiles: Array<{path: string, content: string}>, omittedFiles: Array<{path: string, content: string}> }}
+ */
+export function selectTargetedProjectContext(files, instruction = '', options = {}) {
+  if (!Array.isArray(files) || files.length === 0) {
+    return { targetedFiles: [], omittedFiles: [] };
+  }
+
+  const text = String(instruction || '').toLowerCase();
+  const feedbackText = options.feedback ? JSON.stringify(options.feedback).toLowerCase() : '';
+  const combinedText = `${text} ${feedbackText}`;
+
+  // Check if explicit documentation/readme request
+  const requestsDocs = /\b(readme|doc|documentation|license|changelog|markdown)\b/i.test(text);
+
+  // Excluded documentation / non-code patterns by default (unless explicitly requested)
+  const isDocFile = (rel) => {
+    const base = path.basename(rel).toLowerCase();
+    if (/^(readme|license|changelog|contributing|notice|authors)(\..+)?$/i.test(base)) return true;
+    if (/\.(md|txt|rst|adoc)$/i.test(base) && !requestsDocs) return true;
+    if (/^(package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/i.test(base)) return true;
+    return false;
+  };
+
+  const explicitlyMentioned = new Set();
+  const inferredTargets = new Set();
+
+  // 1. Explicit mentions in instruction or feedback
+  for (const f of files) {
+    const p = f.path.toLowerCase();
+    const base = path.basename(f.path).toLowerCase();
+    if (combinedText.includes(p) || combinedText.includes(base)) {
+      explicitlyMentioned.add(f.path);
+    }
+  }
+
+  // 2. Strongly inferred targets based on keywords
+  const mentionsHtml = /\b(html|button|form|header|footer|nav|modal|dialog|tab|menu|input|table|card|toggle|heading|h1|h2|div|span|aria|accessibility|a11y|markup|dom|ui|page)\b/i.test(text);
+  const mentionsCss = /\b(css|style|color|theme|dark[- ]?mode|high[- ]?contrast|font|layout|responsive|flex|grid|margin|padding|width|height|border|background)\b/i.test(text);
+  const mentionsJs = /\b(js|javascript|script|logic|function|handler|event|listener|click|fetch|api|state|validation|submit|async|await)\b/i.test(text);
+  const mentionsTest = /\b(test|spec|assert|check|unit)\b/i.test(text);
+  const mentionsConfig = /\b(package|dependency|dependencies|npm|install|config|build)\b/i.test(text);
+
+  for (const f of files) {
+    const p = f.path.toLowerCase();
+    if (isDocFile(p) && !explicitlyMentioned.has(f.path)) continue;
+
+    if (mentionsHtml && /\.(html?|svelte|vue|jsx|tsx)$/i.test(p)) {
+      inferredTargets.add(f.path);
+    }
+    if (mentionsCss && /\.(css|scss|sass|less|styl)$/i.test(p)) {
+      inferredTargets.add(f.path);
+    }
+    if (mentionsJs && /\.(js|mjs|cjs|ts|jsx|tsx)$/i.test(p)) {
+      inferredTargets.add(f.path);
+    }
+    if (mentionsTest && (/(test|spec)\b/i.test(p) || /\.(test|spec)\./i.test(p))) {
+      inferredTargets.add(f.path);
+    }
+    if (mentionsConfig && /(package\.json|tsconfig\.json|vite\.config|\.config\.)/i.test(p)) {
+      inferredTargets.add(f.path);
+    }
+  }
+
+  const selectedPaths = new Set([...explicitlyMentioned, ...inferredTargets]);
+
+  // 3. Companion files in small web tasks:
+  // If the project is very small (<= 4 files excluding docs), include non-doc files
+  // so the builder has essential context without pulling in heavy documentation.
+  const nonDocFiles = files.filter(f => !isDocFile(f.path));
+  if (selectedPaths.size === 0) {
+    // Ambiguity fallback: if no file was specifically matched, include non-doc files
+    // Up to 25KB or 5 core files
+    let accumulatedBytes = 0;
+    for (const f of nonDocFiles) {
+      const fBytes = Buffer.byteLength(f.content || '');
+      if (selectedPaths.size < 5 && (accumulatedBytes + fBytes <= 25_000 || selectedPaths.size === 0)) {
+        selectedPaths.add(f.path);
+        accumulatedBytes += fBytes;
+      }
+    }
+    // If still empty (e.g. all files are markdown or doc files), include first file
+  } else if (!requestsDocs && explicitlyMentioned.size === 0 && nonDocFiles.length <= 4) {
+    for (const f of nonDocFiles) {
+      selectedPaths.add(f.path);
+    }
+  }
+
+  const targetedFiles = [];
+  const omittedFiles = [];
+
+  for (const f of files) {
+    if (selectedPaths.has(f.path)) {
+      targetedFiles.push(f);
+    } else {
+      omittedFiles.push(f);
+    }
+  }
+
+  return { targetedFiles, omittedFiles };
 }
 
 export function composeValidationWorkspace(dir, task, files) {
@@ -954,7 +1064,15 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
           addActivity('🛠️', task.revision === 0 ? 'Work Started' : `Revision ${task.revision + 1} Started`, `${builderName} started ${task.revision === 0 ? 'drafting code' : `revision ${task.revision + 1} to address review feedback`}.`, { category: 'worker', eventType: 'progress' });
           const buildSpecialist = matchSpecialist(task.instruction, { root, role: 'build' });
           const activeContract = task.acceptanceCriteria || (task.kind === 'web' ? contract : projectContract);
-          let buildPrompt = `${activeContract}\nRegistered project name: ${JSON.stringify(task.projectName)}\nRegistered project root: ${JSON.stringify(task.projectRoot)}\nTask ID: ${JSON.stringify(task.id)}\nBusiness instruction: ${JSON.stringify(task.instruction)}\nCurrent project snapshot: ${JSON.stringify(previous)}\nRequired corrections: ${JSON.stringify(feedback)}`;
+          const { targetedFiles, omittedFiles } = selectTargetedProjectContext(previous, task.instruction, {
+            adapter: task.selectedBuilder || task.builderWorker,
+            feedback
+          });
+          let buildPrompt = `${activeContract}\nRegistered project name: ${JSON.stringify(task.projectName)}\nRegistered project root: ${JSON.stringify(task.projectRoot)}\nTask ID: ${JSON.stringify(task.id)}\nBusiness instruction: ${JSON.stringify(task.instruction)}\nCurrent project snapshot: ${JSON.stringify(targetedFiles)}\nRequired corrections: ${JSON.stringify(feedback)}`;
+          if (omittedFiles.length > 0) {
+            const omittedSummary = omittedFiles.map(f => ({ path: f.path, size: Buffer.byteLength(f.content || '') }));
+            buildPrompt += `\nOther project files (omitted from prompt, untouched): ${JSON.stringify(omittedSummary)}`;
+          }
 
           // Defense-in-depth credential guard: even if the instruction text
           // itself didn't trip the topic-level sensitivity check above (e.g.
@@ -983,16 +1101,18 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
 
           if (buildSpecialist) {
             try {
-              // Load the full specialist document only for genuinely
-              // complex/high-tier work or a security-sensitive specialist,
-              // where the extra depth materially matters. Routine/low-tier
-              // work gets a concise, registry-derived profile instead
-              // (a few hundred bytes vs. tens/hundreds of KB) so specialist
-              // guidance doesn't dominate the prompt for small tasks. This
-              // never reduces required expertise for work that needs it —
-              // only right-sizes it for work that doesn't.
-              const builderTierForSpecialist = task.builderTier || 2;
-              const needsFullSpecialist = builderTierForSpecialist >= 3 || buildSpecialist.priority === 'high' && /security|credential|auth/i.test(buildSpecialist.id);
+              // Right-size specialist guidance: load full handbook only when
+              // explicitly requested (audit/investigation/deep review), broad refactor,
+              // or active security investigation. Routine tasks receive a concise profile,
+              // preventing 7+ KB handbooks from blowing up token usage on small changes.
+              const needsFullSpecialist = shouldUseFullSpecialist({
+                instruction: task.instruction,
+                task,
+                role: 'build',
+                specialist: buildSpecialist,
+                revision: task.revision || 0,
+                feedback
+              });
               const specInst = loadSpecialistInstructions(buildSpecialist.id, root, { concise: !needsFullSpecialist });
               buildPrompt = `Specialist Expertise Guidance (${buildSpecialist.name}):\n${specInst}\n\n${buildPrompt}`;
               addActivity('👤', 'Specialist Loaded', `Loaded specialist expertise: ${buildSpecialist.name}${needsFullSpecialist ? '' : ' (concise profile)'}`, { category: 'router' });
@@ -1398,17 +1518,31 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
         state(dir, task, 'reviewing');
         const reviewSpecialist = matchSpecialist(task.instruction, { root, role: 'review' });
         const allBaseline = read(path.join(dir, 'baseline.json')) || [];
-        const relevantBaseline = allBaseline.filter(b => files.some(f => f.path === b.path));
-        let reviewPrompt = `Independently review only this task and its supplied files. Return pass only if there are no substantive issues. Do not use tools and do not introduce requirements from any other task.\nTask ID: ${JSON.stringify(task.id)}\nProject: ${JSON.stringify(task.project)}\nProject root: ${JSON.stringify(task.projectRoot)}\nContext binding: ${JSON.stringify(task.contextHash)}\nRequest: ${JSON.stringify(task.instruction)}\nAcceptance criteria: ${JSON.stringify(task.acceptanceCriteria)}\nBaseline: ${JSON.stringify(relevantBaseline)}\nCurrent code: ${JSON.stringify(files)}\nActual validator results: ${JSON.stringify(tests)}`;
+        // Only include baseline versions of files that were actually modified
+        // to avoid duplicating unchanged file contents in both Baseline and Current code.
+        const modifiedBaseline = allBaseline.filter(b => {
+          const current = files.find(f => f.path === b.path);
+          return current && current.content !== b.content;
+        });
+        const unchangedBaselineFiles = allBaseline
+          .filter(b => !modifiedBaseline.some(m => m.path === b.path))
+          .map(b => b.path);
+        let reviewPrompt = `Independently review only this task and its supplied files. Return pass only if there are no substantive issues. Do not use tools and do not introduce requirements from any other task.\nTask ID: ${JSON.stringify(task.id)}\nProject: ${JSON.stringify(task.project)}\nProject root: ${JSON.stringify(task.projectRoot)}\nContext binding: ${JSON.stringify(task.contextHash)}\nRequest: ${JSON.stringify(task.instruction)}\nAcceptance criteria: ${JSON.stringify(task.acceptanceCriteria)}\nBaseline: ${JSON.stringify(modifiedBaseline)}\nCurrent code: ${JSON.stringify(files)}\nActual validator results: ${JSON.stringify(tests)}`;
+        if (unchangedBaselineFiles.length > 0) {
+          reviewPrompt += `\nUnchanged project files (verified untouched): ${JSON.stringify(unchangedBaselineFiles)}`;
+        }
         if (reviewSpecialist) {
           try {
-            // Same right-sizing as the build-side specialist load. Security-
-            // sensitive auditors always get the full document regardless of
-            // tier — review quality on security-relevant work is exactly
-            // what must not be reduced to save tokens.
-            const reviewTierForSpecialist = task.builderTier || 2;
-            const isSecuritySpecialist = /security|credential|auth/i.test(reviewSpecialist.id);
-            const needsFullReviewSpecialist = reviewTierForSpecialist >= 3 || isSecuritySpecialist;
+            // Right-size reviewer specialist guidance: concise profile unless an explicit
+            // audit/investigation or active security review is requested.
+            const needsFullReviewSpecialist = shouldUseFullSpecialist({
+              instruction: task.instruction,
+              task,
+              role: 'review',
+              specialist: reviewSpecialist,
+              revision: task.revision || 0,
+              feedback: task.reviewFeedback || feedback || null
+            });
             const specInst = loadSpecialistInstructions(reviewSpecialist.id, root, { concise: !needsFullReviewSpecialist });
             reviewPrompt = `Independent Review Specialist Guidance (${reviewSpecialist.name}):\n${specInst}\n\n${reviewPrompt}`;
             addActivity('👤', 'Auditor Loaded', `Loaded audit instructions: ${reviewSpecialist.name}${needsFullReviewSpecialist ? '' : ' (concise profile)'}`, { category: 'router' });
