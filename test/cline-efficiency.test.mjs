@@ -200,6 +200,75 @@ test('Cline Token & Runtime Efficiency Hardening', async (t) => {
     assert.equal(stylesFile.content, 'h1 { color: blue; }');
   });
 
+  await t.test('Pseudo tool-call JSON envelope is normalized to match buildSchema', async () => {
+    const dir = tempDir('cline-tool-envelope-');
+    const mockClineBat = path.join(dir, 'mock-cline.bat');
+    const mockScript = path.join(dir, 'mock-cline.mjs');
+    fs.writeFileSync(path.join(dir, 'index.html'), '<h1>Test</h1>', 'utf8');
+
+    // Simulate model outputting a tool-call JSON envelope instead of naked schema object
+    fs.writeFileSync(mockScript, `
+      const envelope = JSON.stringify({
+        tool_call_id: "4",
+        tool_name: "submit_and_exit",
+        parameters: {
+          summary: "Added aria-label to button",
+          verified: true
+        }
+      });
+      const stream = [
+        JSON.stringify({
+          type: "agent_event",
+          event: {
+            type: "content_start",
+            contentType: "tool",
+            toolName: "editor",
+            input: { path: "index.html", new_text: "<h1 aria-label='Test'>Test</h1>" }
+          }
+        }),
+        JSON.stringify({
+          type: "agent_event",
+          event: {
+            type: "content_end",
+            contentType: "text",
+            text: envelope
+          }
+        }),
+        JSON.stringify({
+          type: "run_result",
+          text: "Submission recorded (verified): Added aria-label to button",
+          usage: { inputTokens: 500, outputTokens: 50 }
+        })
+      ].join('\\n');
+      console.log(stream);
+    `, 'utf8');
+    fs.writeFileSync(mockClineBat, `@echo off\r\nnode "${mockScript}" %*\r\n`, 'utf8');
+
+    const result = await invoke(
+      { id: 'cline', adapter: 'cline' },
+      {
+        root,
+        dir,
+        schema: buildSchema,
+        prompt: 'Update index.html',
+        timeout: 10000,
+        paths: { cline: mockClineBat },
+        model: 'cohere/north-mini-code:free',
+        providerId: 'openrouter'
+      }
+    );
+
+    assert.equal(result.summary, 'Added aria-label to button');
+    assert.ok(Array.isArray(result.files));
+    assert.equal(result.files.length, 1);
+    assert.equal(result.files[0].path, 'index.html');
+    assert.equal(result.files[0].content, "<h1 aria-label='Test'>Test</h1>");
+    // Ensure unexpected fields like parameters, tool_name, tool_call_id do not exist
+    assert.equal(result.tool_name, undefined);
+    assert.equal(result.parameters, undefined);
+    assert.equal(result.tool_call_id, undefined);
+  });
+
   await t.test('Non-Cline workers retain their full prompt and snapshot contracts', async () => {
     const workersSource = fs.readFileSync(path.join(root, 'src', 'workers.mjs'), 'utf8');
     assert.ok(workersSource.includes("input: prompt + '\\nReturn only JSON matching:\\n' + JSON.stringify(schema)"),

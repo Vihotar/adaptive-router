@@ -829,6 +829,25 @@ export async function invoke(worker, opts = {}) {
           if (!parseError) parseError = e;
         }
       }
+      // If result was parsed from a pseudo tool-call JSON envelope (e.g. { tool_name: 'submit_and_exit', parameters: { summary } }),
+      // extract the summary and reconstruct a valid deliverable according to schema.
+      if (result && (!result.summary || !Array.isArray(result.files))) {
+        const extractedSummary = result.summary || result.parameters?.summary || result.input?.summary ||
+          (typeof deliverableCandidate === 'string' && deliverableCandidate.trim().length > 0 ? deliverableCandidate.trim() : null);
+        if (extractedSummary && editedFiles.size > 0 && schema.properties?.files) {
+          result = {
+            summary: extractedSummary,
+            files: Array.from(editedFiles.entries()).map(([filePath, content]) => {
+              const full = path.isAbsolute(filePath) ? filePath : path.join(common.cwd, filePath);
+              const fileContent = fs.existsSync(full) ? fs.readFileSync(full, 'utf8') : content;
+              return {
+                path: path.relative(common.cwd, full).replaceAll('\\', '/'),
+                content: fileContent
+              };
+            })
+          };
+        }
+      }
       if (!result) {
         const jsonErr = parseError || Error('No deliverable was returned');
         if (editedFiles.size > 0 && schema.properties?.files) {
