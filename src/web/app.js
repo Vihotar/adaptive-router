@@ -212,6 +212,11 @@
       v.classList.toggle('active', v.id === `view-${viewName}`);
     });
 
+    ['toggle-autofollow', 'toggle-progress-autofollow', 'toggle-tech-autofollow'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.checked = State.autoFollow;
+    });
+
     if (viewName === 'tasks') {
       renderTasksTable();
     } else if (viewName === 'team') {
@@ -1679,6 +1684,19 @@
     const navCountLogs = document.getElementById('nav-count-logs');
     if (navCountLogs) navCountLogs.textContent = events.length;
 
+    // Capture previous scroll positions so user scroll position is preserved when autoFollow is OFF
+    const prevProgressEl = document.getElementById('split-progress-feed');
+    const prevProgressScroll = prevProgressEl ? prevProgressEl.scrollTop : null;
+
+    const prevTechEl = document.getElementById('split-tech-stream') || document.getElementById('split-tech-feed');
+    const prevTechScroll = prevTechEl ? prevTechEl.scrollTop : null;
+
+    const prevOverviewTimeline = document.getElementById('overview-timeline');
+    const prevOverviewTimelineScroll = prevOverviewTimeline ? prevOverviewTimeline.scrollTop : null;
+
+    const prevOverviewTech = document.getElementById('overview-tech-stream') || document.getElementById('overview-tech-feed');
+    const prevOverviewTechScroll = prevOverviewTech ? prevOverviewTech.scrollTop : null;
+
     if (State.overviewLogsMode === 'progress') {
       container.className = 'logs-display-container mode-progress';
       container.innerHTML = `
@@ -1728,15 +1746,49 @@
       `;
     }
 
-    if (State.autoFollow) {
-      if (State.overviewLogsMode === 'split') {
-        scrollToBottom('split-progress-feed');
-        scrollToBottom('split-tech-feed');
-      } else if (State.overviewLogsMode === 'progress') {
-        scrollToBottom('overview-timeline');
-      } else if (State.overviewLogsMode === 'logs') {
-        scrollToBottom('overview-tech-feed');
+    function applyOverviewScroll() {
+      if (State.autoFollow) {
+        if (State.overviewLogsMode === 'split') {
+          scrollToBottom('split-progress-feed');
+          scrollToBottom('split-tech-stream');
+          scrollToBottom('split-tech-feed');
+        } else if (State.overviewLogsMode === 'progress') {
+          scrollToBottom('overview-timeline');
+        } else if (State.overviewLogsMode === 'logs') {
+          scrollToBottom('overview-tech-stream');
+          scrollToBottom('overview-tech-feed');
+        }
+      } else {
+        if (State.overviewLogsMode === 'split') {
+          if (prevProgressScroll !== null) {
+            const el = document.getElementById('split-progress-feed');
+            if (el) el.scrollTop = prevProgressScroll;
+          }
+          if (prevTechScroll !== null) {
+            const streamEl = document.getElementById('split-tech-stream');
+            if (streamEl) streamEl.scrollTop = prevTechScroll;
+            const wrapEl = document.getElementById('split-tech-feed');
+            if (wrapEl) wrapEl.scrollTop = prevTechScroll;
+          }
+        } else if (State.overviewLogsMode === 'progress') {
+          if (prevOverviewTimelineScroll !== null) {
+            const el = document.getElementById('overview-timeline');
+            if (el) el.scrollTop = prevOverviewTimelineScroll;
+          }
+        } else if (State.overviewLogsMode === 'logs') {
+          if (prevOverviewTechScroll !== null) {
+            const streamEl = document.getElementById('overview-tech-stream');
+            if (streamEl) streamEl.scrollTop = prevOverviewTechScroll;
+            const wrapEl = document.getElementById('overview-tech-feed');
+            if (wrapEl) wrapEl.scrollTop = prevOverviewTechScroll;
+          }
+        }
       }
+    }
+
+    applyOverviewScroll();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(applyOverviewScroll);
     }
   }
 
@@ -1821,8 +1873,55 @@
   }
 
   function scrollToBottom(elId) {
-    const el = document.getElementById(elId);
+    const el = typeof elId === 'string' ? document.getElementById(elId) : elId;
     if (el) el.scrollTop = el.scrollHeight;
+  }
+
+  function syncAutoFollow(enabled) {
+    State.autoFollow = Boolean(enabled);
+    ['toggle-autofollow', 'toggle-progress-autofollow', 'toggle-tech-autofollow'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.checked = State.autoFollow;
+    });
+
+    if (State.autoFollow) {
+      if (State.overviewLogsMode === 'split') {
+        scrollToBottom('split-progress-feed');
+        scrollToBottom('split-tech-stream');
+        scrollToBottom('split-tech-feed');
+      } else if (State.overviewLogsMode === 'progress') {
+        scrollToBottom('overview-timeline');
+      } else if (State.overviewLogsMode === 'logs') {
+        scrollToBottom('overview-tech-stream');
+        scrollToBottom('overview-tech-feed');
+      }
+      if (State.activeView === 'logs') {
+        scrollToBottom('tech-logs-full-stream');
+        const fullFeed = document.getElementById('tech-logs-full-feed');
+        if (fullFeed) fullFeed.scrollTop = fullFeed.scrollHeight;
+      }
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => {
+          if (State.autoFollow) {
+            if (State.overviewLogsMode === 'split') {
+              scrollToBottom('split-progress-feed');
+              scrollToBottom('split-tech-stream');
+              scrollToBottom('split-tech-feed');
+            } else if (State.overviewLogsMode === 'progress') {
+              scrollToBottom('overview-timeline');
+            } else if (State.overviewLogsMode === 'logs') {
+              scrollToBottom('overview-tech-stream');
+              scrollToBottom('overview-tech-feed');
+            }
+            if (State.activeView === 'logs') {
+              scrollToBottom('tech-logs-full-stream');
+              const fullFeed = document.getElementById('tech-logs-full-feed');
+              if (fullFeed) fullFeed.scrollTop = fullFeed.scrollHeight;
+            }
+          }
+        });
+      }
+    }
   }
 
   function initLogViewControls() {
@@ -1859,8 +1958,9 @@
     }
 
     if (toggleAutofollow) {
+      toggleAutofollow.checked = State.autoFollow;
       toggleAutofollow.addEventListener('change', (e) => {
-        State.autoFollow = e.target.checked;
+        syncAutoFollow(e.target.checked);
       });
     }
   }
@@ -2851,8 +2951,9 @@
 
     const toggle = document.getElementById('toggle-progress-autofollow');
     if (toggle) {
+      toggle.checked = State.autoFollow;
       toggle.addEventListener('change', (e) => {
-        State.autoFollow = e.target.checked;
+        syncAutoFollow(e.target.checked);
       });
     }
   }
@@ -2893,10 +2994,25 @@
       );
     }
 
+    const prevStreamEl = document.getElementById('tech-logs-full-stream') || feed;
+    const prevScroll = prevStreamEl ? prevStreamEl.scrollTop : null;
+
     feed.innerHTML = renderTechLogsFeedHtml(events, 'tech-logs-full-stream');
 
-    if (State.autoFollow) {
-      scrollToBottom('tech-logs-full-stream');
+    function applyFullLogsScroll() {
+      if (State.autoFollow) {
+        scrollToBottom('tech-logs-full-stream');
+        if (feed) feed.scrollTop = feed.scrollHeight;
+      } else if (prevScroll !== null) {
+        const streamEl = document.getElementById('tech-logs-full-stream');
+        if (streamEl) streamEl.scrollTop = prevScroll;
+        if (feed) feed.scrollTop = prevScroll;
+      }
+    }
+
+    applyFullLogsScroll();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(applyFullLogsScroll);
     }
   }
 
@@ -2921,8 +3037,9 @@
 
     const toggle = document.getElementById('toggle-tech-autofollow');
     if (toggle) {
+      toggle.checked = State.autoFollow;
       toggle.addEventListener('change', (e) => {
-        State.autoFollow = e.target.checked;
+        syncAutoFollow(e.target.checked);
       });
     }
   }
