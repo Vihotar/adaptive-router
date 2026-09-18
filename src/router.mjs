@@ -49,6 +49,10 @@ function applyApprovedFiles(root, task, manifest, baseline) {
   }
   const applied = [];
   for (const file of manifest.files) {
+    const expectedBaseline = baselineByPath.get(file.path);
+    if (expectedBaseline !== undefined && file.content === expectedBaseline) {
+      continue;
+    }
     const target = path.resolve(project.rootPath, file.path);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, file.content);

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import { read, json, event, hash, locked, saveFiles, validateFiles, verifyFiles, isTerminalStatus } from './storage.mjs';
+import { read, json, event, hash, locked, saveFiles, validateFiles, verifyFiles, isTerminalStatus, safePath } from './storage.mjs';
 import { buildSchema, reviewSchema, validate } from './contracts.mjs';
 import { executables } from './workers.mjs';
 import { withFailover } from './failover.mjs';
@@ -76,6 +76,100 @@ function snapshotProject(projectRoot, instruction = '') {
     bytes += contentBytes;
   }
   return files;
+}
+
+export function composeValidationWorkspace(dir, task, files) {
+  const validationDir = path.join(dir, `validation-${task.revision}`);
+  if (fs.existsSync(validationDir)) {
+    fs.rmSync(validationDir, { recursive: true, force: true });
+  }
+  fs.mkdirSync(validationDir, { recursive: true });
+
+  let baselineCopied = false;
+  const projectRoot = task.projectRoot ? path.resolve(task.projectRoot) : null;
+
+  if (projectRoot && fs.existsSync(projectRoot)) {
+    try {
+      const walk = (folder) => {
+        for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
+          if (entry.name.startsWith('.') || SNAPSHOT_EXCLUDED.has(entry.name) || entry.isSymbolicLink()) continue;
+          const absolute = path.join(folder, entry.name);
+          if (entry.isDirectory()) {
+            walk(absolute);
+          } else if (entry.isFile()) {
+            const rel = path.relative(projectRoot, absolute).replaceAll('\\', '/');
+            if (SENSITIVE_FILE.test(rel)) continue;
+            try { safePath(rel); } catch { continue; }
+            const dest = path.join(validationDir, rel);
+            fs.mkdirSync(path.dirname(dest), { recursive: true });
+            fs.copyFileSync(absolute, dest);
+            baselineCopied = true;
+          }
+        }
+      };
+      walk(projectRoot);
+    } catch {
+      baselineCopied = false;
+    }
+  }
+
+  if (!baselineCopied) {
+    const baselineFolder = path.join(dir, 'baseline');
+    if (fs.existsSync(baselineFolder)) {
+      try {
+        const walk = (folder) => {
+          for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
+            if (entry.isSymbolicLink()) continue;
+            const absolute = path.join(folder, entry.name);
+            if (entry.isDirectory()) {
+              walk(absolute);
+            } else if (entry.isFile()) {
+              const rel = path.relative(baselineFolder, absolute).replaceAll('\\', '/');
+              try { safePath(rel); } catch { continue; }
+              const dest = path.join(validationDir, rel);
+              fs.mkdirSync(path.dirname(dest), { recursive: true });
+              fs.copyFileSync(absolute, dest);
+              baselineCopied = true;
+            }
+          }
+        };
+        walk(baselineFolder);
+      } catch {}
+    }
+  }
+
+  if (!baselineCopied) {
+    const baselineJsonFile = path.join(dir, 'baseline.json');
+    if (fs.existsSync(baselineJsonFile)) {
+      try {
+        const baselineEntries = read(baselineJsonFile);
+        if (Array.isArray(baselineEntries)) {
+          for (const item of baselineEntries) {
+            if (item && item.path && typeof item.content === 'string') {
+              try { safePath(item.path); } catch { continue; }
+              const dest = path.join(validationDir, item.path);
+              fs.mkdirSync(path.dirname(dest), { recursive: true });
+              fs.writeFileSync(dest, item.content);
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  // Overlay builder deliverable files
+  for (const file of files) {
+    safePath(file.path);
+    const dest = path.join(validationDir, file.path);
+    if (file.deleted || file.content === null) {
+      if (fs.existsSync(dest)) fs.unlinkSync(dest);
+    } else {
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, file.content);
+    }
+  }
+
+  return validationDir;
 }
 
 function contextHashFor(task, baselineDigest) {
@@ -1045,7 +1139,12 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
             revision: task.revision
           });
           task.summary = built.result.summary;
-          if (task.injectFault && task.revision === 1) { files.find(f => f.path === 'app.js').content = '// Deliberate demo fault: submission handler removed.\n'; event(dir, 'demo_fault_injected', { reason: 'Prove that browser test failures trigger automatic code correction' }); }
+          if (task.injectFault && task.revision === 1) {
+            const faultTarget = files.find(f => f.path === 'app.js');
+            if (faultTarget) faultTarget.content = '// Deliberate demo fault: submission handler removed.\n';
+            else files.push({ path: 'app.js', content: '// Deliberate demo fault: submission handler removed.\n' });
+            event(dir, 'demo_fault_injected', { reason: 'Prove that browser test failures trigger automatic code correction' });
+          }
           const project = path.join(dir, `deliverables-${task.revision}`);
           try {
             saveFiles(project, files);
@@ -1066,16 +1165,18 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
           log(`Validating the reviewed project draft with the ${validatorName}.`);
           addActivity('🧪', 'Automated Validation', `Validator: Running ${validatorName}.`, { category: 'worker', eventType: 'test_started' });
           const validator = test || (task.kind === 'web' ? testWebsite : testProject);
-          tests = await validator(root, project, path.join(dir, `tests-${task.revision}.json`), task.digest, {
+          const validationDir = composeValidationWorkspace(dir, task, files);
+          tests = await validator(root, validationDir, path.join(dir, `tests-${task.revision}.json`), task.digest, {
             onTestEvent: (tEvt) => publishEvent({ role: 'tester', ...tEvt })
           });
           tests = { ...tests, taskId: task.id, project: task.project, projectRoot: task.projectRoot, contextHash: task.contextHash };
           json(path.join(dir, `tests-${task.revision}.json`), tests);
           verifyFiles(project, files);
+          const hasIndexHtml = files.some(f => f.path === 'index.html') || fs.existsSync(path.join(validationDir, 'index.html'));
           task.validator = {
             role: 'validator',
-            platform: task.kind === 'web' || files.some(f => f.path === 'index.html') ? 'browser' : 'system',
-            worker: task.kind === 'web' || files.some(f => f.path === 'index.html') ? 'headless-chrome' : 'static-validator',
+            platform: task.kind === 'web' || hasIndexHtml ? 'browser' : 'system',
+            worker: task.kind === 'web' || hasIndexHtml ? 'headless-chrome' : 'static-validator',
             testsPassed: tests.passed,
             checksCount: tests.checks?.length || 7,
             time: tests.time
