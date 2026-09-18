@@ -359,13 +359,14 @@ export function parseClineStream(raw, cwd) {
       const inp = parsed.input || parsed.event?.input;
       const tName = parsed.toolName || parsed.event?.toolName || parsed.tool;
       if ((tName === 'editor' || tName === 'write_to_file') && inp?.path) {
-        const rel = path.relative(cwd, inp.path).replaceAll('\\', '/');
-        if (typeof inp.new_text === 'string') {
-          editedFiles.set(rel, inp.new_text);
+        const absPath = path.isAbsolute(inp.path) ? inp.path : path.join(cwd, inp.path);
+        const rel = path.relative(cwd, absPath).replaceAll('\\', '/');
+        if (fs.existsSync(absPath)) {
+          editedFiles.set(rel, fs.readFileSync(absPath, 'utf8'));
         } else if (typeof inp.content === 'string') {
           editedFiles.set(rel, inp.content);
-        } else if (fs.existsSync(inp.path)) {
-          editedFiles.set(rel, fs.readFileSync(inp.path, 'utf8'));
+        } else if (typeof inp.new_text === 'string') {
+          editedFiles.set(rel, inp.new_text);
         }
       }
     } catch {}
@@ -632,8 +633,71 @@ export async function invoke(worker, opts = {}) {
       model
     );
     onWorkerEvent?.({ platform: 'cline', worker: 'cline', model, effort, eventType: 'worker_start', title: `${route.label} worker initialized`, detail: `Running ${route.model} via ${route.label} (Cline runtime, auto-approve mode)`, metadata: { provider: route.provider, providerLabel: route.label, model: route.model } });
+    // Right-size the prompt for Cline:
+    // Cline executes in isolatedCwd (common.cwd), where all project files are
+    // already mounted on disk. Embedding full raw file bodies inside the prompt
+    // file causes massive duplicate token overhead across every agent turn.
+    // Replace bulky "Current project snapshot: [...]" with a concise manifest
+    // of files available in its working directory.
+    let clinePrompt = prompt;
+    const snapIdx = clinePrompt.indexOf('Current project snapshot:');
+    if (snapIdx !== -1) {
+      const arrayStart = clinePrompt.indexOf('[', snapIdx);
+      if (arrayStart !== -1) {
+        let depth = 0;
+        let inString = false;
+        let escape = false;
+        let arrayEnd = -1;
+        for (let i = arrayStart; i < clinePrompt.length; i++) {
+          const ch = clinePrompt[i];
+          if (escape) {
+            escape = false;
+            continue;
+          }
+          if (ch === '\\') {
+            escape = true;
+            continue;
+          }
+          if (ch === '"') {
+            inString = !inString;
+            continue;
+          }
+          if (!inString) {
+            if (ch === '[') depth++;
+            else if (ch === ']') {
+              depth--;
+              if (depth === 0) {
+                arrayEnd = i;
+                break;
+              }
+            }
+          }
+        }
+        if (arrayEnd !== -1) {
+          try {
+            const rawArray = clinePrompt.slice(arrayStart, arrayEnd + 1);
+            const parsedFiles = JSON.parse(rawArray);
+            if (Array.isArray(parsedFiles)) {
+              const fileList = parsedFiles.map(f => f.path).filter(Boolean).join(', ');
+              const replacement = `Project files available in current directory: ${fileList || 'None'}\n(All project files are directly accessible in your current working directory; inspect or edit them directly on disk)`;
+              clinePrompt = clinePrompt.slice(0, snapIdx) + replacement + clinePrompt.slice(arrayEnd + 1);
+            }
+          } catch {}
+        }
+      }
+    }
+
     const extra = schema.properties?.verdict ? 'Verdict evaluates the deliverable, not whether you completed the review. ' : '';
-    const fullPrompt = prompt + `\nReturn ONLY a JSON object matching this schema, with no other text before or after it. ${extra}\n` + JSON.stringify(schema);
+    const clineDirectives = [
+      '',
+      'Task Execution Directives for Cline:',
+      '1. All project files are in your current working directory. Focus strictly on the file(s) relevant to the instruction.',
+      '2. Do not run unnecessary directory scans or re-read unchanged files.',
+      '3. Use the editor or write_to_file tool to apply the requested edits directly.',
+      `4. When finished, call submit_and_exit with a concise summary of changes made. You may also format your final response or submission as a JSON object matching this schema: ${extra}`,
+      JSON.stringify(schema)
+    ].join('\n');
+    const fullPrompt = `${clinePrompt}\n${clineDirectives}`;
     // Three things were tried and ruled out live during earlier testing before
     // landing on this approach, in order:
     //  1. The full prompt+schema as one CLI argument -> Windows' command-line
@@ -667,7 +731,7 @@ export async function invoke(worker, opts = {}) {
     // strongly suggesting cmd.exe or the escaping pass corrupted a non-ASCII
     // character badly enough that Cline's parser stopped recognizing the
     // argument as a prompt at all.
-    const shortInstruction = `Read the file "${promptFileName}" in your current working directory - it contains your full task instructions and the required JSON output schema. Follow it exactly, then return only the JSON object it asks for. Do not include that file among your deliverable changes.`;
+    const shortInstruction = `Read "${promptFileName}" in your working directory for task requirements. Edit the target file(s) using your editor tool, then finish by calling submit_and_exit with a summary. Do not include "${promptFileName}" in your deliverable changes.`;
 
     // --yolo: auto-approve every tool call (no one is present to approve on
     // a background task) and disables spawn/team sub-agent tools by default,
@@ -684,6 +748,7 @@ export async function invoke(worker, opts = {}) {
     const clineArgs = ['--yolo', '--json', '--cwd', common.cwd];
     clineArgs.push('-m', route.model);
     clineArgs.push('-P', route.clineProvider);
+    clineArgs.push('--retries', '3');
     if (opts.dataDir || worker.dataDir) clineArgs.push('--data-dir', opts.dataDir || worker.dataDir);
     if (effort) {
       const thinkingMap = { low: 'low', medium: 'medium', high: 'high', max: 'high' };
@@ -788,6 +853,27 @@ export async function invoke(worker, opts = {}) {
         }
       }
       if (Array.isArray(result?.files)) {
+        if (projectRoot && fs.existsSync(common.cwd)) {
+          const fileMap = new Map();
+          const walkWorkspace = (scanDir) => {
+            for (const entry of fs.readdirSync(scanDir, { withFileTypes: true })) {
+              if (entry.name.startsWith('.adaptive-router') || entry.name.startsWith('.')) continue;
+              const full = path.join(scanDir, entry.name);
+              if (entry.isDirectory()) walkWorkspace(full);
+              else if (entry.isFile()) {
+                const rel = path.relative(common.cwd, full).replaceAll('\\', '/');
+                fileMap.set(rel.toLowerCase(), { path: rel, content: fs.readFileSync(full, 'utf8') });
+              }
+            }
+          };
+          try { walkWorkspace(common.cwd); } catch {}
+          for (const f of result.files) {
+            if (f && typeof f.path === 'string') {
+              fileMap.set(f.path.replaceAll('\\', '/').trim().toLowerCase(), f);
+            }
+          }
+          if (fileMap.size > 0) result.files = Array.from(fileMap.values());
+        }
         const seen = new Set();
         const normalized = [];
         for (const f of result.files) {
