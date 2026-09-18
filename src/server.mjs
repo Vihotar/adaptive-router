@@ -701,6 +701,12 @@ export function getTaskDetails(root, id) {
       { id: 'reject_rerun', label: 'Reject Draft & Rerun Cleanly', recommended: true },
       { id: 'cancel', label: 'Cancel / Leave Task Paused', recommended: false }
     ];
+  } else if (decisionRequired && (decisionRequired.type === 'correction_limit' || task.note === 'Correction limit reached')) {
+    decisionRequired.options = [
+      { id: 'retry_same_worker', label: 'Retry with Same Worker', recommended: true },
+      { id: 'retry_other_worker', label: 'Retry with Another Worker', recommended: false },
+      { id: 'reject', label: 'Reject Draft', recommended: false }
+    ];
   }
 
   let activityLog = (task.activityLog?.length ? task.activityLog : events.filter(e => e.type === 'activity').map(e => ({
@@ -1667,16 +1673,20 @@ export function createDashboardServer(root, options = {}) {
             return sendJson({ error: 'Automatic revision is prohibited for tasks with context mismatch. Use clean rerun.' }, 400);
           }
           if (t.schemaVersion !== 2 || !t.contextHash) return sendJson({ error: 'Legacy/unbound task cannot be revised. Use Reject Draft & Rerun Cleanly.' }, 400);
-          if (t.status !== 'awaiting_approval') {
-            return sendJson({ error: 'Task must be awaiting approval to request correction' }, 400);
+          if (t.status !== 'awaiting_approval' && t.status !== 'needs_human_input') {
+            return sendJson({ error: 'Task must be awaiting approval or awaiting human input to request correction' }, 400);
           }
+          clearAutoRetry(taskId, root);
+          const abortController = new AbortController();
+          activeTaskAbortControllers.set(taskId, abortController);
           // Resume task with user feedback
           (async () => {
             try {
               setActiveRunningTask(t.project, taskId);
               await codeTask(root, t.instruction, {
                 resume: taskId,
-                feedback: { userComment: reason },
+                feedback: { ...(t.feedback || {}), userComment: reason },
+                signal: abortController.signal,
                 onWorkerEvent: (event) => broadcastTaskEvent(taskId, { type: 'worker_event', event }),
                 onActivity: (item) => broadcastTaskEvent(taskId, { type: 'activity', item }),
                 log: (msg) => broadcastTaskEvent(taskId, { type: 'log', message: msg })
@@ -1684,6 +1694,7 @@ export function createDashboardServer(root, options = {}) {
             } catch (err) {
               console.error('Correction error:', err.message);
             } finally {
+              activeTaskAbortControllers.delete(taskId);
               setActiveRunningTask(t.project, null);
               maybeScheduleAutoRetry(root, t.project, taskId);
             }
@@ -1709,33 +1720,30 @@ export function createDashboardServer(root, options = {}) {
         const body = await readBody();
         const decision = body.decision || 'preserve_claude';
 
-        if (decision === 'reject_rerun' || decision === 'rerun_clean' || decision === 'retry_same_worker' || decision === 'retry_other_worker') {
+        if (decision === 'reject_rerun' || decision === 'rerun_clean') {
           // Delegate to clean rerun logic
           clearAutoRetry(taskId, root); // superseded by the new clean-rerun task below
           try {
             const oldDir = taskDir(root, taskId);
             const oldTask = read(path.join(oldDir, 'task.json'));
 
-            const isCleanRerun = decision === 'reject_rerun' || decision === 'rerun_clean';
-            if (isCleanRerun) {
-              oldTask.status = 'rejected';
-              oldTask.reasonCode = 'CONTEXT_MISMATCH';
-              oldTask.rejectionReason = 'Rejected due to CONTEXT_MISMATCH — Clean rerun initiated';
-              // Source-of-truth fix (Post-Release Fix A): another direct
-              // task.json write that bypasses router.mjs's update().
-              if (!oldTask.completionTime) oldTask.completionTime = new Date().toISOString();
-              oldTask.approval = {
-                decision: 'rejected',
-                reason: 'Rejected due to CONTEXT_MISMATCH — Clean rerun initiated',
-                digest: oldTask.digest || 'contaminated',
-                time: new Date().toISOString(),
-                actor: 'user-rerun-clean',
-                scope: 'rejected contaminated draft; clean rerun scheduled'
-              };
-              json(path.join(oldDir, 'task.json'), oldTask);
-              json(path.join(oldDir, 'approval.json'), oldTask.approval);
-              event(oldDir, 'rejected', { reason: oldTask.rejectionReason });
-            }
+            oldTask.status = 'rejected';
+            oldTask.reasonCode = 'CONTEXT_MISMATCH';
+            oldTask.rejectionReason = 'Rejected due to CONTEXT_MISMATCH — Clean rerun initiated';
+            // Source-of-truth fix (Post-Release Fix A): another direct
+            // task.json write that bypasses router.mjs's update().
+            if (!oldTask.completionTime) oldTask.completionTime = new Date().toISOString();
+            oldTask.approval = {
+              decision: 'rejected',
+              reason: 'Rejected due to CONTEXT_MISMATCH — Clean rerun initiated',
+              digest: oldTask.digest || 'contaminated',
+              time: new Date().toISOString(),
+              actor: 'user-rerun-clean',
+              scope: 'rejected contaminated draft; clean rerun scheduled'
+            };
+            json(path.join(oldDir, 'task.json'), oldTask);
+            json(path.join(oldDir, 'approval.json'), oldTask.approval);
+            event(oldDir, 'rejected', { reason: oldTask.rejectionReason });
 
             const cleanInstruction = oldTask.instruction;
             const cleanProject = oldTask.project || (oldTask.kind === 'system' ? 'adaptive-router' : 'test-site');
@@ -1816,14 +1824,44 @@ export function createDashboardServer(root, options = {}) {
         if (!fs.existsSync(taskPath)) return sendJson({ error: 'Task not found' }, 404);
         const t = read(taskPath);
         if (body.project && t.project !== body.project) return sendJson({ error: 'Task does not belong to the active project' }, 409);
+        if (decision === 'review_drafts') {
+          return sendJson({
+            error: 'Cannot resume task: "review_drafts" is an inspection action, not an execution resume decision. To resume execution after correction limit, use "retry_same_worker" or "retry_other_worker" with optional guidance.'
+          }, 400);
+        }
 
-        if (decision === 'stop_task') {
+        const VALID_RESUME_DECISIONS = new Set([
+          'retry_same_worker',
+          'retry_other_worker',
+          'preserve_claude',
+          'use_claude',
+          'acknowledge_sensitive',
+          'override_sensitive',
+          'check_again_start',
+          'check_again_review',
+          'stop_task',
+          'reject',
+          'allow_once',
+          'allow_task',
+          'correct',
+          'send_for_revision'
+        ]);
+
+        if (!VALID_RESUME_DECISIONS.has(decision)) {
+          return sendJson({ error: `Unsupported resume decision: "${decision}"` }, 400);
+        }
+
+        if (decision === 'stop_task' || decision === 'reject') {
           if (activeTaskAbortControllers.has(taskId)) {
             try { activeTaskAbortControllers.get(taskId).abort(); } catch {}
             activeTaskAbortControllers.delete(taskId);
           }
-          t.status = 'cancelled_by_user';
-          t.stoppedByUser = true;
+          t.status = decision === 'reject' ? 'rejected' : 'cancelled_by_user';
+          if (decision === 'reject') {
+            t.rejectionReason = body.reason || 'Rejected by user';
+          } else {
+            t.stoppedByUser = true;
+          }
           // Source-of-truth fix (Post-Release Fix A): this direct-write
           // cancel path bypasses coding.mjs's state()/router.mjs's update(),
           // so it must stamp completionTime itself — otherwise duration
@@ -1831,6 +1869,16 @@ export function createDashboardServer(root, options = {}) {
           // no frozen end time and keeps computing against Date.now()
           // forever. Never overwrite one already set.
           if (!t.completionTime) t.completionTime = new Date().toISOString();
+          if (decision === 'reject') {
+            t.approval = {
+              decision: 'rejected',
+              reason: t.rejectionReason,
+              time: t.completionTime,
+              actor: 'user-resume-reject',
+              scope: 'task rejected via resume decision'
+            };
+            json(path.join(taskDir(root, taskId), 'approval.json'), t.approval);
+          }
           json(taskPath, t);
           // Also clear the in-memory active-task slot for this project, the
           // same way the dedicated /stop endpoint does below — otherwise
@@ -1908,8 +1956,41 @@ export function createDashboardServer(root, options = {}) {
           });
         }
 
-        const preferredWorker = body.preferredWorker || (decision === 'preserve_claude' ? 'antigravity' : undefined);
-        const allowClaude = decision === 'use_claude' || Boolean(t.allowClaudeForTask || t.claudeQuotaAuthorized);
+        const humanGuidance = typeof body.guidance === 'string' && body.guidance.trim()
+          ? body.guidance.trim()
+          : (typeof body.reason === 'string' && body.reason.trim()
+            ? body.reason.trim()
+            : (typeof body.feedback?.userComment === 'string' && body.feedback.userComment.trim()
+              ? body.feedback.userComment.trim()
+              : (typeof body.feedback === 'string' && body.feedback.trim()
+                ? body.feedback.trim()
+                : null)));
+
+        let correctionFeedback = null;
+        if (humanGuidance) {
+          correctionFeedback = {
+            ...(t.feedback || {}),
+            userComment: humanGuidance
+          };
+        } else if (body.feedback && typeof body.feedback === 'object') {
+          correctionFeedback = body.feedback;
+        }
+
+        let preferredWorker = body.preferredWorker;
+        let unavailableBuilders = Array.isArray(body.unavailableBuilders) ? [...body.unavailableBuilders] : [];
+
+        if (decision === 'retry_same_worker') {
+          preferredWorker = preferredWorker || t.failure?.worker || t.builderWorker || t.selectedBuilder;
+        } else if (decision === 'retry_other_worker') {
+          const lastWorker = t.failure?.worker || t.builderWorker || t.selectedBuilder;
+          if (lastWorker && !unavailableBuilders.includes(lastWorker)) {
+            unavailableBuilders.push(lastWorker);
+          }
+        } else if (decision === 'preserve_claude') {
+          preferredWorker = preferredWorker || 'antigravity';
+        }
+
+        const allowClaude = decision === 'use_claude' || Boolean(t.allowClaudeForTask || t.claudeQuotaAuthorized || body.allowClaude);
 
         // Check if there is a pending in-memory permission request for this task and resolve it
         const perms = getPendingPermissions(taskId);
@@ -1934,6 +2015,8 @@ export function createDashboardServer(root, options = {}) {
             await codeTask(root, null, {
               resume: taskId,
               preferredWorker,
+              unavailableBuilders,
+              feedback: correctionFeedback,
               allowClaude,
               signal: abortController.signal,
               confirmClaudeUse: async (promptMsg) => {
@@ -1961,7 +2044,14 @@ export function createDashboardServer(root, options = {}) {
           }
         })();
 
-        return sendJson({ success: true, taskId, status: 'resumed', preferredWorker, allowClaude });
+        return sendJson({
+          success: true,
+          taskId,
+          status: 'resumed',
+          preferredWorker,
+          allowClaude,
+          ...(humanGuidance ? { guidance: humanGuidance } : {})
+        });
       }
 
       // 6c. POST /api/tasks/:id/pause - Pause active task

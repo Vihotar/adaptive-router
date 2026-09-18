@@ -400,14 +400,27 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
       if (!resumableStatuses.includes(task.status) && !isSensitiveOverrideResume) {
         throw Error('Only a waiting coding task can be resumed');
       }
+      const isCorrectionLimit = task.status === 'needs_human_input' && (task.decisionRequired?.type === 'correction_limit' || task.note === 'Correction limit reached' || (task.revision && task.revision > config.maxCorrections));
       delete task.decisionRequired;
       delete task.note;
       if (preferredWorker) {
         task.preferredWorker = preferredWorker;
       }
-      if (task.status === 'awaiting_approval' && correctionFeedback) {
-        task.feedback = correctionFeedback;
+      const isHumanRetry = isCorrectionLimit || task.status === 'needs_human_input' || (task.status === 'awaiting_approval' && correctionFeedback);
+      if (isHumanRetry) {
+        if (correctionFeedback) {
+          task.feedback = typeof correctionFeedback === 'string' ? { userComment: correctionFeedback } : correctionFeedback;
+        }
         task.status = 'building';
+        if (task.revision >= config.maxCorrections + 1) {
+          task.maxAllowedRevision = task.revision + 1;
+        }
+        if (preferredWorker) {
+          task.selectedBuilder = preferredWorker;
+          task.builderWorker = preferredWorker;
+        } else if (task.builderWorker) {
+          task.selectedBuilder = task.builderWorker;
+        }
       }
       if (task.status === 'paused_by_user') {
         const hasBuild = task.routingLog?.some(r => r.role === 'build') && fs.existsSync(path.join(dir, `deliverables-${task.revision || 1}`));
@@ -515,19 +528,20 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
     } else {
       if (correctionFeedback?.userComment) {
         addActivity('🔄', 'Correction Requested', correctionFeedback.userComment, { category: 'instruction' });
-      } else {
-        let resumeMsg = 'Task execution resumed.';
-        if (task.status === 'waiting_for_reviewer') {
-          resumeMsg = 'Task resumed after reviewer became available.';
-        } else if (task.status === 'waiting_for_worker') {
-          resumeMsg = 'Task resumed after worker became available.';
-        } else if (preferredWorker) {
-          resumeMsg = `Task resumed with ${formatWorkerName(preferredWorker)}.`;
-        } else if (task.selectedBuilder && task.selectedReviewer) {
-          resumeMsg = `Task resumed (Builder: ${formatWorkerName(task.selectedBuilder)}, Reviewer: ${formatWorkerName(task.selectedReviewer)}).`;
-        }
-        addActivity('▶️', 'Task Resumed', resumeMsg, { category: 'router' });
       }
+      let resumeMsg = 'Task execution resumed.';
+      const activeBuilder = preferredWorker || task.builderWorker || task.selectedBuilder;
+      const activeReviewer = task.reviewerWorker || task.selectedReviewer;
+      if (task.status === 'waiting_for_reviewer') {
+        resumeMsg = 'Task resumed after reviewer became available.';
+      } else if (task.status === 'waiting_for_worker') {
+        resumeMsg = 'Task resumed after worker became available.';
+      } else if (preferredWorker) {
+        resumeMsg = `Task resumed with ${formatWorkerName(preferredWorker)}.`;
+      } else if (activeBuilder && activeReviewer) {
+        resumeMsg = `Task resumed (Builder: ${formatWorkerName(activeBuilder)}, Reviewer: ${formatWorkerName(activeReviewer)}).`;
+      }
+      addActivity('▶️', 'Task Resumed', resumeMsg, { category: 'router' });
     }
 
     // Sensitive-task hard stop (CTO-approved boundary): credentials, account
@@ -1034,7 +1048,8 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
     }
 
     try {
-      while (task.status === 'waiting_for_reviewer' || task.revision <= config.maxCorrections) {
+      const maxAllowedRevision = task.maxAllowedRevision || (config.maxCorrections + 1);
+      while (task.status === 'waiting_for_reviewer' || task.revision < maxAllowedRevision) {
         // Check if task was paused or stopped by user
         try {
           const fresh = read(path.join(dir, 'task.json'));
@@ -1236,6 +1251,7 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
           task.builderModel = built.model;
           task.builderEffort = built.effort;
           task.builderWorker = built.worker;
+          task.selectedBuilder = built.worker;
           // When the Cline runtime was used, the builder's business-facing
           // identity is the direct provider that actually served it (Gemini /
           // NVIDIA NIM / OpenRouter), not "Cline".
@@ -1818,11 +1834,13 @@ export async function codeTask(root, instruction, { resume, injectFault = false,
         reason: correctionDesc,
         recommendation: 'Review deliverable or provide manual guidance',
         options: [
-          { id: 'review_drafts', label: 'Review Latest Deliverable', recommended: true },
-          { id: 'reject', label: 'Reject', recommended: false }
+          { id: 'retry_same_worker', label: 'Retry with Same Worker', recommended: true },
+          { id: 'retry_other_worker', label: 'Retry with Another Worker', recommended: false },
+          { id: 'reject', label: 'Reject Draft', recommended: false }
         ]
       };
       addActivity('🛑', 'Correction Limit Reached', correctionDesc, { category: 'decision', eventType: 'error' });
+      delete task.maxAllowedRevision;
       state(dir, task, 'needs_human_input', { note: 'Correction limit reached', feedback });
     } catch (error) {
       if (error.message === 'TASK_STOPPED' || error.message === 'TASK_ABORTED_BY_USER' || error.message?.includes('aborted by user') || signal?.aborted) {

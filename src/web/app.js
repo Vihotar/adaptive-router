@@ -1940,6 +1940,14 @@
       if (subtext) subtext.textContent = dec.title || 'Human input requested by pipeline';
 
       if (Array.isArray(dec.options) && dec.options.length > 0) {
+        const isCorrectionLimit = dec.type === 'correction_limit' || t.note === 'Correction limit reached';
+        const guidanceInputHtml = isCorrectionLimit ? `
+          <div style="margin-top: 0.75rem;">
+            <label for="dialog-guidance-input" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Guidance for Next Revision (Optional):</label>
+            <textarea id="dialog-guidance-input" rows="3" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.5rem; font-family: inherit; font-size: 0.85rem; box-sizing: border-box; resize: vertical;" placeholder="Provide specific feedback or instructions for the builder..."></textarea>
+          </div>
+        ` : '';
+
         const btnClassFor = (id, recommended) => {
           if (id === 'stop_task' || id === 'reject' || id === 'override_sensitive') return 'btn-danger-outline';
           if (recommended) return 'btn-primary';
@@ -1961,6 +1969,7 @@
             <div class="dialog-details-box">
               <p style="color: #334155;">Task: <strong>${escapeHtml(t.instruction || t.id)}</strong></p>
               ${dec.recommendation ? `<p style="color: #64748b; margin-top: 0.3rem;">${escapeHtml(dec.recommendation)}</p>` : ''}
+              ${guidanceInputHtml}
             </div>
             <div class="dialog-actions-row">
               <div class="dialog-btn-group">
@@ -1973,8 +1982,20 @@
         container.querySelectorAll('[data-decision-id]').forEach(btn => {
           btn.addEventListener('click', () => {
             const id = btn.getAttribute('data-decision-id');
-            if (id === 'stop_task') stopTask(t.id);
-            else resumeTask(t.id, id);
+            if (id === 'stop_task') {
+              stopTask(t.id);
+            } else if (id === 'review_drafts') {
+              if (t.websiteUrl) {
+                window.open(t.websiteUrl, '_blank');
+              } else {
+                window.open(`/api/tasks/${encodeURIComponent(t.id)}/deliverable-preview`, '_blank');
+              }
+              showToast('Opening deliverable preview for inspection.', 'info');
+            } else {
+              const guidanceInput = document.getElementById('dialog-guidance-input');
+              const guidance = guidanceInput ? guidanceInput.value.trim() : '';
+              resumeTask(t.id, id, guidance ? { guidance } : {});
+            }
           });
         });
       } else {
@@ -2170,12 +2191,16 @@
     }
   }
 
-  async function resumeTask(taskId, decision) {
+  async function resumeTask(taskId, decision, options = {}) {
     try {
+      const payload = { decision };
+      if (options && options.guidance) {
+        payload.guidance = options.guidance;
+      }
       const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/resume`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (res.ok) {
