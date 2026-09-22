@@ -88,39 +88,54 @@ export function sanitize(obj) {
 // ── Token management ──────────────────────────────────────────────────────────
 
 /**
- * Read or auto-generate the connector bearer token stored in workers.json.
- * SECURITY: The token value is NEVER logged or printed. It is only returned
- * in-memory to callers that need to validate a Bearer header or serve it
- * to the localhost-only /api/connector/token/copy endpoint.
+ * Read or auto-generate the connector bearer token stored in .router/connector-token.json
+ * or provided via the AR_CONNECTOR_TOKEN environment variable.
+ *
+ * CRITICAL SECURITY INVARIANT:
+ * The runtime token is NEVER persisted in tracked configuration files such as workers.json.
+ * It is kept in an ignored local state directory (.router) or in environment variables.
+ * The token value is NEVER logged or printed.
  */
 export function getOrCreateConnectorToken(root) {
-  const configPath = path.join(root, 'workers.json');
-  let config = {};
-  try { config = JSON.parse(fs.readFileSync(configPath, 'utf8')); } catch {}
-  if (config.connectorToken && typeof config.connectorToken === 'string' && config.connectorToken.length === 64) {
-    return config.connectorToken;
+  if (process.env.AR_CONNECTOR_TOKEN && typeof process.env.AR_CONNECTOR_TOKEN === 'string' && process.env.AR_CONNECTOR_TOKEN.trim().length === 64) {
+    return process.env.AR_CONNECTOR_TOKEN.trim();
   }
-  // Generate without logging — value only goes into workers.json
+  const tokenDir = path.join(root, '.router');
+  const tokenFile = path.join(tokenDir, 'connector-token.json');
+  try {
+    if (fs.existsSync(tokenFile)) {
+      const data = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+      if (data.token && typeof data.token === 'string' && data.token.length === 64) {
+        return data.token;
+      }
+    }
+  } catch {}
+
   const token = crypto.randomBytes(32).toString('hex');
-  config.connectorToken = token;
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+  try {
+    if (!fs.existsSync(tokenDir)) {
+      fs.mkdirSync(tokenDir, { recursive: true });
+    }
+    fs.writeFileSync(tokenFile, JSON.stringify({ token, createdAt: new Date().toISOString() }, null, 2) + '\n');
+  } catch {}
   return token;
 }
 
 /**
- * Invalidate the existing token and generate a fresh one.
- * SECURITY: The old token is destroyed first. The new token is never logged.
- * Returns { rotated: true } — the new token value is NOT included in the return.
+ * Invalidate the existing token and generate a fresh one stored in .router/connector-token.json.
+ * SECURITY: The old token is replaced without logging. Never touches workers.json.
+ * Returns { rotated: true } — the new token value is NOT included in the return object.
  */
 export function rotateConnectorToken(root) {
-  const configPath = path.join(root, 'workers.json');
-  let config = {};
-  try { config = JSON.parse(fs.readFileSync(configPath, 'utf8')); } catch {}
-  // Destroy old
-  delete config.connectorToken;
-  // Generate new without logging
-  config.connectorToken = crypto.randomBytes(32).toString('hex');
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+  const tokenDir = path.join(root, '.router');
+  const tokenFile = path.join(tokenDir, 'connector-token.json');
+  const token = crypto.randomBytes(32).toString('hex');
+  try {
+    if (!fs.existsSync(tokenDir)) {
+      fs.mkdirSync(tokenDir, { recursive: true });
+    }
+    fs.writeFileSync(tokenFile, JSON.stringify({ token, createdAt: new Date().toISOString(), rotatedAt: new Date().toISOString() }, null, 2) + '\n');
+  } catch {}
   return { rotated: true, message: 'Connector token has been rotated. Use the Copy Connector Token button to retrieve the new value.' };
 }
 
@@ -487,37 +502,33 @@ export async function submitTask(root, { instruction, project = 'test-site', all
 
 /**
  * Approve a completed deliverable.
+ *
+ * CRITICAL SECURITY INVARIANT:
+ * Connector approval MUST route through the exact same authoritative validation
+ * and file-application path as normal UI/CLI approvals (router.mjs decide()).
+ * It verifies manifest integrity, test passes, independent review verdict,
+ * digest matching, and applies approved files to the project root.
  */
-export function approveTask(root, taskId, { reason = 'Approved via ChatGPT connector' } = {}) {
-  const dir = taskDir(root, taskId);
-  const t = safeRead(path.join(dir, 'task.json'));
-  if (!t) throw new Error(`Task not found: ${taskId}`);
-  if (t.status !== 'awaiting_approval') {
-    throw new Error(`Task ${taskId} is not awaiting approval (current status: ${t.status})`);
-  }
-  // Write approval directly (mirrors POST /api/tasks/:id/decide)
-  const approval = { decision: 'approved', reason, time: new Date().toISOString(), approvedBy: 'ChatGPT Connector' };
-  fs.writeFileSync(path.join(dir, 'approval.json'), JSON.stringify(approval, null, 2) + '\n');
-  t.status = 'approved';
-  fs.writeFileSync(path.join(dir, 'task.json'), JSON.stringify(t, null, 2) + '\n');
-  return { success: true, taskId, newStatus: 'approved', message: 'Deliverable approved.' };
+export async function approveTask(root, taskId, { reason = 'Approved via ChatGPT connector' } = {}) {
+  const { decide } = await import('./router.mjs');
+  const result = await decide(root, taskId, 'approved', reason);
+  return {
+    success: true,
+    taskId,
+    newStatus: 'approved',
+    appliedFiles: result?.appliedFiles || [],
+    message: 'Deliverable approved and applied to project.'
+  };
 }
 
 /**
  * Reject a completed deliverable.
+ * Routes through the authoritative decide() lifecycle in router.mjs.
  */
-export function rejectTask(root, taskId, { reason }) {
+export async function rejectTask(root, taskId, { reason }) {
   if (!reason?.trim()) throw new Error('A rejection reason is required');
-  const dir = taskDir(root, taskId);
-  const t = safeRead(path.join(dir, 'task.json'));
-  if (!t) throw new Error(`Task not found: ${taskId}`);
-  if (!['awaiting_approval', 'approved'].includes(t.status)) {
-    throw new Error(`Task ${taskId} cannot be rejected in status: ${t.status}`);
-  }
-  const rejection = { decision: 'rejected', reason: reason.trim(), time: new Date().toISOString(), rejectedBy: 'ChatGPT Connector' };
-  fs.writeFileSync(path.join(dir, 'approval.json'), JSON.stringify(rejection, null, 2) + '\n');
-  t.status = 'rejected';
-  fs.writeFileSync(path.join(dir, 'task.json'), JSON.stringify(t, null, 2) + '\n');
+  const { decide } = await import('./router.mjs');
+  await decide(root, taskId, 'rejected', reason.trim());
   return { success: true, taskId, newStatus: 'rejected', message: `Deliverable rejected: ${reason}` };
 }
 

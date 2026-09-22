@@ -50,6 +50,45 @@ const MIME_TYPES = {
 // import back into this file.
 export { ACTIVE_TASK_STATUSES, TERMINAL_TASK_STATUSES };
 
+export function isLoopbackAddress(addr) {
+  if (!addr) return false;
+  return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1' || addr.endsWith('127.0.0.1');
+}
+
+export function isLoopbackHost(hostHeader) {
+  if (!hostHeader) return false;
+  const clean = hostHeader.trim().replace(/:\d+$/, '');
+  return clean === 'localhost' || clean === '127.0.0.1' || clean === '[::1]' || clean === '::1';
+}
+
+export function isTrustedOrigin(originHeader) {
+  if (!originHeader) return true; // Direct local clients (curl, CLI, scripts) without Origin
+  try {
+    const u = new URL(originHeader);
+    const hostname = u.hostname.toLowerCase();
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1';
+  } catch {
+    return false;
+  }
+}
+
+export function authorizeMutation(req, root) {
+  // Allow if legitimate loopback dashboard request with trusted origin
+  const isLocalDashboard = isLoopbackAddress(req.socket?.remoteAddress)
+    && isLoopbackHost(req.headers?.host)
+    && isTrustedOrigin(req.headers?.origin)
+    && isTrustedOrigin(req.headers?.referer);
+  if (isLocalDashboard) return true;
+
+  // Or allow if valid Bearer token matching connectorToken is provided
+  const connectorToken = getOrCreateConnectorToken(root);
+  const authHeader = req.headers?.['authorization'] || '';
+  const providedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  if (providedToken && providedToken === connectorToken) return true;
+
+  return false;
+}
+
 const activeStreams = new Map(); // taskId -> Set of res objects
 // Per-project active-task gate. Replaces the old single global
 // `activeRunningTask` variable: storage.mjs's locked() already scopes
@@ -1018,31 +1057,66 @@ export function createDashboardServer(root, options = {}) {
     });
 
     try {
-      // ── Connector CORS headers (allow ChatGPT origin) ─────────────────────
+      // ── Connector CORS headers and Access Control ─────────────────────────
       if (pathname.startsWith('/mcp') || pathname.startsWith('/api/connector')) {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-        if (method === 'OPTIONS') {
-          res.writeHead(204);
-          return res.end();
-        }
-        // Bearer token authentication
-        // Exempt: token/copy and token/rotate (have their own localhost guards),
-        //         openapi.yaml (public spec), tunnel/status, tunnel/start (local-only UI calls)
-        const isExempt = pathname === '/api/connector/token/copy'
-          || pathname === '/api/connector/token'
-          || pathname === '/api/connector/token/rotate'
-          || pathname === '/api/connector/openapi.yaml'
-          || pathname === '/api/tunnel/status'
-          || pathname === '/api/tunnel/start';
-        if (!isExempt) {
-          const connectorToken = getOrCreateConnectorToken(root);
-          const authHeader = req.headers['authorization'] || '';
-          const providedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-          if (providedToken !== connectorToken) {
-            res.writeHead(401, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: 'Unauthorized. Provide the connector token in the Authorization: Bearer <token> header.' }));
+        const isTokenRoute = pathname === '/api/connector/token'
+          || pathname === '/api/connector/token/copy'
+          || pathname === '/api/connector/token/rotate';
+
+        if (isTokenRoute) {
+          // Token endpoints are strictly loopback-only with trusted local origin
+          const isLocal = isLoopbackAddress(req.socket?.remoteAddress)
+            && isLoopbackHost(req.headers?.host)
+            && isTrustedOrigin(req.headers?.origin)
+            && isTrustedOrigin(req.headers?.referer);
+
+          if (!isLocal) {
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Forbidden: token endpoints are only accessible from the local loopback dashboard.' }));
+          }
+
+          if (method === 'OPTIONS') {
+            if (req.headers.origin && isTrustedOrigin(req.headers.origin)) {
+              res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+              res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+              res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+            }
+            res.writeHead(204);
+            return res.end();
+          }
+        } else if (pathname === '/api/connector/openapi.yaml') {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+          if (method === 'OPTIONS') {
+            res.writeHead(204);
+            return res.end();
+          }
+        } else {
+          // Authenticated MCP/connector API routes
+          const origin = req.headers?.origin;
+          if (origin) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+            res.setHeader('Vary', 'Origin');
+          } else {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+          }
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+          if (method === 'OPTIONS') {
+            res.writeHead(204);
+            return res.end();
+          }
+
+          const isExempt = pathname === '/api/tunnel/status' || pathname === '/api/tunnel/start';
+          if (!isExempt) {
+            const connectorToken = getOrCreateConnectorToken(root);
+            const authHeader = req.headers?.['authorization'] || '';
+            const providedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+            if (providedToken !== connectorToken) {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ error: 'Unauthorized. Provide the connector token in the Authorization: Bearer <token> header.' }));
+            }
           }
         }
       }
@@ -1052,7 +1126,7 @@ export function createDashboardServer(root, options = {}) {
       if (pathname === '/mcp' && method === 'GET') {
         return sendJson({
           name: 'adaptive-router',
-          version: '1.0.0',
+          version: '0.1.0',
           description: 'Adaptive Router MCP connector — AI task routing and workforce management',
           tools: ALL_TOOLS.length,
           readTools: ALL_TOOLS.filter(t => t.annotations?.readOnlyHint).length,
@@ -1095,8 +1169,8 @@ export function createDashboardServer(root, options = {}) {
         }
         if (method === 'POST') {
           const body = await readBody();
-          if (sub === 'approve') return sendJson(approveTask(root, taskId, { reason: body.reason }));
-          if (sub === 'reject') return sendJson(rejectTask(root, taskId, { reason: body.reason }));
+          if (sub === 'approve') return sendJson(await approveTask(root, taskId, { reason: body.reason }));
+          if (sub === 'reject') return sendJson(await rejectTask(root, taskId, { reason: body.reason }));
         }
       }
       if (pathname === '/api/connector/tasks' && method === 'POST') {
@@ -1112,36 +1186,50 @@ export function createDashboardServer(root, options = {}) {
       if (pathname === '/api/connector/openapi.yaml' && method === 'GET') {
         const specPath = path.join(root, 'connector-openapi.yaml');
         if (fs.existsSync(specPath)) {
+          let spec = fs.readFileSync(specPath, 'utf8');
+          const tunnelStatus = getTunnelStatus(root);
+          const effectiveUrl = (tunnelStatus?.connected && tunnelStatus?.tunnelUrl)
+            ? tunnelStatus.tunnelUrl
+            : `http://${req.headers?.host || 'localhost:3210'}`;
+          spec = spec.replace(/TUNNEL_URL_PLACEHOLDER/g, effectiveUrl);
           res.writeHead(200, { 'Content-Type': 'application/yaml; charset=utf-8', 'Cache-Control': 'no-cache' });
-          return res.end(fs.readFileSync(specPath));
+          return res.end(spec);
         }
         return sendJson({ error: 'OpenAPI spec not found' }, 404);
       }
 
       // Connector token — secure copy endpoint (localhost only, clipboard use)
-      // SECURITY: no logging of token value; cache disabled; CORS blocked by host check
+      // SECURITY: no logging of token value; cache disabled; CORS blocked by host and origin checks
       if ((pathname === '/api/connector/token/copy' || pathname === '/api/connector/token') && method === 'GET') {
-        const host = req.headers.host || '';
-        const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+        const isLocal = isLoopbackAddress(req.socket?.remoteAddress)
+          && isLoopbackHost(req.headers?.host)
+          && isTrustedOrigin(req.headers?.origin)
+          && isTrustedOrigin(req.headers?.referer);
         if (!isLocal) {
           res.writeHead(403, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ error: 'Token copy endpoint is only accessible from the local Adaptive Router dashboard.' }));
         }
         const connectorToken = getOrCreateConnectorToken(root);
-        res.writeHead(200, {
+        const headers = {
           'Content-Type': 'text/plain; charset=utf-8',
           'Cache-Control': 'no-store, no-cache, must-revalidate',
           'X-Content-Type-Options': 'nosniff'
-        });
+        };
+        if (req.headers?.origin && isTrustedOrigin(req.headers.origin)) {
+          headers['Access-Control-Allow-Origin'] = req.headers.origin;
+        }
+        res.writeHead(200, headers);
         return res.end(connectorToken);
       }
 
       // Connector token rotation (localhost only)
       if (pathname === '/api/connector/token/rotate' && method === 'POST') {
-        const host = req.headers.host || '';
-        const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+        const isLocal = isLoopbackAddress(req.socket?.remoteAddress)
+          && isLoopbackHost(req.headers?.host)
+          && isTrustedOrigin(req.headers?.origin)
+          && isTrustedOrigin(req.headers?.referer);
         if (!isLocal) {
-          return sendJson({ error: 'Token rotation only accessible from localhost.' }, 403);
+          return sendJson({ error: 'Token rotation only accessible from local dashboard.' }, 403);
         }
         return sendJson(rotateConnectorToken(root));
       }
@@ -1154,6 +1242,29 @@ export function createDashboardServer(root, options = {}) {
       // Tunnel start stub — implementation added after user provides tunnel ID + exe path
       if (pathname === '/api/tunnel/start' && method === 'POST') {
         return sendJson({ started: false, note: 'Tunnel configuration not yet set. Please provide your Tunnel ID and tunnel-client.exe location.' });
+      }
+
+      // CORS preflight and access control for dashboard endpoints
+      if (method === 'OPTIONS') {
+        if (!pathname.startsWith('/mcp') && !pathname.startsWith('/api/connector')) {
+          const origin = req.headers?.origin;
+          if (origin && isTrustedOrigin(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT, PATCH, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+          }
+          res.writeHead(204);
+          return res.end();
+        }
+      }
+
+      // Guard mutation endpoints against CSRF, DNS rebinding, and unauthorized foreign origins
+      if (['POST', 'DELETE', 'PUT', 'PATCH'].includes(method)) {
+        if (!pathname.startsWith('/mcp') && !pathname.startsWith('/api/connector')) {
+          if (!authorizeMutation(req, root)) {
+            return sendJson({ error: 'Forbidden: unauthorized origin, untrusted host, or remote mutation without valid credentials.' }, 403);
+          }
+        }
       }
 
       // 0a. GET /api/pid - This process's PID, for restart-safety

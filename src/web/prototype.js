@@ -413,7 +413,7 @@ function setupDecisionVariations() {
       subtitle: 'Worker requests permission to execute a shell script outside standard sandbox.',
       details: `
         <p style="margin-bottom: 0.4rem;"><strong>Command:</strong> <code>npm run build:prod</code></p>
-        <p style="color: #475569;">Target Directory: <code>C:/projects/adaptive-router</code></p>
+        <p style="color: #475569;">Target Directory: <code>C:\\projects\\adaptive-router</code></p>
         <p style="color: #475569; margin-top: 0.3rem;">Adaptive Router paused the task to protect local file security until you authorize.</p>
       `,
       primaryBtn: { label: 'Allow Execution', action: 'allow', class: 'btn-primary' },

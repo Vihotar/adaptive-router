@@ -6,7 +6,22 @@ import { read, json } from './storage.mjs';
 // Trusted tests are outside the worker's editable files. Generated JS runs only
 // in a fresh browser renderer, never in Node, a shell, or the user's browser profile.
 export async function testWebsite(root, project, report, digest, { onTestEvent } = {}) {
-  const runtime = read(path.join(root, 'browser-runtime.json'));
+  const runtimePath = path.join(root, 'browser-runtime.json');
+  if (!fs.existsSync(runtimePath)) {
+    const unavailableResult = {
+      passed: false,
+      status: 'unavailable',
+      digest,
+      checks: [
+        { name: 'Browser environment configured', passed: false, status: 'unavailable', error: 'SKIPPED / NOT CONFIGURED: browser-runtime.json absent — run node router.mjs doctor to set up' }
+      ],
+      time: new Date().toISOString(),
+      error: 'SKIPPED / NOT CONFIGURED: browser-runtime.json absent — run node router.mjs doctor to set up'
+    };
+    json(report, unavailableResult);
+    return unavailableResult;
+  }
+  const runtime = read(runtimePath);
   const { chromium } = await import(pathToFileURL(runtime.playwrightModule).href);
   onTestEvent?.({ eventType: 'browser', title: 'Launching headless sandboxed Chrome', detail: 'Isolated test environment' });
   const browser = await chromium.launch({ executablePath: runtime.chromeExecutable, headless: true, chromiumSandbox: true });

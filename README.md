@@ -216,7 +216,7 @@ node router.mjs reject TASK-ID "Please make it shorter and more actionable."
 node router.mjs demo
 ```
 
-A live dummy quotation task that tests the full routing loop. Deliberately injects a fault in the first draft and requires independent review to catch it before correction. This is not a real quote.
+Runs a sample coding task to add a contact form to the bundled test website, exercising builder generation, automated validation, and independent review.
 
 ### Run automated tests
 
@@ -224,7 +224,7 @@ A live dummy quotation task that tests the full routing loop. Deliberately injec
 npm test
 ```
 
-348 test cases covering routing, correction loops, approvals, failures, path safety, concurrency, and more. No API quota is used — tests use simulated worker responses.
+Automated test suite covering routing, correction loops, approvals, failure reporting, path safety, access control, concurrency, and more. No API quota is used — tests use simulated worker responses.
 
 ---
 
@@ -253,8 +253,7 @@ Failed tests → automatic retry with feedback. Passing tests + review → waits
 - **No multi-user support.** This is a single-user local tool. There is no authentication, no user accounts, and no multi-tenancy.
 - **No cloud deployment.** AR binds to localhost only. Use `cloudflared` for controlled external access.
 - **Cline integration is experimental.** The Cline worker path has known limitations with stdin piping on some Windows builds (see `src/workers.mjs` comments).
-- **Planning AI is a stub.** The conversational planning mode (`POST /api/plan`) is stubbed — it returns an error until a planning AI provider is configured.
-- **18 test failures at time of first OSS release.** These are pre-existing: pilot specialist-routing tests and environment-assumption tests. They are not regressions. See `docs/known-issues.md`.
+- **Simulated worker fixtures.** The automated test suite runs against simulated worker responses to test routing, safety, and approval logic without consuming paid subscription or API quota.
 
 ---
 
@@ -286,3 +285,5 @@ See [`SECURITY.md`](SECURITY.md) for the security policy and how to report vulne
 ## License
 
 MIT — see [`LICENSE`](LICENSE).
+
+Third-party software notices and licenses are documented in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

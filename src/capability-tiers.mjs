@@ -274,7 +274,7 @@ export function isModelAvailableOnWorker(worker, modelId, { availableModels = {}
   const hasWorkerList = Object.prototype.hasOwnProperty.call(availableModels, worker.id);
   const hasAdapterList = Object.prototype.hasOwnProperty.call(availableModels, worker.adapter);
   const workerList = hasWorkerList ? availableModels[worker.id] : availableModels[worker.adapter];
-  if ((hasWorkerList || hasAdapterList) && Array.isArray(workerList)) {
+  if ((hasWorkerList || hasAdapterList) && Array.isArray(workerList) && workerList.length > 0) {
     return workerList.map(normalizeModelId).includes(normModel);
   }
 

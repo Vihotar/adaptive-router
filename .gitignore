@@ -18,9 +18,14 @@ browser-runtime.json
 # Environment files (should never be committed)
 .env
 .env.*
+!.env.example
 .env.local
 .env.development
 .env.production
+
+# Connector tokens and secrets
+.connector-token*
+*.token
 
 # OS artifacts
 .DS_Store

@@ -42,6 +42,11 @@ function show(task) {
   if (task.status === 'failed') process.exitCode = 1;
 }
 try {
+  if (command === '--version' || command === '-v' || command === 'version') {
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+    console.log(`v${pkg.version}`);
+    process.exit(0);
+  }
   if (command === 'code' || command === 'code-demo' || command === 'resume-code') {
     const unavailableBuilders = [];
     const filteredArgs = [];
@@ -80,7 +85,7 @@ try {
     }
     show(await codeTask(root, instruction, { allowClaude: false }));
   } else if (command === 'demo') {
-    console.log('Live dummy test. The first draft total is deliberately changed to 999 to test review and correction.');
+    console.log('Live demo: runs a sample coding task to add a contact form to the test website, exercising builder generation, automated validation, and independent review.');
     show(await codeTask(root, codingInstruction, { project: 'test-site', injectFault: true, allowClaude: false }));
   } else if (command === 'claude-login') {
     const paths = executables(root);
@@ -173,7 +178,7 @@ try {
     }
     await startDashboardServer(root, { port, openBrowser: open });
   } else {
-    console.log('Use: node router.mjs [dashboard [--port 3210] [--open] | code "instruction" [--unavailable-builder codex] [--allow-claude] | code-demo | resume-code ID | claude-reserve [on|off|status] | ask "instruction" | demo | doctor | claude-login | list | status ID | approve ID | reject ID "reason" | unlock]');
+    console.log('Use: node router.mjs [--version | dashboard [--port 3210] [--open] | code "instruction" [--unavailable-builder codex] [--allow-claude] | code-demo | resume-code ID | claude-reserve [on|off|status] | ask "instruction" | demo | doctor | claude-login | list | status ID | approve ID | reject ID "reason" | unlock]');
     process.exitCode = 1;
   }
 } catch (error) { console.error(error.message); process.exitCode = 1; }

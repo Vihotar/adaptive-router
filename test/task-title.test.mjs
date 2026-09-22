@@ -15,7 +15,7 @@ import { listRecentTasks, getTaskDetails } from '../src/server.mjs';
 
 test('deriveTaskTitle: shortens a long engineering brief to a scannable label', () => {
   const instruction = [
-    'Create a file named office-view-verify.md at C:/projects/adaptive-router\\office-view-verify.md',
+    'Create a file named office-view-verify.md at C:\\projects\\adaptive-router\\office-view-verify.md',
     '',
     'The file must contain a complete engineering brief covering every seat,',
     'every pod and every project card in the Office View.'
@@ -66,7 +66,7 @@ function seedTask(root, id, task) {
 
 test('listRecentTasks: adds a short title and preserves the full raw instruction', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ar-title-'));
-  const longInstruction = 'Create a file named office-view-verify.md at C:/projects/adaptive-router containing a full engineering brief.\n\nSecond paragraph with a lot more detail that must never appear in a table cell.';
+  const longInstruction = 'Create a file named office-view-verify.md at C:\\projects\\adaptive-router containing a full engineering brief.\n\nSecond paragraph with a lot more detail that must never appear in a table cell.';
   // A historical task: recorded before the title field existed.
   seedTask(root, '20260101T000000-aaaaaaaa', {
     project: 'test-site',

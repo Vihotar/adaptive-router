@@ -276,4 +276,135 @@ test('Cline Token & Runtime Efficiency Hardening', async (t) => {
     assert.ok(workersSource.includes("input: prompt,"),
       'Codex input prompt contract must be retained');
   });
+
+  await t.test('Cline workspace seeding excludes secrets, .env, and credentials', async () => {
+    const projDir = tempDir('cline-proj-secrets-');
+    const taskDir = tempDir('cline-task-dir-');
+
+    // Create safe files
+    fs.writeFileSync(path.join(projDir, 'index.html'), '<h1>App</h1>', 'utf8');
+    fs.writeFileSync(path.join(projDir, 'app.js'), 'console.log("hello");', 'utf8');
+
+    // Create sensitive credential files
+    fs.writeFileSync(path.join(projDir, '.env'), 'SECRET_API_KEY=12345', 'utf8');
+    fs.writeFileSync(path.join(projDir, '.env.production'), 'PROD_KEY=secret', 'utf8');
+    fs.writeFileSync(path.join(projDir, 'credentials.json'), '{"apiKey":"secret"}', 'utf8');
+    fs.writeFileSync(path.join(projDir, 'secrets.yaml'), 'db_pass: secret', 'utf8');
+    fs.writeFileSync(path.join(projDir, 'private.pem'), '-----BEGIN PRIVATE KEY-----', 'utf8');
+    fs.writeFileSync(path.join(projDir, 'server.key'), 'key_data', 'utf8');
+    fs.writeFileSync(path.join(projDir, 'id_rsa'), 'ssh_rsa_key', 'utf8');
+    fs.writeFileSync(path.join(projDir, 'access.token'), 'bearer_token_xyz', 'utf8');
+
+    const mockClineBat = path.join(taskDir, 'mock-cline.cmd');
+    const mockScript = path.join(taskDir, 'mock-cline.cjs');
+    fs.writeFileSync(mockScript, `
+      const stream = JSON.stringify({
+        type: 'run_result',
+        text: JSON.stringify({ summary: 'Done', files: [{ path: 'index.html', content: '<h1>Done</h1>' }] }),
+        usage: { inputTokens: 100, outputTokens: 10 }
+      });
+      console.log(stream);
+    `, 'utf8');
+    fs.writeFileSync(mockClineBat, `@echo off\r\nnode "${mockScript}" %*\r\n`, 'utf8');
+
+    await invoke(
+      { id: 'cline', adapter: 'cline' },
+      {
+        root,
+        dir: taskDir,
+        schema: buildSchema,
+        prompt: 'Build something',
+        timeout: 10000,
+        paths: { cline: mockClineBat },
+        model: 'cohere/north-mini-code:free',
+        providerId: 'openrouter',
+        projectRoot: projDir
+      }
+    );
+
+    const workspaceDir = path.join(taskDir, 'workspace');
+
+    // Verify safe files WERE copied
+    assert.ok(fs.existsSync(path.join(workspaceDir, 'index.html')), 'index.html should be copied');
+    assert.ok(fs.existsSync(path.join(workspaceDir, 'app.js')), 'app.js should be copied');
+
+    // Verify sensitive files were NOT copied
+    assert.ok(!fs.existsSync(path.join(workspaceDir, '.env')), '.env must NOT be copied');
+    assert.ok(!fs.existsSync(path.join(workspaceDir, '.env.production')), '.env.production must NOT be copied');
+    assert.ok(!fs.existsSync(path.join(workspaceDir, 'credentials.json')), 'credentials.json must NOT be copied');
+    assert.ok(!fs.existsSync(path.join(workspaceDir, 'secrets.yaml')), 'secrets.yaml must NOT be copied');
+    assert.ok(!fs.existsSync(path.join(workspaceDir, 'private.pem')), 'private.pem must NOT be copied');
+    assert.ok(!fs.existsSync(path.join(workspaceDir, 'server.key')), 'server.key must NOT be copied');
+    assert.ok(!fs.existsSync(path.join(workspaceDir, 'id_rsa')), 'id_rsa must NOT be copied');
+    assert.ok(!fs.existsSync(path.join(workspaceDir, 'access.token')), 'access.token must NOT be copied');
+  });
+
+  await t.test('Cline CLI invocation omits --yolo by default and includes it only when configured', async () => {
+    const taskDir = tempDir('cline-yolo-test-');
+    const argsLog = path.join(taskDir, 'args.json');
+    const mockClineBat = path.join(taskDir, 'mock-cline.cmd');
+    const mockScript = path.join(taskDir, 'mock-cline.cjs');
+    fs.writeFileSync(mockScript, `
+      const fs = require('fs');
+      fs.writeFileSync(${JSON.stringify(argsLog)}, JSON.stringify(process.argv));
+      const stream = JSON.stringify({
+        type: 'run_result',
+        text: JSON.stringify({ summary: 'Done', files: [{ path: 'index.html', content: '<h1>Done</h1>' }] }),
+        usage: { inputTokens: 100, outputTokens: 10 }
+      });
+      console.log(stream);
+    `, 'utf8');
+    fs.writeFileSync(mockClineBat, `@echo off\r\nnode "${mockScript}" %*\r\n`, 'utf8');
+
+    // 1. Default worker (no autoApprove, no dangerouslySkipPermissions)
+    await invoke(
+      { id: 'cline', adapter: 'cline' },
+      {
+        root,
+        dir: taskDir,
+        schema: buildSchema,
+        prompt: 'Task 1',
+        timeout: 10000,
+        paths: { cline: mockClineBat },
+        model: 'cohere/north-mini-code:free',
+        providerId: 'openrouter'
+      }
+    );
+    const recordedArgs1 = JSON.parse(fs.readFileSync(argsLog, 'utf8'));
+    assert.ok(!recordedArgs1.includes('--yolo'), 'Default Cline execution must NOT include --yolo');
+
+    // 2. Configured with dangerouslySkipPermissions: true
+    await invoke(
+      { id: 'cline', adapter: 'cline', dangerouslySkipPermissions: true },
+      {
+        root,
+        dir: taskDir,
+        schema: buildSchema,
+        prompt: 'Task 2',
+        timeout: 10000,
+        paths: { cline: mockClineBat },
+        model: 'cohere/north-mini-code:free',
+        providerId: 'openrouter'
+      }
+    );
+    const recordedArgs2 = JSON.parse(fs.readFileSync(argsLog, 'utf8'));
+    assert.ok(recordedArgs2.includes('--yolo'), 'Configured with dangerouslySkipPermissions must include --yolo');
+
+    // 3. Configured with autoApprove: true
+    await invoke(
+      { id: 'cline', adapter: 'cline', autoApprove: true },
+      {
+        root,
+        dir: taskDir,
+        schema: buildSchema,
+        prompt: 'Task 3',
+        timeout: 10000,
+        paths: { cline: mockClineBat },
+        model: 'cohere/north-mini-code:free',
+        providerId: 'openrouter'
+      }
+    );
+    const recordedArgs3 = JSON.parse(fs.readFileSync(argsLog, 'utf8'));
+    assert.ok(recordedArgs3.includes('--yolo'), 'Configured with autoApprove must include --yolo');
+  });
 });

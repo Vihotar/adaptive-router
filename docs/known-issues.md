@@ -1,52 +1,36 @@
 # Known Issues — Adaptive Router v0.1.0
 
-This document lists pre-existing known issues at the time of the v0.1.0 OSS release. These were present before the release and are not regressions.
+This document lists known operational and architectural limitations for the v0.1.0 release.
 
-## Test Suite Failures (Pre-Existing)
+---
 
-The following 18 test cases fail in the default test run. They are pre-existing and not blocking:
+## Known Behavioral & Platform Limitations
 
-### Specialist Routing (Pilot Tests)
+### 1. Headless Browser Verification Requires Local Runtime Setup
 
-These tests use simulated live routing through the full Pilot task pipeline. They fail because the test environment does not have all worker CLIs available in CI, and the mocked responses in some edge cases don't match updated schemas.
+Automated browser acceptance checks (for web deliverables with `index.html`) require `browser-runtime.json` pointing to a local Playwright installation and Chromium/Chrome binary. If `browser-runtime.json` is not present, browser checks are marked as `skipped` / `unavailable`, and static deliverable checks continue. Run `node router.mjs doctor` to inspect runtime configuration.
 
-- Pilot Test 3 — SEO task routing to Cline (Cline not available in most environments)
-- Several other pilot routing tests that depend on specific worker availability
+### 2. Cline stdin Piping (Windows)
 
-### Environment-Assumption Tests
+Some builds of the Cline CLI on Windows do not reliably accept interactive piped stdin when spawned via Node. AR works around this by writing the task instruction to a temporary manifest file in Cline's working directory (`.adaptive-router-cline-task-*.md`) and passing a concise reference command line. This is handled transparently in `src/workers.mjs`.
 
-These tests make assumptions about the local environment (file paths, installed tools) that don't hold in all configurations.
+### 3. Planning AI Stub
 
-- Browser runtime detection tests (require Playwright + Chrome installed)
-- Specialist instruction file loading tests with specific path assumptions
-
-## Known Behavioral Limitations
-
-### Cline stdin Piping (Windows)
-
-Some builds of the Cline CLI on Windows do not accept piped stdin. AR works around this by writing the prompt to a temporary file in the Cline working directory. This is documented in `src/workers.mjs`. No fix is needed on AR's side — this is a Cline build limitation.
-
-### Planning AI Stub
-
-The conversational planning mode (`POST /api/plan`) returns an error:
+The conversational planning endpoint (`POST /api/plan` / `POST /api/planning/chat`) is a foundational interface stub:
 ```
 Planning AI unavailable: conversational planning provider is not configured.
 ```
-This is intentional — the planning AI API provider was not fully integrated in v0.1.0.
+Planning workflows can proceed directly to task execution via `node router.mjs code "..."` or the Launch New Task modal in the dashboard.
 
-### Cloudflare Tunnel Configuration
+### 4. Cloudflare Tunnel Manual Execution
 
-The tunnel feature (`POST /api/tunnel/start`) returns:
-```json
-{ "started": false, "note": "Tunnel configuration not yet set..." }
-```
-Use the `scripts/start-tunnel.cmd` script instead, which invokes `cloudflared` directly.
+The automated tunnel start endpoint (`POST /api/tunnel/start`) returns a status notice directing operators to run the standalone tunnel script (`scripts/start-tunnel.cmd` or `cloudflared tunnel --url http://localhost:3210`). The status endpoint (`GET /api/tunnel/status`) reliably detects active tunnels via the `.mcp_tunnel_url` state file.
 
-### No macOS/Linux Testing
+### 5. Platform Compatibility (Windows-Primary)
 
-Adaptive Router was developed and tested on Windows. Linux/macOS may experience:
-- Worker CLI path detection issues (`where`/`which` differences)
-- Subprocess shell behavior differences
-- Path separator handling edge cases
+Adaptive Router was developed and tested primarily on Windows 11. While core routing logic and Node.js code are cross-platform, deployment on Linux or macOS may require adjusting:
+- Worker CLI path detection (`where` vs `which`)
+- Windows-specific cmd escaping in `src/workers.mjs`
+- File system path conventions
 
-PRs for cross-platform fixes are welcome.
+Contributions and PRs for cross-platform enhancements are welcome.

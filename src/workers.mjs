@@ -452,13 +452,21 @@ export async function invoke(worker, opts = {}) {
   const cwd = (schema.properties?.verdict || isToolModifyingWorker) ? isolatedCwd : (registeredRoot || isolatedCwd);
   if (isToolModifyingWorker && registeredRoot && fs.existsSync(registeredRoot)) {
     try {
+      const SECRET_FILE_PATTERN = /(^|[/\\])(\.env(\..*)?|credentials?(\.json|\.ya?ml)?|secrets?(\.json|\.ya?ml)?|.*\.pem|.*\.key|.*\.pfx|id_rsa.*|.*token.*)$/i;
       fs.cpSync(registeredRoot, isolatedCwd, {
         recursive: true,
         filter: (src) => {
           const rel = path.relative(registeredRoot, src);
           if (!rel) return true;
           const first = rel.split(path.sep)[0];
-          return !['.git', '.router', 'node_modules', 'dist', 'build', '.tools', '.next', '.cache', 'screenshots'].includes(first);
+          if (['.git', '.router', 'node_modules', 'dist', 'build', '.tools', '.next', '.cache', 'screenshots'].includes(first)) {
+            return false;
+          }
+          const basename = path.basename(src);
+          if (SECRET_FILE_PATTERN.test(rel) || SECRET_FILE_PATTERN.test(basename)) {
+            return false;
+          }
+          return true;
         }
       });
     } catch {}
@@ -761,9 +769,8 @@ export async function invoke(worker, opts = {}) {
     // argument as a prompt at all.
     const shortInstruction = `Read "${promptFileName}" in your working directory for task requirements. Edit the target file(s) using your editor tool, then finish by calling submit_and_exit with a summary. Do not include "${promptFileName}" in your deliverable changes.`;
 
-    // --yolo: auto-approve every tool call (no one is present to approve on
-    // a background task) and disables spawn/team sub-agent tools by default,
-    // which is the safer, narrower behavior we want here.
+    // --yolo: auto-approve every tool call. Only enabled if explicitly configured
+    // via worker.dangerouslySkipPermissions or worker.autoApprove.
     // --json: NDJSON event stream, tapped below for live progress.
     // --cwd: explicitly bind Cline's working directory to the same directory
     // the other adapters use (common.cwd), rather than whatever directory
@@ -773,7 +780,11 @@ export async function invoke(worker, opts = {}) {
     // Cline's own config is never relied on (NVIDIA's saved default is the
     // disabled gpt-oss-20b, so relying on it would silently run a banned
     // model).
-    const clineArgs = ['--yolo', '--json', '--cwd', common.cwd];
+    const autoApprove = Boolean(worker.dangerouslySkipPermissions || worker.autoApprove);
+    const clineArgs = ['--json', '--cwd', common.cwd];
+    if (autoApprove) {
+      clineArgs.unshift('--yolo');
+    }
     clineArgs.push('-m', route.model);
     clineArgs.push('-P', route.clineProvider);
     clineArgs.push('--retries', '3');

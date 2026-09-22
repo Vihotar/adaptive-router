@@ -351,8 +351,13 @@ test('Partial-Deliverable Validation Against Complete Project State Suite', asyn
     assert.equal(fs.readFileSync(path.join(projectFolder, 'widget.js'), 'utf8'), newWidget);
   });
 
-  await t.test('6. testProject browser route fulfillment succeeds with companion files in validation workspace', async () => {
+  await t.test('6. testProject browser route fulfillment succeeds with companion files in validation workspace', async (tSub) => {
     const root = setupFixture(t);
+    const runtimePath = path.join(root, 'browser-runtime.json');
+    if (!fs.existsSync(runtimePath)) {
+      tSub.skip('Skipping browser test because browser-runtime.json is absent');
+      return;
+    }
     const { registered, projectFolder } = setupMultiFileProject(root);
 
     const taskDir = path.join(root, '.router', 'tasks', 'task-test-route');

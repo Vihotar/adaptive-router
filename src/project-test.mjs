@@ -11,15 +11,16 @@ const MIME = {
 
 export async function testProject(root, projectDir, report, digest, { onTestEvent } = {}) {
   const checks = [];
-  const add = (name, passed, error = null) => {
+  const add = (name, passed, error = null, status = null) => {
     const item = { name, passed };
+    if (status) item.status = status;
     if (!passed && error) item.error = String(error).slice(0, 700);
     checks.push(item);
     onTestEvent?.({
-      eventType: passed ? 'test_passed' : 'test_failed',
-      title: `${passed ? '✓' : '✕'} ${name}`,
+      eventType: passed ? 'test_passed' : (status === 'skipped' ? 'test_skipped' : 'test_failed'),
+      title: `${passed ? '✓' : (status === 'skipped' ? '○' : '✕')} ${name}`,
       detail: passed ? 'Verified' : item.error,
-      status: passed ? 'success' : 'failed'
+      status: passed ? 'success' : (status === 'skipped' ? 'skipped' : 'failed')
     });
   };
 
@@ -53,8 +54,8 @@ export async function testProject(root, projectDir, report, digest, { onTestEven
   if (files.includes('index.html')) {
     const runtimePath = path.join(root, 'browser-runtime.json');
     if (!fs.existsSync(runtimePath)) {
-      add('Web deliverable loads without browser errors', true, 'Browser runtime not configured (browser-runtime.json absent — run node router.mjs doctor to set up)');
-      add('No external requests attempted', true, 'Skipped — browser runtime not available');
+      add('Web deliverable loads without browser errors', false, 'SKIPPED / NOT CONFIGURED: browser-runtime.json absent', 'skipped');
+      add('No external requests attempted', false, 'SKIPPED / NOT CONFIGURED: browser-runtime.json absent', 'skipped');
     } else {
     onTestEvent?.({ eventType: 'browser', title: 'Launching isolated browser validation', detail: 'Outbound requests blocked' });
     const runtime = JSON.parse(fs.readFileSync(runtimePath, 'utf8'));

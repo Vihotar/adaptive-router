@@ -143,9 +143,12 @@ describe('Sanitization & Security Contract', () => {
     const token2 = getOrCreateConnectorToken(tmpRoot);
     assert.equal(token1, token2);
 
-    // Verify it was persisted to workers.json
+    // Verify it was persisted to .router/connector-token.json, NEVER workers.json
+    const tokenData = JSON.parse(fs.readFileSync(path.join(tmpRoot, '.router', 'connector-token.json'), 'utf8'));
+    assert.equal(tokenData.token, token1);
+
     const config = JSON.parse(fs.readFileSync(path.join(tmpRoot, 'workers.json'), 'utf8'));
-    assert.equal(config.connectorToken, token1);
+    assert.equal(config.connectorToken, undefined, 'workers.json must NEVER contain connectorToken');
   });
 });
 
@@ -275,30 +278,18 @@ describe('Connector Write Operations', () => {
     assert.equal(cfg.claudeReserve, true);
   });
 
-  test('rejectTask requires a non-empty reason and marks task rejected', () => {
-    assert.throws(() => rejectTask(tmpRoot, '20260910T120000-abcd1234', { reason: '' }), /reason is required/i);
-
-    const res = rejectTask(tmpRoot, '20260910T120000-abcd1234', { reason: 'Missing phone field' });
-    assert.equal(res.success, true);
-    assert.equal(res.newStatus, 'rejected');
-
-    const status = getTaskStatus(tmpRoot, '20260910T120000-abcd1234');
-    assert.equal(status.status, 'rejected');
+  test('rejectTask requires a non-empty reason and enforces decision validation', async () => {
+    await assert.rejects(() => rejectTask(tmpRoot, '20260910T120000-abcd1234', { reason: '' }), /reason is required/i);
+    // Synthetic incomplete task cannot be rejected/approved without valid context binding
+    await assert.rejects(() => rejectTask(tmpRoot, '20260910T120000-abcd1234', { reason: 'Missing phone field' }), /Legacy or unbound/i);
   });
 
-  test('approveTask approves deliverable', () => {
-    // Reset status to awaiting_approval first
-    const dir = path.join(tmpRoot, '.router', 'tasks', '20260910T120000-abcd1234');
-    const t = JSON.parse(fs.readFileSync(path.join(dir, 'task.json'), 'utf8'));
-    t.status = 'awaiting_approval';
-    fs.writeFileSync(path.join(dir, 'task.json'), JSON.stringify(t));
-
-    const res = approveTask(tmpRoot, '20260910T120000-abcd1234', { reason: 'Looks great!' });
-    assert.equal(res.success, true);
-    assert.equal(res.newStatus, 'approved');
-
-    const status = getTaskStatus(tmpRoot, '20260910T120000-abcd1234');
-    assert.equal(status.status, 'approved');
+  test('approveTask strictly forbids synthetic/incomplete task bypass (routes through decide)', async () => {
+    // Attempting to approve a synthetic task missing digest, context binding, or tests MUST fail
+    await assert.rejects(
+      () => approveTask(tmpRoot, '20260910T120000-abcd1234', { reason: 'Looks great!' }),
+      /Legacy or unbound|Approval does not match/i
+    );
   });
 });
 

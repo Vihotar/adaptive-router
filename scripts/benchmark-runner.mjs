@@ -4,7 +4,7 @@ import { execSync } from 'node:child_process';
 import { codeTask } from '../src/coding.mjs';
 
 const root = process.cwd();
-const labRoot = 'C:/projects/adaptive-router/benchmark-lab';
+const labRoot = process.env.AR_BENCHMARK_LAB_ROOT || path.join(root, 'benchmark-lab');
 const targetProvider = process.argv[2] || 'gemini'; // 'gemini', 'nvidia', 'north', 'laguna'
 
 console.log(`\n======================================================`);

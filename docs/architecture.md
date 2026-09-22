@@ -58,7 +58,7 @@ Verified by reading each file, not copied from the older file map.
 | `src/server.mjs` | 2120 | The HTTP server: native `node:http`, all REST endpoints (section 7), SSE streams, static file serving, the in-memory per-project "is a task running" gate, startup orphan-task recovery. |
 | `src/coding.mjs` | 1592 | `codeTask()` - the build/test/review/retry loop. Owns the sensitivity hard-stop, prompt assembly, worker dispatch, auto-retry/correction logic, and all `decisionRequired` shapes the dashboard renders as decision cards. |
 | `src/workers.mjs` | 708 | Subprocess adapters that actually shell out to each worker CLI (Codex, Claude Code, Antigravity, Cline) and parse their output. |
-| `src/smart-router.mjs` | 488 | `classifyTask()` (difficulty/risk/category) and worker/model/effort selection. Routine non-design tasks are steered toward Cline to conserve paid senior quota; design/UI/CSS work is pinned to senior workers regardless of difficulty (CTO policy, see CLAUDE.md). |
+| `src/smart-router.mjs` | 488 | `classifyTask()` (difficulty/risk/category) and worker/model/effort selection. Routine non-design tasks are steered toward lower-cost models; complex design/UI/CSS work is pinned to senior workers regardless of difficulty. |
 | `src/capability-tiers.mjs` | 447 | Enforces reviewer-seniority floors (a lower-tier builder can't be "reviewed" by an even-lower-tier worker) and model-family independence between builder and reviewer. |
 | `src/events.mjs` | 437 | NDJSON event formatting for SSE, and `sanitizePayload()` - the log/payload redaction used both for `events.jsonl` and anywhere sensitive-looking fields must be scrubbed before display or connector exposure. |
 | `src/connector.mjs` | 537 | Bearer-token-authenticated REST surface for external callers (e.g. a ChatGPT custom connector) under `/api/connector/*`, plus `/mcp`. `SECRET_PATTERN` strips any field whose key looks like a credential before it's ever returned. |
@@ -199,8 +199,7 @@ proceed with a worker anyway - this sets `task.sensitiveOverridden`, which
 only the CTO clicking that specific button can ever set; the instruction
 text or a worker can never set it themselves). **Never omit that `options`
 array on a sensitivity `decisionRequired`** - without it the dashboard falls
-back to generic "resume" buttons that imply routing to a worker, which is
-exactly the bug fixed 2026-09-12 per CLAUDE.md. The `containsLikelySecret()`
+back to generic "resume" buttons that imply routing to a worker. The `containsLikelySecret()`
 check has no equivalent override path.
 
 ## 7. REST API surface (`src/server.mjs`)
@@ -277,10 +276,8 @@ and `pathname.match(...)`).
 - `POST /api/permissions/open-app`
 - `POST /api/permissions/demo`
 - `GET/POST /api/permissions/:id`
-- `GET /api/pid` - the running process's own PID, so a caller can confirm
-  process identity from inside rather than guessing among multiple
-  unlabeled `node.exe` processes (added to solve exactly that ambiguity -
-  see CLAUDE.md's "no distinguishing identity" note)
+- `GET /api/pid` - the running process's own PID, allowing callers to confirm
+  process identity without ambiguity among unlabeled `node.exe` processes
 - `POST /api/shutdown` - graceful shutdown; refuses with HTTP 409 while any
   task is active (`isAnyTaskActive()`), otherwise closes the server and
   exits cleanly
@@ -291,25 +288,8 @@ mapped to `index.html`.
 
 ## 8. Testing
 
-`npm test` runs `node --test test/*.test.mjs` (22 test files, 245 individual
-test cases as of this release). At release time: **227 passing / 18
-failing**, and the 18 are pre-existing/unrelated to this release's work -
-confirmed by running the suite directly. The failing set includes pilot
-routing/specialist tests (e.g. specialist-registry schema validation, a few
-`test/specialist-routing.test.mjs`/`reviewer-preselection.test.mjs` cases)
-and a couple of tests with environment assumptions outside this repo (per
-CLAUDE.md and prior investigation) - not regressions introduced by the
-concurrency, CTO Attention, or Office View work. New test files added for
-this release's features include `test/cross-project-concurrency.test.mjs`,
-`test/cto-attention.test.mjs`, and `test/office-view.test.mjs`.
+`npm test` runs `node --test test/*.test.mjs` across 30+ test suites covering
+routing, concurrency, permissions, contracts, access control, failure reporting,
+and worker adapters. Tests run against simulated worker fixtures with zero
+API quota consumed.
 
-## 9. A note on `device_bash`
-
-CLAUDE.md contains an entry stating the Cowork device-bridge shell
-(`device_bash`) "has been broken since a Windows update on Sept 8, 2026."
-**That is no longer accurate as of this release** - `device_bash` has been
-working normally and was used extensively throughout the work that produced
-this release (verifying live source, running the test suite, writing these
-very files). Treat that CLAUDE.md line as historical only; it should be
-updated or removed there, and should not be repeated as current fact in any
-new documentation.

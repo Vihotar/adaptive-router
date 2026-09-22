@@ -23,13 +23,13 @@ Adaptive Router runs **locally on your machine** and is designed to never expose
 
 Please **do not** open a public GitHub issue for security vulnerabilities.
 
-If you discover a security issue, please report it privately:
+If you discover a security vulnerability, please report it privately using **GitHub Private Vulnerability Reporting**:
 
-1. Email the maintainer directly (see GitHub profile for contact).
-2. Include a description of the issue, steps to reproduce, and potential impact.
-3. Allow reasonable time (up to 14 days) to assess and patch before any public disclosure.
+1. Go to the [Security Advisories](https://github.com/Vihotar/adaptive-router/security/advisories) tab of this repository.
+2. Click **Report a vulnerability** to submit your findings privately.
+3. Include a description of the issue, clear steps to reproduce, and potential impact.
 
-We take security reports seriously and will respond promptly.
+We take security reports seriously and will respond promptly. Please allow reasonable time to assess and patch the issue before any public disclosure.
 
 ## Known Limitations
 

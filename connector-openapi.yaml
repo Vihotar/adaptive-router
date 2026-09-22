@@ -15,7 +15,7 @@ info:
     
     SECURITY: All responses are sanitized — no API keys, tokens, or credentials
     are ever included in responses.
-  version: 1.0.0
+  version: 0.1.0
   contact:
     name: Adaptive Router
 servers:
