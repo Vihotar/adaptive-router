@@ -5,7 +5,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │               ChatGPT (Web / Desktop App)                   │
-│          CEO & CTO Strategic Planning Room                  │
+│          Your AI planning and review workspace               │
 │   (Requirements, feature design, questions, approvals)      │
 └──────────────────────────────┬──────────────────────────────┘
                                │

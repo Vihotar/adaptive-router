@@ -1,9 +1,32 @@
 {
   "name": "adaptive-router",
-  "version": "1.0.0",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
-  "description": "Adaptive Router \u2014 local multi-model AI task-routing dashboard with human approval gates",
+  "description": "Experimental AI task router — route coding and business tasks across multiple AI worker CLIs with human approval gates, independent review, and zero npm dependencies",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vihotar/adaptive-router.git"
+  },
+  "homepage": "https://github.com/Vihotar/adaptive-router#readme",
+  "bugs": {
+    "url": "https://github.com/Vihotar/adaptive-router/issues"
+  },
+  "author": "Vihotar",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "llm",
+    "ai-routing",
+    "task-routing",
+    "local-ai",
+    "codex",
+    "claude",
+    "gemini",
+    "ai-agents",
+    "nodejs",
+    "dashboard",
+    "human-in-the-loop"
+  ],
   "scripts": {
     "start": "node router.mjs dashboard --port 3210 --open",
     "dashboard": "node router.mjs dashboard --port 3210 --open",

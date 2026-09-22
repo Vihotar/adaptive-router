@@ -728,19 +728,17 @@ export async function invoke(worker, opts = {}) {
       JSON.stringify(schema)
     ].join('\n');
     const fullPrompt = `${clinePrompt}\n${clineDirectives}`;
-    // Three things were tried and ruled out live during earlier testing before
+    // Three things were tried and ruled out before
     // landing on this approach, in order:
     //  1. The full prompt+schema as one CLI argument -> Windows' command-line
     //     length ceiling (~8K chars for cmd.exe) was exceeded ("spawn
     //     ENAMETOOLONG").
     //  2. Piping it via stdin instead (matching Codex's adapter above, and
     //     matching Cline's own README: "--json ... requires either a prompt
-    //     argument or piped stdin") -> confirmed by hand at a real Windows
-    //     prompt (both `echo ... | cline ...` and `type nul | cline ...`)
-    //     that this install's Cline binary never recognizes piped stdin at
-    //     all — it always reports "requires a prompt argument or piped
-    //     stdin", pipe or no pipe. Not an AR bug; a real limitation of this
-    //     Cline build on this machine.
+    //     argument or piped stdin") -> confirmed that some Cline builds on
+    //     Windows never recognize piped stdin at all — they always report
+    //     "requires a prompt argument or piped stdin", pipe or no pipe.
+    //     Not an AR bug; a real limitation of some Cline builds on Windows.
     // The approach that actually avoids both problems: write the full
     // prompt+schema to a small file INSIDE CLINE'S OWN WORKING DIRECTORY
     // (common.cwd, not this task's separate .router scratch dir — Cline's

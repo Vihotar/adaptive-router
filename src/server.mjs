@@ -113,7 +113,7 @@ function persistRouterActivity(root, taskId, icon, title, desc, category = 'rout
 
 
 // Auto-retry for tasks that stall because every eligible worker failed
-// (waiting_for_worker / waiting_for_reviewer) — the operator asked for
+// (waiting_for_worker / waiting_for_reviewer) — designed so that a rate
 // this so a rate limit or a transient hiccup doesn't just sit there needing
 // a manual click. At most 3 auto-retries per task, with a growing wait
 // between them (30 sec, then 1 min, then 2 min), then it stops and leaves

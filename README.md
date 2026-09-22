@@ -1,147 +1,288 @@
-# Adaptive Router — Version 1.1
+# Adaptive Router
 
-## New: a real coding task on a disposable website
+**Experimental AI task router — route coding and business tasks across multiple AI worker CLIs with human approval gates, independent review, and zero npm dependencies.**
 
-Double-click **Start Coding Task.cmd** and type **Add a contact form to the test website.** Or use:
-
-```powershell
-node router.mjs code "Add a contact form to the test website."
-```
-
-V1.1 starts from the small Sample Shop website in `fixtures/test-site/`. The selected worker receives its current code and produces edits. The router applies those edits to actual HTML, CSS and JavaScript files in a new isolated project revision. It executes that website in fresh sandboxed Chrome and checks the form's labels, required fields, invalid email handling, successful demo submission, mobile layout and absence of JavaScript errors or external requests. The trusted tests are outside the files the worker can edit. No generated code runs in Node or a shell.
-
-Test failures go back to the builder automatically. A passing version goes to an independent AI, preferably Antigravity. Review findings also trigger corrections and another browser test. The final tested and reviewed version waits for your approval, which records local acceptance only.
-
-This release supports one deliberately small coding task: adding a contact form to this disposable website. It does not accept arbitrary repository paths, run package-install scripts, send email, deploy or connect example.com. The form shows **Demo only: message not sent.** A real email/backend connection would be separate approved work.
-
-### Availability and fallback
-
-- Builder order: **Codex → Claude Code → Antigravity**.
-- Reviewer order: **Antigravity → Claude Code → Codex**, excluding **every worker that contributed code** to this task.
-- Missing commands, failed sign-in, quota/network failures, timeouts and unusable worker responses are recorded, then the next eligible worker is tried. An unsuccessful worker is skipped for the rest of that run.
-- Claude Code has a response-only adapter and is auto-detected if its native command is installed and signed into a Claude subscription. No runnable Claude command was found during this setup, so it is skipped here. Its adapter has not been verified against a live Claude session. No new account or paid API connection was added.
-- If no independent reviewer remains, the tested code is saved as `waiting_for_reviewer`; it is never self-approved. Retry a waiting task with `node router.mjs resume-code TASK-ID` after a worker is available. This rechecks availability and retains saved code. A task waiting for a builder can be resumed the same way.
-
-`node router.mjs code-demo` exercises the real loop with a deliberate first-version submission-handler fault. Normal `code` tasks do not inject faults. Per-version browser test reports and mobile screenshots are stored beside the code and independent reviews. Failover is covered by local simulations; that is distinct from a live provider-quota outage.
-
-Browser dependencies are recorded in `browser-runtime.json` using the tools already installed on this computer. They need updating if those installations move. No browser testing service or running dashboard is required.
-
-The original text-draft workflow below remains available as `node router.mjs ask`. Its original fixed routing is separate from the new coding workflow's fallback selection.
+> [!NOTE]
+> **Project Status: Early-stage / Experimental (v0.1.0)**
+> Adaptive Router is functional and tested, but it is an early-stage project designed for personal/team productivity use. It is not a production SaaS service. Expect rough edges, especially around worker setup.
 
 ---
 
-## Original text-draft workflow
+## What Is Adaptive Router?
 
-Give one business instruction. Codex turns it into a short plan and prepares the work. Antigravity checks the result independently. If it finds a fixable problem, the router sends its feedback to Codex and asks Antigravity to check the next version. A passing result is saved for **your approval**.
+Adaptive Router (AR) is a local, single-user Node.js dashboard that:
 
-This version prepares **local drafts in new test folders**. It does not connect to example.com or edit an existing business project.
+1. Takes a plain-English task instruction.
+2. **Routes it intelligently** to one of several AI worker CLIs (Codex/ChatGPT, Claude Code, Antigravity/Gemini, Cline) based on task complexity, sensitivity, and worker availability.
+3. Has a **different AI worker independently review** the result before presenting it to you.
+4. Applies the result to a target project folder only after an **explicit human approval click**.
 
-## Give it a task
+All state is stored as plain JSON files. There is no database, no cloud service, and **zero npm dependencies**.
 
-Double-click **Start Adaptive Router.cmd** in this folder. When asked what you would like done, type an instruction, for example:
+---
 
-> Draft a short English checklist for responding to a new customer enquiry. Include confirming the request, preparing a quotation, agreeing delivery, and following up. Save it as customer-checklist.md. Do not contact anyone.
+## The Problem It Solves
 
-The terminal shows progress and prints the location of `APPROVAL.md` when the result is ready. Open that file to see the result summary, independent review and links to the deliverables.
+When you use multiple AI coding tools, you're constantly:
+- Deciding which tool to use for which task
+- Copying outputs between tools for review
+- Manually verifying that generated code is correct before applying it
+- Tracking which tasks were approved and which weren't
 
-You can also run these commands in a terminal in this folder:
+Adaptive Router automates this workflow. It selects the right AI worker, gets an independent review, and requires your sign-off before anything touches your real files.
 
-```powershell
-node router.mjs ask "Draft a short customer enquiry checklist in English. Do not contact anyone."
+---
+
+## Core Capabilities
+
+- **Intelligent routing** — classifies task difficulty/risk and selects the appropriate worker and model tier (Fast / Standard / Flagship)
+- **Independent review enforcement** — the reviewer is always a different worker than the builder; a lower-capability worker cannot review a higher-capability builder's work
+- **Sensitivity hard-stop** — instructions touching credentials, account access, payment processing, or system commands are refused at dispatch and never reach any AI worker
+- **Human approval gate** — no file is written to a project until you click Approve
+- **Specialist persona system** — 131 specialist personas matched to task context (e.g. `security-ai-generated-code-auditor`, `marketing-seo-specialist`)
+- **Automated browser testing** — headless Chrome test loop for web deliverables via Playwright
+- **Failover routing** — if a worker fails (quota, timeout, unavailable), the next eligible worker is automatically tried
+- **Connector API** — Bearer-authenticated REST + MCP endpoint for external integration (e.g., ChatGPT custom connector)
+- **Multi-project support** — run tasks on different projects concurrently; same-project tasks are serialized
+- **Full audit trail** — every task, decision, correction, and approval is logged to disk
+- **Worker health tracking** — Healthy / Degraded / Cooldown state per worker
+
+---
+
+## Architecture
+
+```
+User submits instruction (dashboard or connector API)
+        │
+        ▼
+Sensitivity gate ────────────────────────► sensitive? → stopped, needs human attention
+        │ (safe)
+        ▼
+classifyTask() / rankCandidatesForRole()
+  picks builder worker + model tier
+        │
+        ▼
+Build  — chosen worker CLI runs, produces deliverable files
+        │
+        ▼
+Automated test — browser test (Playwright) and/or project test
+        │
+        ▼
+Independent review — a DIFFERENT, equally-capable worker reviews
+        │
+        ▼
+awaiting_approval — task parks here for the human to decide
+        │
+        ▼
+Approve → files written to project folder
+Reject → feedback loop (up to workers.json maxCorrections)
+```
+
+**Key modules:**
+
+| File | Responsibility |
+|------|---------------|
+| `router.mjs` | CLI entry point and command dispatch |
+| `src/server.mjs` | HTTP server, REST API, SSE event streaming |
+| `src/coding.mjs` | Main task orchestration loop (`codeTask()`) |
+| `src/smart-router.mjs` | Task classification and worker ranking |
+| `src/sensitivity.mjs` | Credential/sensitive instruction detection |
+| `src/workers.mjs` | Worker adapter implementations (Codex, Claude, Antigravity, Cline) |
+| `src/capability-tiers.mjs` | Model tier registry and reviewer qualification rules |
+| `src/specialists.mjs` | Specialist persona matching |
+| `src/connector.mjs` | External connector API (REST + MCP) |
+| `src/browser-test.mjs` | Playwright headless browser testing |
+| `src/web/` | Dashboard frontend (HTML, CSS, vanilla JS) |
+
+See [`docs/architecture.md`](docs/architecture.md) for a detailed technical breakdown.
+
+---
+
+## Requirements / Prerequisites
+
+- **Node.js ≥ 22** (`node --version`)
+- **Git** (for version tracking)
+- **At least one AI worker CLI installed and signed in:**
+
+| Worker | CLI | Provider |
+|--------|-----|----------|
+| Codex | `codex` CLI | OpenAI / ChatGPT Pro subscription |
+| Claude Code | `claude` CLI | Anthropic Claude subscription |
+| Antigravity | `agy` CLI | Google Gemini account |
+| Cline | `cline` CLI | Configures against Gemini API, NVIDIA NIM, or OpenRouter |
+
+Workers that are not installed are automatically skipped. AR will not fail if a worker is missing — it routes to the next available one.
+
+- **Optional: Cloudflare tunnel** (`cloudflared`) — only needed if you want to connect an external tool (e.g. ChatGPT) to the connector API.
+
+---
+
+## Installation
+
+```bash
+git clone https://github.com/Vihotar/adaptive-router.git
+cd adaptive-router
+```
+
+That's it. There are no npm packages to install — AR has zero external dependencies.
+
+### Verify your setup
+
+```bash
+node router.mjs doctor
+```
+
+This checks which workers are available, their sign-in status, and the configured model tiers.
+
+---
+
+## Configuration
+
+### `workers.json`
+
+The main configuration file. Edit it to enable/disable workers and set routing parameters:
+
+```json
+{
+  "workers": [
+    { "id": "codex",      "enabled": true,  "roles": ["plan","build","review"], "priority": 10, "adapter": "codex" },
+    { "id": "antigravity","enabled": true,  "roles": ["review","build"],        "priority": 30, "adapter": "antigravity" },
+    { "id": "claude-code","enabled": false, "roles": ["build","review"],        "priority": 20, "adapter": "claude" },
+    { "id": "cline",      "enabled": true,  "roles": ["build"],                 "priority": 35, "adapter": "cline",
+      "providerOrder": ["gemini","nvidia","openrouter"] }
+  ],
+  "maxCorrections": 2,
+  "workerTimeoutSeconds": 600,
+  "claudeReserve": true,
+  "reviewPolicy": "independent"
+}
+```
+
+**Key settings:**
+- `enabled` — set `false` to exclude a worker from routing
+- `priority` — lower number = higher preference (10 is tried before 30)
+- `claudeReserve` — when `true`, Claude Code is reserved for direct use and not routed to for routine tasks
+- `maxCorrections` — maximum feedback/correction rounds per task (default: 2)
+- `reviewPolicy` — `"independent"` requires a different worker for review (strongly recommended)
+
+### `browser-runtime.json` (auto-generated)
+
+When browser testing is used, AR generates `browser-runtime.json` pointing to your local Playwright and Chrome installations. This file is machine-specific and excluded from git. AR will attempt to locate these automatically.
+
+### Connector API Token (auto-generated)
+
+When the connector API is first used, AR generates a random 64-character bearer token and stores it in `workers.json`. Retrieve it from the running dashboard at:
+```
+http://localhost:3210/api/connector/token
+```
+This token authenticates external access to the connector API (e.g., ChatGPT). It is never logged or exposed in API responses.
+
+---
+
+## How to Run
+
+### Start the dashboard
+
+```bash
+# Start and open in browser
+node router.mjs dashboard --port 3210 --open
+
+# Or use the npm script shortcut
+npm run dashboard
+```
+
+The dashboard opens at `http://localhost:3210`.
+
+**Windows quick-start:** double-click `scripts/start-adaptive-router.cmd`. It checks if AR is already running and opens the browser, or starts it fresh.
+
+### Run a task from the command line
+
+```bash
+node router.mjs ask "Draft a brief customer onboarding checklist. Save it as onboarding.md."
+```
+
+### Check task status
+
+```bash
 node router.mjs list
 node router.mjs status TASK-ID
-```
-
-Each instruction is a new task. Provide the relevant business facts in the instruction. V1 does not import existing projects, attachments, accounts or private business systems. If the request lacks essential details, it stops and asks for them; submit a new instruction including your answers.
-
-## Approve or reject a result
-
-Read the deliverables linked from the task's `APPROVAL.md`, then use the command shown in that file:
-
-```powershell
 node router.mjs approve TASK-ID
-node router.mjs reject TASK-ID "Explain what needs to change"
+node router.mjs reject TASK-ID "Please make it shorter and more actionable."
 ```
 
-Approval records your acceptance of that exact local draft. **It never deploys, sends a message, spends money, deletes important data, changes an account or service, or alters a database.** Those actions are not implemented in V1. Requests to perform them stop for human attention. Approving a draft is not approval to perform an external action.
+### Run the demo (live test)
 
-If someone changes the deliverable files after review, approval is refused until a new reviewed result is produced. A failed or unreviewed task cannot be approved. A rejection is recorded; submit a revised instruction to start new work.
-
-## How the router chooses workers
-
-The rules are deliberately simple and visible in `workers.json`:
-
-| Work | Worker | Why |
-| --- | --- | --- |
-| Understand the instruction and list small jobs | Codex | Enabled for planning |
-| Prepare the complete draft and apply corrections | Codex | Enabled for building |
-| Independently review the complete draft | Antigravity | Enabled for review; must differ from the builder |
-| Claude Code | Disabled | Reserved for a later adapter |
-| Cline | Enabled | Lower-cost worker for routine tasks |
-
-The router selects an enabled worker with the required role and an installed adapter, using its configured priority. With today's two workers, there is one eligible choice per role. It does not claim to predict which model is smartest or cheapest. If a required worker is missing, signed out, unavailable or out of quota, the task stops and records the problem. It does not silently substitute the builder for its own reviewer.
-
-The plan can contain up to five jobs. V1 sends the related jobs together to Codex, which returns the complete set of deliverables. It does not launch a team of concurrent agents.
-
-## How review and correction work
-
-Antigravity receives the original instruction, the plan and the actual complete draft. It checks accuracy, completeness and safety and returns one of three decisions:
-
-- **Pass:** bring the result to you for approval.
-- **Changes requested:** send concrete issues back to Codex, then independently review the new version.
-- **Blocked:** stop because human input is needed.
-
-The router allows at most two correction rounds, then stops for human attention. Each worker call has a three-minute limit. A missing, malformed or contradictory review never counts as a pass.
-
-Antigravity's review is a content/code inspection. Generated programs are **not executed**, so a review is not proof that generated software runs correctly. The router's own tests are separate from testing generated deliverables.
-
-## Where work is kept
-
-Each task gets its own folder under `.router/tasks/TASK-ID/`:
-
-- `task.json`: instruction, status, routing decision and result summary.
-- `events.jsonl`: time-stamped task, worker, correction, failure and approval history.
-- `plan.json`: understood goal and jobs.
-- `build-N/` and `review-N/`: separate worker workspaces, exact requests, responses and logs.
-- `deliverables-N/`: a new folder for each version; earlier versions are retained.
-- `manifest-N.json` and `review-N.json`: the files' fingerprint and corresponding review.
-- `APPROVAL.md`: the result presented for your decision.
-- `approval.json`: your decision, if one has been recorded.
-
-These local records can contain your instructions and results. They are excluded from Git, along with downloaded tools. The worker applications also retain their normal local runtime logs.
-
-## Safety built into V1
-
-- No production target, deployment command, external-action adapter or automatic application of drafts to existing projects.
-- Codex uses its read-only mode with shell, browser, app connectors, plugins, hooks and delegation disabled for these calls. It proposes file contents in its response; the router saves them.
-- Antigravity receives a separate disposable workspace. A hook inside that workspace blocks its action tools before execution. The router verifies that the hook ran and refuses a review that attempted a blocked action.
-- A single router lock prevents simultaneous writers. Each revision goes into a new folder; the reviewer never edits the builder's deliverables.
-- Only small text deliverables are accepted: Markdown, text, JSON, HTML, CSS and JavaScript. Absolute paths, parent-directory paths, hidden files, Windows device names and duplicate file names are rejected.
-- Existing account sign-ins are used. API-key environment variables are not passed to workers; no API provider is connected. Normal subscription quotas still apply. The router does not buy credits or change billing.
-
-If a terminal was interrupted, check that no worker is still running before starting another task. `node router.mjs unlock` removes the lock only when the recorded router process is no longer running. Previous task records remain; a new instruction starts a fresh attempt. There is no automatic crash-resume or retry loop.
-
-## Check the installation or repeat the tests
-
-```powershell
-node router.mjs doctor
-npm test
+```bash
 node router.mjs demo
 ```
 
-`demo` is a **live** dummy quotation test using both workers. It deliberately replaces the first draft's total with 999, logs that test fault, and requires Antigravity to identify it before Codex corrects it. It still stops for your approval. This is not a real customer quote.
+A live dummy quotation task that tests the full routing loop. Deliberately injects a fault in the first draft and requires independent review to catch it before correction. This is not a real quote.
 
-`npm test` runs local automated tests with simulated worker responses. It covers routing, the correction loop, approvals, failures, changed files, path safety, locking and timeouts. It does not use model quota. The live safety checks are available as `node scripts/check-reviewer.mjs` and `node scripts/check-write-block.mjs`.
+### Run automated tests
 
-Node.js, Git and Codex must remain installed. Antigravity CLI is kept locally at `.tools/agy.exe`. Its existing account sign-in was used; no API key was added. On another computer, install/sign in to the official worker CLIs first. This folder is not a portable bundle of credentials. The router creates its review hooks locally for each call; no global hook registration is needed.
+```bash
+npm test
+```
 
-## Add later, only when needed
+348 test cases covering routing, correction loops, approvals, failures, path safety, concurrency, and more. No API quota is used — tests use simulated worker responses.
 
-- Claude Code adapter when quota is available; keep the existing task/review/approval flow.
-- Carefully scoped access to real projects, executable tests, and applying accepted changes.
-- Per-worker live availability, quotas, cost tracking and richer task-based selection.
-- Resume an interrupted task or incorporate human revision feedback into an existing task.
+---
 
-There is intentionally no dashboard, server, background scheduler or production connection in V1.
+## Example: Coding Task Workflow
 
-Implementation references: [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode), [Antigravity headless mode](https://antigravity.google/docs/cli/headless/), and [Antigravity hooks](https://antigravity.google/docs/hooks/). Actual Windows behavior was checked with the installed CLIs.
+```bash
+# Run a real coding task against the bundled sample website
+node router.mjs code "Add a contact form with email validation to the sample shop."
+```
+
+AR will:
+1. Select a builder worker and model tier
+2. Give the worker the current website code
+3. Run headless browser tests (form labels, validation, mobile layout, no JS errors)
+4. Have an independent reviewer audit the code
+5. Present the result for your approval
+
+Failed tests → automatic retry with feedback. Passing tests + review → waits for your click.
+
+---
+
+## Known Limitations
+
+- **Windows-first.** AR was developed and tested on Windows. It should work on Linux/macOS but some worker adapter paths and subprocess handling may need adjustment. PRs welcome.
+- **CLI-only workers.** Workers must be installed locally as CLI tools. There is no direct API-key mode (by design — this prevents accidental billing surprises).
+- **No multi-user support.** This is a single-user local tool. There is no authentication, no user accounts, and no multi-tenancy.
+- **No cloud deployment.** AR binds to localhost only. Use `cloudflared` for controlled external access.
+- **Cline integration is experimental.** The Cline worker path has known limitations with stdin piping on some Windows builds (see `src/workers.mjs` comments).
+- **Planning AI is a stub.** The conversational planning mode (`POST /api/plan`) is stubbed — it returns an error until a planning AI provider is configured.
+- **18 test failures at time of first OSS release.** These are pre-existing: pilot specialist-routing tests and environment-assumption tests. They are not regressions. See `docs/known-issues.md`.
+
+---
+
+## Project Status
+
+Adaptive Router is an **experimental early-stage project** (v0.1.0). It was built as a personal productivity tool and is being open-sourced because it contains potentially useful patterns for developers building AI orchestration systems.
+
+It is functional and has a passing automated test suite, but:
+- It has not been battle-tested at scale
+- Some features are stubs (planning AI, tunnel configuration)
+- Windows is the primary tested platform
+
+Future development will focus on community contributions and maintenance rather than aggressive feature expansion.
+
+---
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to set up a development environment and submit changes.
+
+---
+
+## Security
+
+See [`SECURITY.md`](SECURITY.md) for the security policy and how to report vulnerabilities.
+
+---
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).

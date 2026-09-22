@@ -5,7 +5,7 @@ set "PORT=3210"
 set "STATUS_URL=http://127.0.0.1:%PORT%/api/status"
 set "FALLBACK_STATUS_URL=http://localhost:%PORT%/api/status"
 set "DASHBOARD_URL=http://localhost:%PORT%"
-set "PROJECT_DIR=C:\projects\adaptive-router\AI Projects\Adaptive Router"
+set "PROJECT_DIR=%~dp0.."
 
 :: 1. Check whether Adaptive Router is already responding
 curl.exe -s -o NUL --connect-timeout 2 "%STATUS_URL%"
