@@ -26,8 +26,7 @@
       ],
       "priority": "high",
       "recommendationReason": "Cryptographic proof of agent actions, zero-trust verification, and audit trails",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\agentic-identity-trust.md"
+      "relatedSpecialists": []
     },
     {
       "id": "agents-orchestrator",
@@ -45,8 +44,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\agents-orchestrator.md"
+      "relatedSpecialists": []
     },
     {
       "id": "automation-governance-architect",
@@ -68,13 +66,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\automation-governance-architect.md"
+      "relatedSpecialists": []
     },
     {
       "id": "business-strategist",
       "name": "Business Strategist",
-      "expertise": "Senior management consulting specialist for competitive analysis, market entry strategy, business model design, growth planning, organizational strategy, and strategic decision-making \u2014 translating complex market dynamics into clear, actionable strategies that create sustainable competitive advantage",
+      "expertise": "Senior management consulting specialist for competitive analysis, market entry strategy, business model design, growth planning, organizational strategy, and strategic decision-making — translating complex market dynamics into clear, actionable strategies that create sustainable competitive advantage",
       "mainCategory": "General Business & Strategy",
       "classification": "A. Portable",
       "portable": true,
@@ -91,13 +88,12 @@
       ],
       "priority": "high",
       "recommendationReason": "High-leverage business model validation, market positioning, and ROI prioritization",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\business-strategist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "chief-financial-officer",
       "name": "Chief Financial Officer",
-      "expertise": "Strategic finance executive who governs capital allocation, treasury operations, financial planning, M&A finance, investor relations, and board reporting \u2014 translating financial complexity into clear decisions that drive business performance and stakeholder confidence.",
+      "expertise": "Strategic finance executive who governs capital allocation, treasury operations, financial planning, M&A finance, investor relations, and board reporting — translating financial complexity into clear decisions that drive business performance and stakeholder confidence.",
       "mainCategory": "General Business & Strategy",
       "classification": "A. Portable",
       "portable": true,
@@ -119,13 +115,12 @@
         "finance-financial-analyst",
         "finance-fpa-analyst",
         "support-finance-tracker"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\chief-financial-officer.md"
+      ]
     },
     {
       "id": "customer-service",
       "name": "Customer Service",
-      "expertise": "Friendly, professional customer service specialist for any industry \u2014 handling inquiries, complaints, account support, FAQs, and seamless escalation with warmth, efficiency, and a genuine commitment to customer satisfaction",
+      "expertise": "Friendly, professional customer service specialist for any industry — handling inquiries, complaints, account support, FAQs, and seamless escalation with warmth, efficiency, and a genuine commitment to customer satisfaction",
       "mainCategory": "Customer Operations",
       "classification": "A. Portable",
       "portable": true,
@@ -142,13 +137,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\customer-service.md"
+      "relatedSpecialists": []
     },
     {
       "id": "customer-success-manager",
       "name": "Customer Success Manager",
-      "expertise": "Strategic customer success specialist for onboarding, health scoring, QBR facilitation, churn prevention, expansion identification, and renewal management \u2014 driving net revenue retention by turning customers into long-term partners who achieve measurable outcomes",
+      "expertise": "Strategic customer success specialist for onboarding, health scoring, QBR facilitation, churn prevention, expansion identification, and renewal management — driving net revenue retention by turning customers into long-term partners who achieve measurable outcomes",
       "mainCategory": "Customer Operations",
       "classification": "A. Portable",
       "portable": true,
@@ -165,13 +159,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\customer-success-manager.md"
+      "relatedSpecialists": []
     },
     {
       "id": "data-privacy-officer",
       "name": "Data Privacy Officer",
-      "expertise": "Corporate data privacy specialist and DPO who builds GDPR, CCPA, and global privacy compliance programs \u2014 covering data mapping, privacy impact assessments, consent management, breach response, vendor due diligence, and regulatory engagement.",
+      "expertise": "Corporate data privacy specialist and DPO who builds GDPR, CCPA, and global privacy compliance programs — covering data mapping, privacy impact assessments, consent management, breach response, vendor due diligence, and regulatory engagement.",
       "mainCategory": "General Business & Strategy",
       "classification": "A. Portable",
       "portable": true,
@@ -188,8 +181,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\data-privacy-officer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "design-brand-guardian",
@@ -211,8 +203,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\design-brand-guardian.md"
+      "relatedSpecialists": []
     },
     {
       "id": "design-image-prompt-engineer",
@@ -234,8 +225,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\design-image-prompt-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "design-inclusive-visuals-specialist",
@@ -257,13 +247,12 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\design-inclusive-visuals-specialist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "design-persona-walkthrough",
       "name": "Persona Walkthrough Specialist",
-      "expertise": "Simulate cognitive walkthroughs of web pages from a defined persona's psychological perspective \u2014 captures emotional reactions and rational thought at each scroll position, then delivers structured CRO reports grounded in LIFT, Cialdini, and Fogg frameworks",
+      "expertise": "Simulate cognitive walkthroughs of web pages from a defined persona's psychological perspective — captures emotional reactions and rational thought at each scroll position, then delivers structured CRO reports grounded in LIFT, Cialdini, and Fogg frameworks",
       "mainCategory": "UI/UX & Design",
       "classification": "A. Portable",
       "portable": true,
@@ -280,8 +269,7 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\design-persona-walkthrough.md"
+      "relatedSpecialists": []
     },
     {
       "id": "design-ui-designer",
@@ -309,8 +297,7 @@
         "engineering-rapid-prototyper",
         "design-ux-architect",
         "design-ui-finish-gate-reviewer"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\design-ui-designer.md"
+      ]
     },
     {
       "id": "design-ui-finish-gate-reviewer",
@@ -338,8 +325,7 @@
         "engineering-rapid-prototyper",
         "design-ui-designer",
         "design-ux-architect"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\design-ui-finish-gate-reviewer.md"
+      ]
     },
     {
       "id": "design-ux-architect",
@@ -367,8 +353,7 @@
         "engineering-rapid-prototyper",
         "design-ui-designer",
         "design-ui-finish-gate-reviewer"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\design-ux-architect.md"
+      ]
     },
     {
       "id": "design-ux-researcher",
@@ -390,8 +375,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\design-ux-researcher.md"
+      "relatedSpecialists": []
     },
     {
       "id": "design-visual-storyteller",
@@ -413,8 +397,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\design-visual-storyteller.md"
+      "relatedSpecialists": []
     },
     {
       "id": "design-whimsy-injector",
@@ -436,8 +419,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\design-whimsy-injector.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-ai-engineer",
@@ -459,13 +441,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-ai-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-api-platform-engineer",
       "name": "API Platform Engineer",
-      "expertise": "Expert API platform engineer for public and partner APIs \u2014 contract-first design (OpenAPI/gRPC), versioning and deprecation policy, SDK generation, API gateway concerns (auth, rate limiting, quotas), and developer-portal DX.",
+      "expertise": "Expert API platform engineer for public and partner APIs — contract-first design (OpenAPI/gRPC), versioning and deprecation policy, SDK generation, API gateway concerns (auth, rate limiting, quotas), and developer-portal DX.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -482,8 +463,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-api-platform-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-autonomous-optimization-architect",
@@ -505,8 +485,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-autonomous-optimization-architect.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-backend-architect",
@@ -528,8 +507,7 @@
       ],
       "priority": "high",
       "recommendationReason": "Core system architecture, scalable APIs, and database schema designs",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-backend-architect.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-cms-developer",
@@ -551,13 +529,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-cms-developer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-code-reviewer",
       "name": "Code Reviewer",
-      "expertise": "Expert code reviewer who provides constructive, actionable feedback focused on correctness, maintainability, security, and performance \u2014 not style preferences.",
+      "expertise": "Expert code reviewer who provides constructive, actionable feedback focused on correctness, maintainability, security, and performance — not style preferences.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -574,8 +551,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-code-reviewer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-codebase-onboarding-engineer",
@@ -597,13 +573,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-codebase-onboarding-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-data-visualization-engineer",
       "name": "Data Visualization Engineer",
-      "expertise": "Expert data visualization engineer \u2014 chart-type selection by data and question, perceptually honest encodings, colorblind-safe data palettes, accessible and interactive charts, and rendering large datasets performantly with D3, Vega, and charting libraries.",
+      "expertise": "Expert data visualization engineer — chart-type selection by data and question, perceptually honest encodings, colorblind-safe data palettes, accessible and interactive charts, and rendering large datasets performantly with D3, Vega, and charting libraries.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -620,8 +595,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-data-visualization-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-database-optimizer",
@@ -645,13 +619,12 @@
       "recommendationReason": "Standard specialist",
       "relatedSpecialists": [
         "engineering-database-reliability-engineer"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-database-optimizer.md"
+      ]
     },
     {
       "id": "engineering-database-reliability-engineer",
       "name": "Database Reliability Engineer",
-      "expertise": "Expert database reliability engineer (DBRE) \u2014 high availability and replication, automated failover, backup and point-in-time recovery, zero-downtime online schema migrations, connection pooling, and disaster-recovery drills. Focused on keeping data safe and available, not query tuning.",
+      "expertise": "Expert database reliability engineer (DBRE) — high availability and replication, automated failover, backup and point-in-time recovery, zero-downtime online schema migrations, connection pooling, and disaster-recovery drills. Focused on keeping data safe and available, not query tuning.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -670,13 +643,12 @@
       "recommendationReason": "Standard specialist",
       "relatedSpecialists": [
         "engineering-database-optimizer"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-database-reliability-engineer.md"
+      ]
     },
     {
       "id": "engineering-desktop-app-engineer",
       "name": "Desktop App Engineer",
-      "expertise": "Expert desktop application engineer for Electron and Tauri \u2014 secure IPC and process isolation, code signing and notarization, auto-update pipelines, native OS integration, and resource-footprint discipline.",
+      "expertise": "Expert desktop application engineer for Electron and Tauri — secure IPC and process isolation, code signing and notarization, auto-update pipelines, native OS integration, and resource-footprint discipline.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -693,8 +665,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-desktop-app-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-devops-automator",
@@ -715,8 +686,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-devops-automator.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-drupal-performance",
@@ -738,8 +708,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-drupal-performance.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-drupal-shopping-cart",
@@ -761,13 +730,12 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-drupal-shopping-cart.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-finops-engineer",
       "name": "FinOps Engineer",
-      "expertise": "Expert cloud cost engineer for AWS/GCP/Azure \u2014 cost allocation and tagging, rightsizing, commitment planning (reserved instances/savings plans), egress and storage optimization, and unit-economics dashboards that tie spend to business value.",
+      "expertise": "Expert cloud cost engineer for AWS/GCP/Azure — cost allocation and tagging, rightsizing, commitment planning (reserved instances/savings plans), egress and storage optimization, and unit-economics dashboards that tie spend to business value.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -784,8 +752,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-finops-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-frontend-developer",
@@ -813,8 +780,7 @@
         "design-ui-designer",
         "design-ux-architect",
         "design-ui-finish-gate-reviewer"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-frontend-developer.md"
+      ]
     },
     {
       "id": "engineering-git-workflow-master",
@@ -836,8 +802,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-git-workflow-master.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-i18n-engineer",
@@ -859,8 +824,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-i18n-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-identity-access-engineer",
@@ -882,8 +846,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-identity-access-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-incident-response-commander",
@@ -905,13 +868,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-incident-response-commander.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-minimal-change-engineer",
       "name": "Minimal Change Engineer",
-      "expertise": "Engineering specialist focused on minimum-viable diffs \u2014 fixes only what was asked, refuses scope creep, prefers three similar lines over a premature abstraction. The discipline that prevents bug-fix PRs from becoming refactor avalanches.",
+      "expertise": "Engineering specialist focused on minimum-viable diffs — fixes only what was asked, refuses scope creep, prefers three similar lines over a premature abstraction. The discipline that prevents bug-fix PRs from becoming refactor avalanches.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -928,8 +890,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-minimal-change-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-mobile-app-builder",
@@ -951,13 +912,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-mobile-app-builder.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-mobile-release-engineer",
       "name": "Mobile Release Engineer",
-      "expertise": "Expert mobile release and distribution engineer for iOS and Android \u2014 code signing, provisioning, fastlane pipelines, App Store Connect and Play Console submission, phased rollouts, and crash-triaged release health.",
+      "expertise": "Expert mobile release and distribution engineer for iOS and Android — code signing, provisioning, fastlane pipelines, App Store Connect and Play Console submission, phased rollouts, and crash-triaged release health.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -974,13 +934,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-mobile-release-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-multi-agent-systems-architect",
       "name": "Multi-Agent Systems Architect",
-      "expertise": "Systems architect specializing in the design, coordination, and governance of multi-agent AI pipelines \u2014 covering topology selection, context management, inter-agent trust, failure recovery, human-in-the-loop gating, and observability for production-grade agent systems.",
+      "expertise": "Systems architect specializing in the design, coordination, and governance of multi-agent AI pipelines — covering topology selection, context management, inter-agent trust, failure recovery, human-in-the-loop gating, and observability for production-grade agent systems.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -997,8 +956,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-multi-agent-systems-architect.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-payments-billing-engineer",
@@ -1020,13 +978,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-payments-billing-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-privacy-engineer",
       "name": "Privacy Engineer",
-      "expertise": "Expert privacy engineer who implements privacy in code \u2014 PII discovery and classification, data minimization, consent enforcement at the API layer, automated DSAR and deletion across services, pseudonymization/tokenization, and retention automation. Builds the technical controls a privacy policy only promises.",
+      "expertise": "Expert privacy engineer who implements privacy in code — PII discovery and classification, data minimization, consent enforcement at the API layer, automated DSAR and deletion across services, pseudonymization/tokenization, and retention automation. Builds the technical controls a privacy policy only promises.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -1043,13 +1000,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-privacy-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-prompt-engineer",
       "name": "Prompt Engineer",
-      "expertise": "Specialist in crafting, testing, and systematically optimizing prompts for LLMs \u2014 turning vague instructions into reliable, production-grade AI behaviors.",
+      "expertise": "Specialist in crafting, testing, and systematically optimizing prompts for LLMs — turning vague instructions into reliable, production-grade AI behaviors.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -1066,13 +1022,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-prompt-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-rag-pipeline-engineer",
       "name": "RAG Pipeline Engineer",
-      "expertise": "Production RAG specialist focused on chunking strategy, retrieval quality, hybrid search, re-ranking, and eval-driven iteration. Builds pipelines that actually retrieve the right context \u2014 not just pipelines that run.",
+      "expertise": "Production RAG specialist focused on chunking strategy, retrieval quality, hybrid search, re-ranking, and eval-driven iteration. Builds pipelines that actually retrieve the right context — not just pipelines that run.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -1089,8 +1044,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-rag-pipeline-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-rapid-prototyper",
@@ -1118,13 +1072,12 @@
         "design-ui-designer",
         "design-ux-architect",
         "design-ui-finish-gate-reviewer"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-rapid-prototyper.md"
+      ]
     },
     {
       "id": "engineering-search-relevance-engineer",
       "name": "Search Relevance Engineer",
-      "expertise": "Expert search engineer for Elasticsearch and OpenSearch \u2014 index and analyzer design, BM25 query tuning, hybrid lexical+vector retrieval, and judgment-based relevance evaluation with nDCG and online experiments.",
+      "expertise": "Expert search engineer for Elasticsearch and OpenSearch — index and analyzer design, BM25 query tuning, hybrid lexical+vector retrieval, and judgment-based relevance evaluation with nDCG and online experiments.",
       "mainCategory": "Engineering & Architecture",
       "classification": "A. Portable",
       "portable": true,
@@ -1141,8 +1094,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-search-relevance-engineer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-software-architect",
@@ -1164,8 +1116,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-software-architect.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-sre",
@@ -1187,8 +1138,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-sre.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-technical-writer",
@@ -1210,8 +1160,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-technical-writer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-wordpress-performance",
@@ -1233,8 +1182,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-wordpress-performance.md"
+      "relatedSpecialists": []
     },
     {
       "id": "engineering-wordpress-shopping-cart",
@@ -1256,8 +1204,7 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\engineering-wordpress-shopping-cart.md"
+      "relatedSpecialists": []
     },
     {
       "id": "finance-bookkeeper-controller",
@@ -1284,8 +1231,7 @@
         "finance-fpa-analyst",
         "chief-financial-officer",
         "support-finance-tracker"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\finance-bookkeeper-controller.md"
+      ]
     },
     {
       "id": "finance-financial-analyst",
@@ -1312,8 +1258,7 @@
         "finance-fpa-analyst",
         "chief-financial-officer",
         "support-finance-tracker"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\finance-financial-analyst.md"
+      ]
     },
     {
       "id": "finance-fpa-analyst",
@@ -1340,8 +1285,7 @@
         "finance-financial-analyst",
         "chief-financial-officer",
         "support-finance-tracker"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\finance-fpa-analyst.md"
+      ]
     },
     {
       "id": "finance-investment-researcher",
@@ -1363,8 +1307,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\finance-investment-researcher.md"
+      "relatedSpecialists": []
     },
     {
       "id": "finance-tax-strategist",
@@ -1386,13 +1329,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\finance-tax-strategist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-aeo-foundations",
       "name": "AEO Foundations Architect",
-      "expertise": "Expert in AI Engine Optimization infrastructure \u2014 implements llms.txt, AI-aware robots.txt, token-budgeted content, structured Markdown availability, and agent discovery files so AI crawlers, citation engines, and browsing agents can find, parse, and act on your site",
+      "expertise": "Expert in AI Engine Optimization infrastructure — implements llms.txt, AI-aware robots.txt, token-budgeted content, structured Markdown availability, and agent discovery files so AI crawlers, citation engines, and browsing agents can find, parse, and act on your site",
       "mainCategory": "Marketing & SEO",
       "classification": "A. Portable",
       "portable": true,
@@ -1413,13 +1355,12 @@
         "marketing-agentic-search-optimizer",
         "marketing-ai-citation-strategist",
         "marketing-seo-specialist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-aeo-foundations.md"
+      ]
     },
     {
       "id": "marketing-agentic-search-optimizer",
       "name": "Agentic Search Optimizer",
-      "expertise": "Expert in WebMCP readiness and agentic task completion \u2014 audits whether AI agents can actually accomplish tasks on your site (book, buy, register, subscribe), implements WebMCP declarative and imperative patterns, and measures task completion rates across AI browsing agents",
+      "expertise": "Expert in WebMCP readiness and agentic task completion — audits whether AI agents can actually accomplish tasks on your site (book, buy, register, subscribe), implements WebMCP declarative and imperative patterns, and measures task completion rates across AI browsing agents",
       "mainCategory": "Marketing & SEO",
       "classification": "A. Portable",
       "portable": true,
@@ -1440,13 +1381,12 @@
         "marketing-aeo-foundations",
         "marketing-ai-citation-strategist",
         "marketing-seo-specialist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-agentic-search-optimizer.md"
+      ]
     },
     {
       "id": "marketing-ai-citation-strategist",
       "name": "AI Citation Strategist",
-      "expertise": "Expert in AI recommendation engine optimization (AEO/GEO) \u2014 audits brand visibility across ChatGPT, Claude, Gemini, and Perplexity, identifies why competitors get cited instead, and delivers content fixes that improve AI citations",
+      "expertise": "Expert in AI recommendation engine optimization (AEO/GEO) — audits brand visibility across ChatGPT, Claude, Gemini, and Perplexity, identifies why competitors get cited instead, and delivers content fixes that improve AI citations",
       "mainCategory": "Marketing & SEO",
       "classification": "A. Portable",
       "portable": true,
@@ -1467,8 +1407,7 @@
         "marketing-aeo-foundations",
         "marketing-agentic-search-optimizer",
         "marketing-seo-specialist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-ai-citation-strategist.md"
+      ]
     },
     {
       "id": "marketing-app-store-optimizer",
@@ -1490,8 +1429,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-app-store-optimizer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-carousel-growth-engine",
@@ -1513,8 +1451,7 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-carousel-growth-engine.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-content-creator",
@@ -1536,8 +1473,7 @@
       ],
       "priority": "high",
       "recommendationReason": "Clear value-proposition copywriting, landing page copy, and audience messaging",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-content-creator.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-cross-border-ecommerce",
@@ -1559,8 +1495,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-cross-border-ecommerce.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-email-strategist",
@@ -1582,8 +1517,7 @@
       ],
       "priority": "high",
       "recommendationReason": "Customer onboarding flows, transactional email clarity, and conversion messaging",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-email-strategist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-growth-hacker",
@@ -1605,8 +1539,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-growth-hacker.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-instagram-curator",
@@ -1628,8 +1561,7 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-instagram-curator.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-linkedin-content-creator",
@@ -1651,8 +1583,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-linkedin-content-creator.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-reddit-community-builder",
@@ -1674,8 +1605,7 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-reddit-community-builder.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-seo-specialist",
@@ -1701,8 +1631,7 @@
         "marketing-aeo-foundations",
         "marketing-agentic-search-optimizer",
         "marketing-ai-citation-strategist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-seo-specialist.md"
+      ]
     },
     {
       "id": "marketing-short-video-editing-coach",
@@ -1724,8 +1653,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-short-video-editing-coach.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-social-media-strategist",
@@ -1747,8 +1675,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-social-media-strategist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-tiktok-strategist",
@@ -1770,8 +1697,7 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-tiktok-strategist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-twitter-engager",
@@ -1793,8 +1719,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-twitter-engager.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-video-optimization-specialist",
@@ -1816,8 +1741,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-video-optimization-specialist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "marketing-x-twitter-intelligence-analyst",
@@ -1839,8 +1763,7 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\marketing-x-twitter-intelligence-analyst.md"
+      "relatedSpecialists": []
     },
     {
       "id": "paid-media-auditor",
@@ -1867,8 +1790,7 @@
         "paid-media-programmatic-buyer",
         "paid-media-search-query-analyst",
         "paid-media-tracking-specialist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-auditor.md"
+      ]
     },
     {
       "id": "paid-media-creative-strategist",
@@ -1895,8 +1817,7 @@
         "paid-media-programmatic-buyer",
         "paid-media-search-query-analyst",
         "paid-media-tracking-specialist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-creative-strategist.md"
+      ]
     },
     {
       "id": "paid-media-paid-social-strategist",
@@ -1923,8 +1844,7 @@
         "paid-media-programmatic-buyer",
         "paid-media-search-query-analyst",
         "paid-media-tracking-specialist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-paid-social-strategist.md"
+      ]
     },
     {
       "id": "paid-media-ppc-strategist",
@@ -1951,8 +1871,7 @@
         "paid-media-programmatic-buyer",
         "paid-media-search-query-analyst",
         "paid-media-tracking-specialist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-ppc-strategist.md"
+      ]
     },
     {
       "id": "paid-media-programmatic-buyer",
@@ -1979,8 +1898,7 @@
         "paid-media-ppc-strategist",
         "paid-media-search-query-analyst",
         "paid-media-tracking-specialist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-programmatic-buyer.md"
+      ]
     },
     {
       "id": "paid-media-search-query-analyst",
@@ -2007,8 +1925,7 @@
         "paid-media-ppc-strategist",
         "paid-media-programmatic-buyer",
         "paid-media-tracking-specialist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-search-query-analyst.md"
+      ]
     },
     {
       "id": "paid-media-tracking-specialist",
@@ -2035,8 +1952,7 @@
         "paid-media-ppc-strategist",
         "paid-media-programmatic-buyer",
         "paid-media-search-query-analyst"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\paid-media-tracking-specialist.md"
+      ]
     },
     {
       "id": "personal-growth-mentor",
@@ -2058,8 +1974,7 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\personal-growth-mentor.md"
+      "relatedSpecialists": []
     },
     {
       "id": "product-behavioral-nudge-engine",
@@ -2081,8 +1996,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\product-behavioral-nudge-engine.md"
+      "relatedSpecialists": []
     },
     {
       "id": "product-feedback-synthesizer",
@@ -2104,13 +2018,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\product-feedback-synthesizer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "product-manager",
       "name": "Product Manager",
-      "expertise": "Holistic product leader who owns the full product lifecycle \u2014 from discovery and strategy through roadmap, stakeholder alignment, go-to-market, and outcome measurement. Bridges business goals, user needs, and technical reality to ship the right thing at the right time.",
+      "expertise": "Holistic product leader who owns the full product lifecycle — from discovery and strategy through roadmap, stakeholder alignment, go-to-market, and outcome measurement. Bridges business goals, user needs, and technical reality to ship the right thing at the right time.",
       "mainCategory": "Product & Strategy",
       "classification": "A. Portable",
       "portable": true,
@@ -2127,8 +2040,7 @@
       ],
       "priority": "high",
       "recommendationReason": "Synthesizes user requests into tight feature specs and acceptance criteria",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\product-manager.md"
+      "relatedSpecialists": []
     },
     {
       "id": "product-sprint-prioritizer",
@@ -2150,8 +2062,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\product-sprint-prioritizer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "product-trend-researcher",
@@ -2173,8 +2084,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\product-trend-researcher.md"
+      "relatedSpecialists": []
     },
     {
       "id": "project-management-experiment-tracker",
@@ -2196,8 +2106,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\project-management-experiment-tracker.md"
+      "relatedSpecialists": []
     },
     {
       "id": "project-management-meeting-notes-specialist",
@@ -2219,8 +2128,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\project-management-meeting-notes-specialist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "project-management-project-shepherd",
@@ -2242,8 +2150,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\project-management-project-shepherd.md"
+      "relatedSpecialists": []
     },
     {
       "id": "project-management-studio-producer",
@@ -2265,8 +2172,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\project-management-studio-producer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "resume-tailor",
@@ -2288,13 +2194,12 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\resume-tailor.md"
+      "relatedSpecialists": []
     },
     {
       "id": "retail-customer-returns",
       "name": "Retail Customer Returns",
-      "expertise": "Comprehensive retail customer returns specialist for processing returns, exchanges, and refunds across in-store, online, and omnichannel retail \u2014 handling policy enforcement, fraud prevention, customer retention, vendor returns, and returns analytics to maximize recovery while preserving customer loyalty",
+      "expertise": "Comprehensive retail customer returns specialist for processing returns, exchanges, and refunds across in-store, online, and omnichannel retail — handling policy enforcement, fraud prevention, customer retention, vendor returns, and returns analytics to maximize recovery while preserving customer loyalty",
       "mainCategory": "Customer Operations",
       "classification": "A. Portable",
       "portable": true,
@@ -2311,8 +2216,7 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\retail-customer-returns.md"
+      "relatedSpecialists": []
     },
     {
       "id": "sales-account-strategist",
@@ -2341,8 +2245,7 @@
         "sales-outbound-strategist",
         "sales-pipeline-analyst",
         "sales-proposal-strategist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-account-strategist.md"
+      ]
     },
     {
       "id": "sales-coach",
@@ -2371,13 +2274,12 @@
         "sales-outbound-strategist",
         "sales-pipeline-analyst",
         "sales-proposal-strategist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-coach.md"
+      ]
     },
     {
       "id": "sales-discovery-coach",
       "name": "Discovery Coach",
-      "expertise": "Coaches sales teams on elite discovery methodology \u2014 question design, current-state mapping, gap quantification, and call structure that surfaces real buying motivation.",
+      "expertise": "Coaches sales teams on elite discovery methodology — question design, current-state mapping, gap quantification, and call structure that surfaces real buying motivation.",
       "mainCategory": "Sales & Growth",
       "classification": "A. Portable",
       "portable": true,
@@ -2401,8 +2303,7 @@
         "sales-outbound-strategist",
         "sales-pipeline-analyst",
         "sales-proposal-strategist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-discovery-coach.md"
+      ]
     },
     {
       "id": "sales-offer-lead-gen-strategist",
@@ -2431,13 +2332,12 @@
         "sales-outbound-strategist",
         "sales-pipeline-analyst",
         "sales-proposal-strategist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-offer-lead-gen-strategist.md"
+      ]
     },
     {
       "id": "sales-outbound-strategist",
       "name": "Outbound Strategist",
-      "expertise": "Signal-based outbound specialist who designs multi-channel prospecting sequences, defines ICPs, and builds pipeline through research-driven personalization \u2014 not volume.",
+      "expertise": "Signal-based outbound specialist who designs multi-channel prospecting sequences, defines ICPs, and builds pipeline through research-driven personalization — not volume.",
       "mainCategory": "Sales & Growth",
       "classification": "A. Portable",
       "portable": true,
@@ -2461,8 +2361,7 @@
         "sales-offer-lead-gen-strategist",
         "sales-pipeline-analyst",
         "sales-proposal-strategist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-outbound-strategist.md"
+      ]
     },
     {
       "id": "sales-pipeline-analyst",
@@ -2491,8 +2390,7 @@
         "sales-offer-lead-gen-strategist",
         "sales-outbound-strategist",
         "sales-proposal-strategist"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-pipeline-analyst.md"
+      ]
     },
     {
       "id": "sales-proposal-strategist",
@@ -2521,13 +2419,12 @@
         "sales-offer-lead-gen-strategist",
         "sales-outbound-strategist",
         "sales-pipeline-analyst"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\sales-proposal-strategist.md"
+      ]
     },
     {
       "id": "security-ai-generated-code-auditor",
       "name": "AI-Generated Code Security Auditor",
-      "expertise": "Security reviewer for AI-generated and vibe-coded apps \u2014 hunts the hardcoded secrets, broken row-level security, and prompt-injection sinks that coding assistants ship by default, then drives a scan, fix, and rescan loop with honest, CWE-mapped findings.",
+      "expertise": "Security reviewer for AI-generated and vibe-coded apps — hunts the hardcoded secrets, broken row-level security, and prompt-injection sinks that coding assistants ship by default, then drives a scan, fix, and rescan loop with honest, CWE-mapped findings.",
       "mainCategory": "Security & Trust",
       "classification": "A. Portable",
       "portable": true,
@@ -2550,8 +2447,7 @@
         "security-compliance-auditor",
         "security-secrets-credential-engineer",
         "security-senior-secops"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\security-ai-generated-code-auditor.md"
+      ]
     },
     {
       "id": "security-appsec-engineer",
@@ -2579,8 +2475,7 @@
         "security-compliance-auditor",
         "security-secrets-credential-engineer",
         "security-senior-secops"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\security-appsec-engineer.md"
+      ]
     },
     {
       "id": "security-architect",
@@ -2608,13 +2503,12 @@
         "security-compliance-auditor",
         "security-secrets-credential-engineer",
         "security-senior-secops"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\security-architect.md"
+      ]
     },
     {
       "id": "security-compliance-auditor",
       "name": "Compliance Auditor",
-      "expertise": "Expert technical compliance auditor specializing in SOC 2, ISO 27001, HIPAA, and PCI-DSS audits \u2014 from readiness assessment through evidence collection to certification.",
+      "expertise": "Expert technical compliance auditor specializing in SOC 2, ISO 27001, HIPAA, and PCI-DSS audits — from readiness assessment through evidence collection to certification.",
       "mainCategory": "Security & Trust",
       "classification": "A. Portable",
       "portable": true,
@@ -2637,13 +2531,12 @@
         "security-architect",
         "security-secrets-credential-engineer",
         "security-senior-secops"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\security-compliance-auditor.md"
+      ]
     },
     {
       "id": "security-secrets-credential-engineer",
       "name": "Secrets & Credential Hygiene Engineer",
-      "expertise": "Owns the full lifecycle of secrets and credentials \u2014 detection, prevention, vaulting, rotation, and leak response \u2014 so an application runs on short-lived, least-privilege credentials that are never in the code and are already rotated by the time a leak is found.",
+      "expertise": "Owns the full lifecycle of secrets and credentials — detection, prevention, vaulting, rotation, and leak response — so an application runs on short-lived, least-privilege credentials that are never in the code and are already rotated by the time a leak is found.",
       "mainCategory": "Security & Trust",
       "classification": "A. Portable",
       "portable": true,
@@ -2666,13 +2559,12 @@
         "security-architect",
         "security-compliance-auditor",
         "security-senior-secops"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\security-secrets-credential-engineer.md"
+      ]
     },
     {
       "id": "security-senior-secops",
       "name": "Senior SecOps Engineer",
-      "expertise": "Defensive application security specialist who scans every code submission for secrets and sensitive data exposure before anything else, then implements or audits security controls following the organization's security standard \u2014 covering authentication, authorization, tokens, cookies, HTTP headers, CORS, rate limiting, CSP, secrets management, input validation, and secure logging.",
+      "expertise": "Defensive application security specialist who scans every code submission for secrets and sensitive data exposure before anything else, then implements or audits security controls following the organization's security standard — covering authentication, authorization, tokens, cookies, HTTP headers, CORS, rate limiting, CSP, secrets management, input validation, and secure logging.",
       "mainCategory": "Security & Trust",
       "classification": "C. Tool-Dependent",
       "portable": true,
@@ -2694,13 +2586,12 @@
         "security-architect",
         "security-compliance-auditor",
         "security-secrets-credential-engineer"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\security-senior-secops.md"
+      ]
     },
     {
       "id": "specialized-chief-of-staff",
       "name": "Chief of Staff",
-      "expertise": "Master coordinator for founders and executives \u2014 filters noise, owns processes, enforces consistency, routes decisions, and positions outputs for impact so the boss can think clearly.",
+      "expertise": "Master coordinator for founders and executives — filters noise, owns processes, enforces consistency, routes decisions, and positions outputs for impact so the boss can think clearly.",
       "mainCategory": "Specialized & Workflows",
       "classification": "A. Portable",
       "portable": true,
@@ -2717,8 +2608,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-chief-of-staff.md"
+      "relatedSpecialists": []
     },
     {
       "id": "specialized-codebase-archaeologist",
@@ -2740,8 +2630,7 @@
       ],
       "priority": "high",
       "recommendationReason": "Deep bug hunting, multi-tool code drift detection, and silent logic failure analysis",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-codebase-archaeologist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "specialized-cultural-intelligence-strategist",
@@ -2763,8 +2652,7 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-cultural-intelligence-strategist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "specialized-document-generator",
@@ -2786,8 +2674,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-document-generator.md"
+      "relatedSpecialists": []
     },
     {
       "id": "specialized-mcp-builder",
@@ -2809,13 +2696,12 @@
       ],
       "priority": "high",
       "recommendationReason": "Builds, tests, and standardizes production Model Context Protocol (MCP) integrations",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-mcp-builder.md"
+      "relatedSpecialists": []
     },
     {
       "id": "specialized-pricing-analyst",
       "name": "Pricing Analyst",
-      "expertise": "Specialized pricing analyst who develops optimal pricing models through market research, competitor analysis, cost structure evaluation, and margin optimization \u2014 turning pricing from guesswork into a data-driven competitive advantage.",
+      "expertise": "Specialized pricing analyst who develops optimal pricing models through market research, competitor analysis, cost structure evaluation, and margin optimization — turning pricing from guesswork into a data-driven competitive advantage.",
       "mainCategory": "Specialized & Workflows",
       "classification": "A. Portable",
       "portable": true,
@@ -2832,13 +2718,12 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-pricing-analyst.md"
+      "relatedSpecialists": []
     },
     {
       "id": "specialized-workflow-architect",
       "name": "Workflow Architect",
-      "expertise": "Workflow design specialist who maps complete workflow trees for every system, user journey, and agent interaction \u2014 covering happy paths, all branch conditions, failure modes, recovery paths, handoff contracts, and observable states to produce build-ready specs that agents can implement against and QA can test against.",
+      "expertise": "Workflow design specialist who maps complete workflow trees for every system, user journey, and agent interaction — covering happy paths, all branch conditions, failure modes, recovery paths, handoff contracts, and observable states to produce build-ready specs that agents can implement against and QA can test against.",
       "mainCategory": "Specialized & Workflows",
       "classification": "A. Portable",
       "portable": true,
@@ -2855,13 +2740,12 @@
       ],
       "priority": "high",
       "recommendationReason": "Automated pipelines, multi-step repeatable recipes, and error-handling workflows",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\specialized-workflow-architect.md"
+      "relatedSpecialists": []
     },
     {
       "id": "study-abroad-advisor",
       "name": "Study Abroad Advisor",
-      "expertise": "Full-spectrum study abroad planning expert covering the US, UK, Canada, Australia, Europe, Hong Kong, and Singapore \u2014 proficient in undergraduate, master's, and PhD application strategy, school selection, essay coaching, profile enhancement, standardized test planning, visa preparation, and overseas life adaptation, helping Chinese students craft personalized end-to-end study abroad plans.",
+      "expertise": "Full-spectrum study abroad planning expert covering the US, UK, Canada, Australia, Europe, Hong Kong, and Singapore — proficient in undergraduate, master's, and PhD application strategy, school selection, essay coaching, profile enhancement, standardized test planning, visa preparation, and overseas life adaptation, helping Chinese students craft personalized end-to-end study abroad plans.",
       "mainCategory": "Personal & Advisory",
       "classification": "A. Portable",
       "portable": true,
@@ -2878,13 +2762,12 @@
       ],
       "priority": "low",
       "recommendationReason": "Niche / highly specific domain with limited daily utility",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\study-abroad-advisor.md"
+      "relatedSpecialists": []
     },
     {
       "id": "supply-chain-strategist",
       "name": "Supply Chain Strategist",
-      "expertise": "Expert supply chain management and procurement strategy specialist \u2014 skilled in supplier development, strategic sourcing, quality control, and supply chain digitalization. Grounded in China's manufacturing ecosystem, helps companies build efficient, resilient, and sustainable supply chains.",
+      "expertise": "Expert supply chain management and procurement strategy specialist — skilled in supplier development, strategic sourcing, quality control, and supply chain digitalization. Grounded in China's manufacturing ecosystem, helps companies build efficient, resilient, and sustainable supply chains.",
       "mainCategory": "General Business & Strategy",
       "classification": "A. Portable",
       "portable": true,
@@ -2901,8 +2784,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\supply-chain-strategist.md"
+      "relatedSpecialists": []
     },
     {
       "id": "support-analytics-reporter",
@@ -2924,8 +2806,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\support-analytics-reporter.md"
+      "relatedSpecialists": []
     },
     {
       "id": "support-executive-summary-generator",
@@ -2947,8 +2828,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\support-executive-summary-generator.md"
+      "relatedSpecialists": []
     },
     {
       "id": "support-finance-tracker",
@@ -2975,8 +2855,7 @@
         "finance-financial-analyst",
         "finance-fpa-analyst",
         "chief-financial-officer"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\support-finance-tracker.md"
+      ]
     },
     {
       "id": "support-infrastructure-maintainer",
@@ -2998,8 +2877,7 @@
       ],
       "priority": "medium",
       "recommendationReason": "Standard specialist",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\support-infrastructure-maintainer.md"
+      "relatedSpecialists": []
     },
     {
       "id": "support-legal-compliance-checker",
@@ -3021,13 +2899,12 @@
       ],
       "priority": "high",
       "recommendationReason": "Terms of service, privacy policies, GDPR/CCPA data handling review",
-      "relatedSpecialists": [],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\support-legal-compliance-checker.md"
+      "relatedSpecialists": []
     },
     {
       "id": "testing-accessibility-auditor",
       "name": "Accessibility Auditor",
-      "expertise": "Expert accessibility specialist who audits interfaces against WCAG standards, tests with assistive technologies, and ensures inclusive design. Defaults to finding barriers \u2014 if it's not tested with a screen reader, it's not accessible.",
+      "expertise": "Expert accessibility specialist who audits interfaces against WCAG standards, tests with assistive technologies, and ensures inclusive design. Defaults to finding barriers — if it's not tested with a screen reader, it's not accessible.",
       "mainCategory": "Testing & QA",
       "classification": "C. Tool-Dependent",
       "portable": true,
@@ -3050,8 +2927,7 @@
         "testing-test-automation-engineer",
         "testing-test-results-analyzer",
         "testing-tool-evaluator"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-accessibility-auditor.md"
+      ]
     },
     {
       "id": "testing-api-tester",
@@ -3081,8 +2957,7 @@
         "testing-test-automation-engineer",
         "testing-test-results-analyzer",
         "testing-tool-evaluator"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-api-tester.md"
+      ]
     },
     {
       "id": "testing-evidence-collector",
@@ -3112,8 +2987,7 @@
         "testing-test-automation-engineer",
         "testing-test-results-analyzer",
         "testing-tool-evaluator"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-evidence-collector.md"
+      ]
     },
     {
       "id": "testing-performance-benchmarker",
@@ -3141,8 +3015,7 @@
         "testing-test-automation-engineer",
         "testing-test-results-analyzer",
         "testing-tool-evaluator"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-performance-benchmarker.md"
+      ]
     },
     {
       "id": "testing-reality-checker",
@@ -3170,13 +3043,12 @@
         "testing-test-automation-engineer",
         "testing-test-results-analyzer",
         "testing-tool-evaluator"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-reality-checker.md"
+      ]
     },
     {
       "id": "testing-test-automation-engineer",
       "name": "Test Automation Engineer",
-      "expertise": "Expert end-to-end test automation engineer for Playwright and Cypress \u2014 resilient selectors, flake elimination, isolated test data, CI parallelization, and trace-driven failure debugging.",
+      "expertise": "Expert end-to-end test automation engineer for Playwright and Cypress — resilient selectors, flake elimination, isolated test data, CI parallelization, and trace-driven failure debugging.",
       "mainCategory": "Testing & QA",
       "classification": "A. Portable",
       "portable": true,
@@ -3201,8 +3073,7 @@
         "testing-reality-checker",
         "testing-test-results-analyzer",
         "testing-tool-evaluator"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-test-automation-engineer.md"
+      ]
     },
     {
       "id": "testing-test-results-analyzer",
@@ -3232,8 +3103,7 @@
         "testing-reality-checker",
         "testing-test-automation-engineer",
         "testing-tool-evaluator"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-test-results-analyzer.md"
+      ]
     },
     {
       "id": "testing-tool-evaluator",
@@ -3263,8 +3133,7 @@
         "testing-reality-checker",
         "testing-test-automation-engineer",
         "testing-test-results-analyzer"
-      ],
-      "sourceFile": "C:/projects/adaptive-router/specialists\\testing-tool-evaluator.md"
+      ]
     }
   ]
 }

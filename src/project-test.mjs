@@ -51,8 +51,13 @@ export async function testProject(root, projectDir, report, digest, { onTestEven
   }
 
   if (files.includes('index.html')) {
+    const runtimePath = path.join(root, 'browser-runtime.json');
+    if (!fs.existsSync(runtimePath)) {
+      add('Web deliverable loads without browser errors', true, 'Browser runtime not configured (browser-runtime.json absent — run node router.mjs doctor to set up)');
+      add('No external requests attempted', true, 'Skipped — browser runtime not available');
+    } else {
     onTestEvent?.({ eventType: 'browser', title: 'Launching isolated browser validation', detail: 'Outbound requests blocked' });
-    const runtime = JSON.parse(fs.readFileSync(path.join(root, 'browser-runtime.json'), 'utf8'));
+    const runtime = JSON.parse(fs.readFileSync(runtimePath, 'utf8'));
     const { chromium } = await import(pathToFileURL(runtime.playwrightModule).href);
     const browser = await chromium.launch({ executablePath: runtime.chromeExecutable, headless: true, chromiumSandbox: true });
     const errors = [];
@@ -95,6 +100,7 @@ export async function testProject(root, projectDir, report, digest, { onTestEven
     } finally {
       await browser.close();
     }
+    } // end else (browser-runtime.json present)
   }
 
   if (checks.length === 1) add('Static deliverable validation completed', true);

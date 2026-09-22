@@ -140,13 +140,21 @@ export function loadSpecialistInstructions(id, root = defaultRoot, options = {})
   if (!specialist) {
     throw new Error(`Specialist '${id}' not found in registry.`);
   }
-  if (options.concise) {
+  if (options.concise || !specialist.sourceFile) {
+    // Concise mode: built from registry fields (no file read required).
+    // Also used as fallback when sourceFile is absent (e.g. OSS installs where
+    // specialist source docs are not bundled — the summary fields are enough for
+    // routine task guidance).
     const lines = [`Specialist: ${specialist.name}`, `Expertise: ${specialist.expertise}`];
     if (specialist.recommendationReason) lines.push(`Apply when relevant: ${specialist.recommendationReason}`);
     return lines.join('\n');
   }
   if (!fs.existsSync(specialist.sourceFile)) {
-    throw new Error(`Source file for specialist '${id}' not found at ${specialist.sourceFile}`);
+    // Source file path is present in registry but the file doesn't exist on this machine.
+    // Fall back to concise mode rather than throwing — the specialist can still contribute.
+    const lines = [`Specialist: ${specialist.name}`, `Expertise: ${specialist.expertise}`];
+    if (specialist.recommendationReason) lines.push(`Apply when relevant: ${specialist.recommendationReason}`);
+    return lines.join('\n');
   }
   const raw = fs.readFileSync(specialist.sourceFile, 'utf8');
   // Strip YAML frontmatter if present to return pure system instructions
