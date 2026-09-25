@@ -259,14 +259,14 @@ Failed tests → automatic retry with feedback. Passing tests + review → waits
 
 ## Project Status
 
-Adaptive Router is an **experimental early-stage project** (v0.1.0). It was built as a personal productivity tool and is being open-sourced because it contains potentially useful patterns for developers building AI orchestration systems.
+Adaptive Router is an **experimental, early-stage open-source project** (v0.1.0). It was built as a personal productivity tool and is being open-sourced because it contains potentially useful patterns for developers building AI orchestration systems.
 
 It is functional and has a passing automated test suite, but:
 - It has not been battle-tested at scale
 - Some features are stubs (planning AI, tunnel configuration)
 - Windows is the primary tested platform
 
-Future development will focus on community contributions and maintenance rather than aggressive feature expansion.
+Feedback, bug reports, testing, and contributions are welcome through GitHub Issues and Discussions. Future development will focus on community contributions and maintenance rather than aggressive feature expansion.
 
 ---
 
